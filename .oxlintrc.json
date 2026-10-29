@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "import", "vitest"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "vitest", "react", "jsx-a11y"],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -15,6 +15,7 @@
     "import/first": "error",
     "import/no-duplicates": "error",
     "import/no-cycle": "error",
+    "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
   },
   "env": {
