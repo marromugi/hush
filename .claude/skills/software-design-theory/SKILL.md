@@ -1,6 +1,6 @@
 ---
 name: software-design-theory
-description: "The yardstick for every design judgment in this repo: the principles a design follows, which calls the maker decides alone and which go to the developer, what tests are for and how to spot one that guards nothing, and how a pull request is reviewed. Other skills read this instead of holding their own copy — architect when it shapes a design, implementer when it builds and when it changes a design on the way, reviewer when it judges a PR and its tests. Use it whenever a design is being proposed, compared, or defended, and whenever someone asks whether a test earns its place."
+description: "The yardstick for every design judgment in this repo: the principles a design follows, which calls the maker decides alone and which go to the developer, what tests are for and how to spot one that guards nothing, and how a pull request is reviewed. Other skills read this instead of holding their own copy — whats-next when a round is designed and built, is-it-right when a PR and its tests are judged. Use it whenever a design is being proposed, compared, or defended, and whenever someone asks whether a test earns its place."
 ---
 
 # Software design theory
