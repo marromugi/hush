@@ -1,4 +1,15 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [".claude", "src-tauri/target", "src-tauri/gen"]
+  "ignorePatterns": [".claude", "src-tauri/target", "src-tauri/gen"],
+  "sortImports": {
+    "groups": [
+      "builtin",
+      "external",
+      ["internal", "subpath"],
+      ["parent", "sibling", "index"],
+      "style",
+      "unknown"
+    ],
+    "newlinesBetween": true
+  }
 }
