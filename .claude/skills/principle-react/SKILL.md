@@ -21,6 +21,22 @@ Why: a plain function is the easiest thing to test (Vitest, no DOM) and to move.
 If the markup needs a value the hook doesn't give, add it to the hook (or a function) instead of computing it inline.
 Why: once computation creeps into the component, the line between "screen" and "logic" disappears.
 
+**Fixed options passed to a library hook are configuration, not logic.**
+A component may call `useEditor({ extensions: [StarterKit] })` directly. Once the call grows handlers, state, or branches (saving on update, switching extensions), move it into a custom hook such as `useDiaryEditor`.
+Why: wrapping a one-line static call in a hook adds a file and a name without making anything easier to read or test.
+
+## State
+
+**Pass a function to `useState` when the initial value is costly to build.**
+`useState(() => parse(raw))`, not `useState(parse(raw))`.
+Why: the argument is evaluated on every render even though only the first result is used.
+(Vercel `rerender-lazy-state-init`)
+
+**Use the functional form of a setter when the next state depends on the previous one.**
+`setItems((items) => [...items, item])`, not `setItems([...items, item])`.
+Why: a callback created earlier closes over an old `items`, so the plain form silently drops updates. The functional form also keeps the callback's dependencies empty.
+(Vercel `rerender-functional-setstate`)
+
 ## Effects: you might not need one
 
 Source: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect). An Effect is for synchronizing with something outside React. If no outside system is involved, there is almost always a better place for the code.
@@ -37,13 +53,13 @@ Source: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-nee
 | Something should run once when the app starts | Module-level code or a module-level "done" flag, in the root module | Effects run twice in development under Strict Mode, and components must survive remounting |
 | A parent should learn about a child's state change | Call the parent's callback in the same handler, or lift the state up | The Effect runs after the screen updates and forces an extra render; handler updates are batched |
 | A parent needs data a child loaded | Load it in the parent (or a hook it calls) and pass it down | Data flowing up through Effects is hard to trace |
-| A value lives in an outside store (browser API, Tauri event) | `useSyncExternalStore`, inside a custom hook | Manually syncing mutable outside data into state is easy to get wrong |
+| An outside store has a current value you can read at any time (`navigator.onLine`, a third-party store) | `useSyncExternalStore`, inside a custom hook | Manually syncing mutable outside data into state is easy to get wrong |
 
 An Effect is the right tool when:
 
-- syncing with a system outside React: a non-React widget, the DOM, the network, Tauri;
+- syncing with a system outside React: a non-React widget, the DOM, the network, Tauri. Tauri events are pushed, not read: subscribe with `listen()` in an Effect and call the returned unlisten function in the cleanup. `listen()` returns a Promise, so it does not fit `useSyncExternalStore`;
 - something must happen because the component is displayed, not because of a user action;
-- loading data that follows the current inputs. Then always clean up (ignore stale responses), and keep the Effect inside a custom hook rather than in the component.
+- loading data that follows the current inputs. Then always clean up (ignore stale responses), and keep the Effect inside a custom hook rather than in the component. When one load depends on the result of another, chaining these Effects is fine; the "chained Effects" row above is about state that could have been computed in a handler.
 
 ## Component shape
 
@@ -51,21 +67,31 @@ An Effect is the right tool when:
 Why: it becomes a new component type on every render, so React unmounts and remounts it, and its state is lost. For an editor, that means losing the text and the cursor.
 (Vercel `rerender-no-inline-components`)
 
-**Use a ternary for conditional rendering, not `&&`.**
-Why: `count && <List />` renders `0` when `count` is `0`. A ternary makes the "else" visible too.
+**Use a ternary when the condition is not a boolean.**
+`count > 0 ? <List /> : null`, not `count && <List />`. A real boolean may use `&&`.
+Why: `&&` renders its left side when it is falsy, so `0` and `NaN` end up on screen.
 (Vercel `rendering-conditional-render`)
 
-**Don't add boolean props to switch a component's behavior or look. Make an explicit variant instead.**
-For looks, that variant is a Tailwind Variants option. For behavior, it is a separate component built from shared parts.
-Why: every boolean doubles the combinations a reader has to hold in mind, and most of them are never used.
+**Don't add boolean props that switch a component into a different mode. Make an explicit variant instead.**
+Mode flags like `isCompact` or `isReadOnly` that change what the component is or does are the target. Plain state such as `disabled`, `loading`, or `open` is fine as a boolean. For looks, the variant is a named Tailwind Variants option (`size: "sm" | "md"`), not a boolean one. For behavior, it is a separate component built from shared parts.
+Why: every mode flag doubles the combinations a reader has to hold in mind, and most of them are never used.
 (Vercel `architecture-avoid-boolean-props`, `patterns-explicit-variants`)
 
-**Pass `children` rather than `renderX` props.**
-Why: children read like the markup they produce; a render prop hides markup inside a function argument.
+**Pass `children` rather than `renderX` props, unless the parent has to hand data to what it renders.**
+A list that renders each entry may take `renderItem={(entry) => ...}`; a layout slot takes `children`.
+Why: children read like the markup they produce; a render prop hides markup inside a function argument. It is only worth that when the child needs the parent's data.
 (Vercel `patterns-children-over-render-props`)
 
 **Don't use `forwardRef`; take `ref` as a normal prop.**
 Why: React 19 passes `ref` as a prop, so the wrapper is noise.
 (Vercel `react19-no-forwardref`)
 
-Vercel rules come from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (`react-best-practices`, `composition-patterns`). Only the rules that apply to Hush are taken. Most of the rest target Next.js and server rendering, which Hush doesn't have.
+## What was taken from Vercel, and what wasn't
+
+Vercel rules come from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (`react-best-practices`, `composition-patterns`). The rules above were taken because they prevent bugs or shape how components are built.
+
+Left out for now:
+
+- Server and Next.js rules (`server-*`, `async-*`, hydration): Hush has no server rendering.
+- Performance tuning (most `rerender-*`, `rendering-*`, `js-*`, `bundle-*`): nothing in Hush is measurably slow yet. Take a rule when a measurement points at it.
+- Component library patterns (`architecture-compound-components`, `state-*`): Hush has a handful of components. Revisit when one grows several parts that share state.
