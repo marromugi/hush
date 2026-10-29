@@ -19,7 +19,7 @@ Work moves in small rounds. The main conversation drives every round and keeps t
 
    Keep this short. The aim is a shared picture of the goal, not a spec document.
 
-3. **Design, and write down the assumptions.** List what the design takes to be true: how an API behaves, what a platform allows, what existing code does. They go in the PR description, so that a later surprise can be traced back.
+3. **Design, and write down the assumptions.** List what the design takes to be true: how an API behaves, what a platform allows, what existing code does. Check each one against its source first, following `software-design-theory`. They go in the PR description, so that a later surprise can be traced back.
 
 4. **Build small.** Make the smallest change that can be run and reviewed on its own; split anything bigger into more rounds. Branch from `main` and commit following `.claude/rules/commits.md`. While building, watch for anything that contradicts the assumptions. When one breaks, follow `why-wrong`.
 
