@@ -18,7 +18,12 @@ before any code exists.
   leave open. Names, values, formats, and how a small defect is handled are
   the maker's. The maker lists them in the issue's `Decided` section, or in
   the PR body when there is no issue, where the developer can overturn them.
-- A question that running something can answer is settled by running it.
+- A question that running something or reading the source can answer is
+  settled that way. A claim about a source (a library's types, a document,
+  another project's rules) holds only for the part that was read: read the
+  rest before relying on it, or word the claim to cover only what was read.
+  Anything taken from a source is checked against its full text, not a
+  summary of it.
 - Only what the section "What goes to the developer" names is asked.
   Everything else proceeds, and the result is shown afterwards.
 - This file is a general theory of software design. An answer enters it
