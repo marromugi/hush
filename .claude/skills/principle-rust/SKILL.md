@@ -19,7 +19,7 @@ Why: in a diary app, typos and network failures are everyday events, and an app 
 
 ## One error type
 
-**The app has one error type, `AppError`, built with `thiserror`. Each kind of failure is its own variant; errors from other crates come in through `#[from]`.**
+**The app has one error type, `AppError`, built with `thiserror`. Each kind of failure is its own variant, and an error from another crate is kept as the variant's source.**
 
 ```rust
 #[derive(Debug, thiserror::Error)]
@@ -29,8 +29,17 @@ pub enum AppError {
 
     #[error("network error")]
     Network(#[from] reqwest::Error),
+
+    #[error("entry file is broken")]
+    BrokenEntry(#[source] serde_json::Error),
+
+    #[error("vault file is broken")]
+    BrokenVault(#[source] serde_json::Error),
 }
 ```
+
+Use `#[from]` only when every error of that foreign type means the same kind of failure, as with `reqwest::Error` here. When one foreign type can mean several kinds (a `serde_json::Error` from an entry versus from `vault.json`), use `#[source]` and pick the variant with `map_err` where the error happens: `.map_err(AppError::BrokenEntry)?`.
+Why: two `#[from]` for the same type do not compile (conflicting `From` impls), and folding them into one variant loses the difference the frontend needs.
 
 Why: the frontend reacts differently to each kind of failure (red input, retry button, "can't open this day"), so the kinds must be separate in the type. Tauri also requires a command's error to be `Serialize`, which `anyhow::Error` is not. One type means commands never convert between error types. Split it only if it grows too many variants to read.
 (Microsoft `M-APP-ERROR` recommends `anyhow` for apps; Hush takes `thiserror` for the two reasons above. `M-FROM-ERROR` for `#[from]`.)
@@ -42,11 +51,12 @@ Why: the frontend reacts differently to each kind of failure (red input, retry b
 ```rust
 #[tauri::command]
 pub async fn read_entry(date: String, state: State<'_, AppState>) -> Result<String, AppError> {
-    entry::read(&state, &date)
+    entry::read(&state, &date) // entry::read takes &AppState, not State
 }
 ```
 
-Why: a plain function can be tested with `cargo test` without starting Tauri. This is the Rust side of "components render; logic lives elsewhere" in `principle-react`.
+The plain function takes `&AppState` or the plain data it needs, never `tauri::State`. `&State<AppState>` turns into `&AppState` on its own at the call.
+Why: a plain function can be tested with `cargo test` without starting Tauri, but only if a test can build its arguments; `tauri::State` has no public constructor. This is the Rust side of "components render; logic lives elsewhere" in `principle-react`.
 
 **`AppError` reaches the frontend as `{ kind, message }`. The frontend picks its words from `kind`; `message` is for debugging only.**
 
@@ -56,13 +66,28 @@ impl serde::Serialize for AppError {
         use serde::ser::SerializeStruct;
         let mut s = serializer.serialize_struct("AppError", 2)?;
         s.serialize_field("kind", self.kind())?; // "wrongPassphrase", "network", ...
-        s.serialize_field("message", &self.to_string())?;
+        s.serialize_field("message", &self.debug_message())?;
         s.end()
+    }
+}
+
+impl AppError {
+    /// This error's text followed by each underlying error's text.
+    fn debug_message(&self) -> String {
+        let mut message = self.to_string();
+        let mut source = std::error::Error::source(self);
+        while let Some(error) = source {
+            message.push_str(": ");
+            message.push_str(&error.to_string());
+            source = error.source();
+        }
+        message
     }
 }
 ```
 
-Why: the frontend branches on the kind. Rust error text can carry file paths or URLs and is not meant to be shown to people.
+`to_string()` alone gives only the variant's own `#[error]` text ("network error"), not the underlying error, so `message` follows the source chain.
+Why: the frontend branches on the kind. Rust error text can carry file paths or URLs and is not meant to be shown to people. What may appear in `message` once tokens are involved is decided with the secrets work.
 ([Tauri: Calling Rust, Error Handling](https://v2.tauri.app/develop/calling-rust/))
 
 **Every command is an `async fn`.**
@@ -109,8 +134,26 @@ The same repository is read by the Mac and the iPhone, which may run different v
 **When a file's shape changes, bump its `version`. A file with a version the app doesn't know is not read; it is an error that asks for an app update.**
 Why: an older app that quietly reads a newer file drops the fields it doesn't know, and saving the entry then erases them.
 
+**Read `version` on its own first, then parse the whole file.**
+
+```rust
+#[derive(Deserialize)]
+struct VersionOnly {
+    version: u32,
+}
+
+let VersionOnly { version } = serde_json::from_str(text).map_err(AppError::BrokenVault)?;
+if version > VAULT_VERSION {
+    return Err(AppError::NewerVaultVersion(version));
+}
+let vault: Vault = serde_json::from_str(text).map_err(AppError::BrokenVault)?;
+```
+
+`VersionOnly` has no `deny_unknown_fields`, so it reads the version from any file.
+Why: parsing the full struct first fails on the new fields before the version is ever compared, and the app reports a broken file instead of asking for an update.
+
 **File structs carry `#[serde(deny_unknown_fields)]`.**
-Why: with versions bumped on every change, an unknown field at a known version means a bug or a broken file, so reading stops there.
+Why: once the version is known to match, an unknown field means a bug or a broken file, so reading stops there.
 (leonardomso/rust-skills `serde-deny-unknown-fields`. That rule skips extensible structs; Hush handles extension through the version instead.)
 
 **A field added in a later version gets `#[serde(default)]` on that field only, never on the whole struct.**
