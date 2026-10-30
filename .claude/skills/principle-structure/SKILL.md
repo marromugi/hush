@@ -90,4 +90,3 @@ Why: the test is found by looking at the code, and moving the unit moves its tes
 
 **Every component in `src/components/` has a story.** A component nested inside another component may skip it.
 Why: shared components are the ones looked at on their own; a nested child is seen through its parent's story.
-This applies once Storybook is installed (`storybook` in `package.json`). Before that, a story file fails `tsc` and breaks the build.
