@@ -98,6 +98,8 @@ Why: `tv()` resolves conflicts with tailwind-merge, which doesn't know names fro
 <Button tone={isSaved ? "neutral" : "primary"}>保存</Button>
 ```
 
+A choice made from one value stays in the markup like this. When it depends on more than one value, or the same choice is made in two places, it goes in a function, where it can be named and tested.
+
 Classes a feature component adds itself are written with `clsx`, or as a plain string when there is only one group.
 Why: a feature component's props say what something is (`isSaved`, `entry`), and some of them also affect how it looks. Turning such a prop into a `tv()` variant gives it a second, visual meaning, so the prop no longer says plainly what it is. Translating it at the point of use keeps "what it is" in the feature component and "how it looks" in the ui component.
 
