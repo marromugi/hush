@@ -21,7 +21,7 @@ Work moves in small rounds. The main conversation drives every round and keeps t
 
 3. **Design, and write down the assumptions.** List what the design takes to be true: how an API behaves, what a platform allows, what existing code does. Check each one against its source first, following `software-design-theory`. They go in the PR description, so that a later surprise can be traced back.
 
-4. **Build small.** Make the smallest change that can be run and reviewed on its own; split anything bigger into more rounds. Branch from `main` and commit following `.claude/rules/commits.md`. While building, watch for anything that contradicts the assumptions. When one breaks, follow `why-wrong`. Also watch for a meaning that now appears a second time (a style, a value, a piece of logic): give it one name in this PR and say so in the description (`principle-styling` for styles).
+4. **Build small.** Make the smallest change that can be run and reviewed on its own; split anything bigger into more rounds. Branch from `main` and commit following `.claude/rules/commits.md`. While building, watch for anything that contradicts the assumptions. When one breaks, follow `why-wrong`. A meaning that appears a second time gets one name in this PR.
 
 5. **Review.** Open the PR, wait for CI, then review it following `is-it-right`. Fix what holds up, and tell the developer what was found and what changed.
 
