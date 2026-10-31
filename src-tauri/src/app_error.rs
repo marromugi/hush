@@ -10,4 +10,22 @@ pub enum AppError {
 
     #[error("encryption failed")]
     Encryption,
+
+    #[error("system random number generator failed")]
+    Random(#[source] getrandom::Error),
+
+    #[error("wrong passphrase")]
+    WrongPassphrase,
+
+    #[error("vault.json is version {0}, newer than this app")]
+    NewerVaultVersion(u32),
+
+    #[error("vault.json is broken")]
+    BrokenVault(#[source] serde_json::Error),
+
+    #[error("entry file is version {0}, newer than this app")]
+    NewerEntryVersion(u32),
+
+    #[error("entry file is broken")]
+    BrokenEntry(#[source] serde_json::Error),
 }
