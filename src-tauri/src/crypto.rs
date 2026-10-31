@@ -1,10 +1,10 @@
 use std::fmt;
 
-use argon2::{Algorithm, Argon2, Params, Version};
+use argon2::{Algorithm, Argon2, Block, Params, Version};
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::XNonce;
 use chacha20poly1305::aead::{Aead, Generate, KeyInit, Payload};
-use zeroize::ZeroizeOnDrop;
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::app_error::AppError;
 
@@ -28,9 +28,10 @@ pub const DEFAULT_KDF: KdfParams = KdfParams {
 };
 
 /// The key derived from the passphrase. Wiped from memory when dropped,
-/// never cloned, and never printed.
+/// never cloned, and never printed. The bytes live on the heap so moving a
+/// `VaultKey` moves a pointer and leaves no copy of the key behind.
 #[derive(ZeroizeOnDrop)]
-pub struct VaultKey([u8; KEY_LEN]);
+pub struct VaultKey(Box<[u8; KEY_LEN]>);
 
 impl fmt::Debug for VaultKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -57,9 +58,12 @@ pub fn derive_key(
         Some(KEY_LEN),
     )
     .map_err(AppError::KeyDerivation)?;
-    let mut key = VaultKey([0; KEY_LEN]);
+    // Argon2's working memory holds the key's direct preimage, so it is
+    // allocated here and wiped on drop instead of being freed as is.
+    let mut blocks = Zeroizing::new(vec![Block::default(); params.block_count()]);
+    let mut key = VaultKey(Box::new([0; KEY_LEN]));
     Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-        .hash_password_into(passphrase.as_bytes(), salt, &mut key.0)
+        .hash_password_into_with_memory(passphrase.as_bytes(), salt, &mut key.0[..], &mut *blocks)
         .map_err(AppError::KeyDerivation)?;
     Ok(key)
 }
@@ -68,7 +72,7 @@ pub fn derive_key(
 /// not encrypted; Hush passes the entry's file path so a file moved to another
 /// path fails to decrypt.
 pub fn encrypt(key: &VaultKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed, AppError> {
-    let nonce = XNonce::generate();
+    let nonce = XNonce::try_generate().map_err(|_| AppError::Encryption)?;
     let ciphertext = cipher(key)
         .encrypt(
             &nonce,
@@ -97,7 +101,7 @@ pub fn decrypt(key: &VaultKey, aad: &[u8], sealed: &Sealed) -> Result<Vec<u8>, A
 }
 
 fn cipher(key: &VaultKey) -> XChaCha20Poly1305 {
-    XChaCha20Poly1305::new((&key.0).into())
+    XChaCha20Poly1305::new((&*key.0).into())
 }
 
 #[cfg(test)]
@@ -169,5 +173,37 @@ mod tests {
     #[test]
     fn debug_never_shows_the_key() {
         assert_eq!(format!("{:?}", key("correct horse")), "VaultKey(..)");
+    }
+
+    #[test]
+    fn a_new_derivation_opens_what_an_earlier_one_sealed() {
+        let sealed = encrypt(&key("correct horse"), PATH, b"diary").unwrap();
+        assert_eq!(
+            decrypt(&key("correct horse"), PATH, &sealed).unwrap(),
+            b"diary"
+        );
+    }
+
+    /// If this value changes, every existing vault stops opening. Change it
+    /// only together with a vault format version bump.
+    #[test]
+    fn default_kdf_gives_the_known_key() {
+        let key = derive_key(
+            "correct horse battery staple",
+            b"hush-test-salt!!",
+            &DEFAULT_KDF,
+        )
+        .unwrap();
+        let hex: String = key.0.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hex,
+            "355ff41745b7e2e6220616e72f25657a4b451a372bae074de5f0a880933b8873"
+        );
+    }
+
+    #[test]
+    fn vault_key_is_wiped_on_drop() {
+        fn wiped_on_drop<T: ZeroizeOnDrop>() {}
+        wiped_on_drop::<VaultKey>();
     }
 }
