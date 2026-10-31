@@ -4,9 +4,11 @@ use argon2::{Algorithm, Argon2, Block, Params, Version};
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::XNonce;
 use chacha20poly1305::aead::{Aead, Generate, KeyInit, Payload};
+use serde::{Deserialize, Serialize};
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::app_error::AppError;
+use crate::b64;
 
 pub const KEY_LEN: usize = 32;
 pub const NONCE_LEN: usize = 24;
@@ -40,10 +42,19 @@ impl fmt::Debug for VaultKey {
 }
 
 /// A nonce and the ciphertext it produced. Neither is secret.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Sealed {
+    #[serde(with = "b64::array")]
     pub nonce: [u8; NONCE_LEN],
+    #[serde(with = "b64::vec")]
     pub ciphertext: Vec<u8>,
+}
+
+pub fn new_salt() -> Result<[u8; SALT_LEN], AppError> {
+    let mut salt = [0; SALT_LEN];
+    getrandom::fill(&mut salt).map_err(AppError::Random)?;
+    Ok(salt)
 }
 
 pub fn derive_key(
@@ -72,7 +83,7 @@ pub fn derive_key(
 /// not encrypted; Hush passes the entry's file path so a file moved to another
 /// path fails to decrypt.
 pub fn encrypt(key: &VaultKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed, AppError> {
-    let nonce = XNonce::try_generate().map_err(|_| AppError::Encryption)?;
+    let nonce = XNonce::try_generate().map_err(AppError::Random)?;
     let ciphertext = cipher(key)
         .encrypt(
             &nonce,

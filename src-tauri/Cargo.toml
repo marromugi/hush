@@ -25,6 +25,8 @@ chacha20poly1305 = { version = "0.11.0", features = ["zeroize"] }
 thiserror = "2.0.21"
 argon2 = { version = "0.6.0", features = ["zeroize"] }
 zeroize = { version = "1.9.1", features = ["derive"] }
+base64ct = { version = "1.8.3", features = ["alloc"] }
+getrandom = "0.4.3"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
