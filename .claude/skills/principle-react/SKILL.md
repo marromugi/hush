@@ -18,12 +18,8 @@ Prefer the plain function when both would work.
 Why: a plain function is the easiest thing to test (Vitest, no DOM) and to move. A hook is only worth its rules (call order, dependencies) when it needs React.
 
 **A component calls hooks and passes their results down; it does not rework them.**
-If the markup needs a value the hook doesn't give, add it to the hook (or a function) instead of computing it inline.
+If the markup needs a value the hook doesn't give, add it to the hook (or a function) instead of computing it inline. Choosing a ui component's variant is the exception (see `principle-styling`).
 Why: once computation creeps into the component, the line between "screen" and "logic" disappears.
-
-**Picking one of a ui component's variants from a single value is markup, not logic.**
-`<Button tone={isSaved ? "neutral" : "primary"}>` stays in the component (see `principle-styling`). When the choice depends on more than one value, or the same choice is made in two places, it goes in a function.
-Why: a one-condition choice of look reads as part of the screen, and moving it out would hide what the screen shows. Anything beyond that is a rule worth naming and testing.
 
 **Fixed options passed to a library hook are configuration, not logic.**
 A component may call `useEditor({ extensions: [StarterKit] })` directly. Once the call grows handlers, state, or branches (saving on update, switching extensions), move it into a custom hook such as `useDiaryEditor`.
