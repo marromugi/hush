@@ -7,7 +7,14 @@ export function DiaryEditor() {
     extensions: [StarterKit],
     editorProps: {
       attributes: {
-        class: clsx("min-h-[60vh]", "prose prose-stone prose-lg dark:prose-invert", "outline-none"),
+        class: clsx(
+          // size
+          "min-h-[60vh]",
+          // typography
+          "prose prose-stone prose-lg dark:prose-invert",
+          // focus
+          "outline-none",
+        ),
       },
     },
   });
