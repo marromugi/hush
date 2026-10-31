@@ -57,18 +57,26 @@ pub fn new_salt() -> Result<[u8; SALT_LEN], AppError> {
     Ok(salt)
 }
 
-pub fn derive_key(
-    passphrase: &str,
-    salt: &[u8; SALT_LEN],
-    params: &KdfParams,
-) -> Result<VaultKey, AppError> {
-    let params = Params::new(
+/// Whether Argon2 accepts these settings.
+pub fn check_kdf(params: &KdfParams) -> Result<(), argon2::Error> {
+    argon2_params(params).map(|_| ())
+}
+
+fn argon2_params(params: &KdfParams) -> Result<Params, argon2::Error> {
+    Params::new(
         params.memory_kib,
         params.iterations,
         params.parallelism,
         Some(KEY_LEN),
     )
-    .map_err(AppError::KeyDerivation)?;
+}
+
+pub fn derive_key(
+    passphrase: &str,
+    salt: &[u8; SALT_LEN],
+    params: &KdfParams,
+) -> Result<VaultKey, AppError> {
+    let params = argon2_params(params).map_err(AppError::KeyDerivation)?;
     // Argon2's working memory holds the key's direct preimage, so it is
     // allocated here and wiped on drop instead of being freed as is.
     let mut blocks = Zeroizing::new(vec![Block::default(); params.block_count()]);

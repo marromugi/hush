@@ -110,7 +110,15 @@ pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppEr
             ciphertext: file.ciphertext,
         },
     )?;
-    serde_json::from_slice(&plaintext).map_err(AppError::BrokenEntry)
+    let entry: Entry = serde_json::from_slice(&plaintext).map_err(AppError::BrokenEntry)?;
+    if entry.date != *date {
+        return Err(AppError::BrokenEntry(de::Error::custom(format!(
+            "entry for {} found at {}",
+            entry.date.0,
+            date.path()
+        ))));
+    }
+    Ok(entry)
 }
 
 #[cfg(test)]
@@ -187,6 +195,10 @@ mod tests {
                 EntryDate::try_from(text.to_string()).is_err(),
                 "{text:?} was accepted"
             );
+            assert!(
+                serde_json::from_value::<EntryDate>(text.into()).is_err(),
+                "{text:?} was read from JSON"
+            );
         }
     }
 
@@ -225,5 +237,88 @@ mod tests {
             open(&key("correct horse"), &date("2026-10-29"), &text),
             Err(AppError::BrokenEntry(_))
         ));
+    }
+
+    #[test]
+    fn version_zero_is_broken() {
+        let text = file_with(|v| v["version"] = 0.into());
+        assert!(matches!(
+            open(&key("correct horse"), &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    /// Seals arbitrary JSON as if it were an `Entry`, the way a faulty writer
+    /// in the other app might, and returns the entry file for `day`.
+    fn file_containing(key: &VaultKey, day: &str, inner: serde_json::Value) -> String {
+        let Sealed { nonce, ciphertext } = crypto::encrypt(
+            key,
+            date(day).path().as_bytes(),
+            inner.to_string().as_bytes(),
+        )
+        .unwrap();
+        serde_json::to_string(&EntryFile {
+            version: ENTRY_VERSION,
+            nonce,
+            ciphertext,
+        })
+        .unwrap()
+    }
+
+    fn inner_entry() -> serde_json::Value {
+        serde_json::to_value(entry("2026-10-29")).unwrap()
+    }
+
+    #[test]
+    fn a_malformed_date_inside_the_entry_is_broken() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["date"] = "2026-13-01".into();
+        let text = file_containing(&key, "2026-10-29", inner);
+        assert!(matches!(
+            open(&key, &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    #[test]
+    fn an_unknown_field_inside_the_entry_is_broken() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["mood"] = "sunny".into();
+        let text = file_containing(&key, "2026-10-29", inner);
+        assert!(matches!(
+            open(&key, &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    #[test]
+    fn an_entry_for_another_day_at_this_path_is_broken() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["date"] = "2026-10-30".into();
+        let text = file_containing(&key, "2026-10-29", inner);
+        assert!(matches!(
+            open(&key, &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    /// An entry file as this format writes it, sealed with `key("correct horse")`
+    /// for `entry("2026-10-29")`. The Mac and iPhone apps both read these
+    /// files, so field names and the Base64 form must not drift.
+    const FIXTURE: &str = r#"{
+  "version": 1,
+  "nonce": "Bj/f4qt/p+mTREWG+2chiSgOGeNeA3jo",
+  "ciphertext": "NIRjQNvdOBoQum8t57ESe7oE5Tbyq/pWa+M/ognKr3gZoOWkvdifhq9ufD9gpiwoZH9x2ckmMMieVhYpq4ZEPQki0a7RL0C/TBEHTOAyM9CreDz9zmhJiwhUteO4YbnpR3YxffujNfKsI1mHuUx6XjhipHYtgj9ix7M="
+}"#;
+
+    #[test]
+    fn the_fixed_entry_file_opens_to_the_known_entry() {
+        assert_eq!(
+            open(&key("correct horse"), &date("2026-10-29"), FIXTURE).unwrap(),
+            entry("2026-10-29")
+        );
     }
 }
