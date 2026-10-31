@@ -73,7 +73,7 @@ Why: `&&` renders its left side when it is falsy, so `0` and `NaN` end up on scr
 (Vercel `rendering-conditional-render`)
 
 **Don't add boolean props that switch a component into a different mode. Make an explicit variant instead.**
-Mode flags like `isCompact` or `isReadOnly` that change what the component is or does are the target. Plain state such as `disabled`, `loading`, or `open` is fine as a boolean. For looks, the variant is a named Tailwind Variants option (`size: "sm" | "md"`), not a boolean one. For behavior, it is a separate component built from shared parts.
+Mode flags like `isCompact` or `isReadOnly` that change what the component is or does are the target. Plain state such as `disabled`, `loading`, or `open` is fine as a boolean. For looks, a ui component takes a named variant (`size: "sm" | "md"`, see `principle-styling`), not a boolean one. For behavior, it is a separate component built from shared parts.
 Why: every mode flag doubles the combinations a reader has to hold in mind, and most of them are never used.
 (Vercel `architecture-avoid-boolean-props`, `patterns-explicit-variants`)
 

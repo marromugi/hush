@@ -21,6 +21,13 @@ DiaryEditor/
   DiaryEditor.stories.tsx
   index.ts
 
+Button/                    # a ui component also has style.ts (see principle-styling)
+  Button.tsx
+  style.ts                 # its tv() definition
+  type.ts
+  Button.stories.tsx
+  index.ts
+
 useDiaryEditor/
   useDiaryEditor.ts
   useDiaryEditor.test.ts
