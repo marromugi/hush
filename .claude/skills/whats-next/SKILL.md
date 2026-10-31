@@ -5,7 +5,7 @@ description: "How work moves in this repo: small rounds of understanding, agreei
 
 # What's next?
 
-Work moves in small rounds. The main conversation drives every round and keeps the decisions. Subagents are hands for it: exploring code, running things, checking how a library or API actually behaves, giving a diff a fresh read. They don't own a stage of the work.
+Work moves in small rounds. The main conversation drives every round and keeps the decisions. Subagents are hands for it: exploring code, running things, checking how a library or API actually behaves, giving a diff a fresh read. They don't own a stage of the work. Every prompt to a subagent says what it may leave behind: nothing in the repo, anything it runs in a fresh directory under `/private/tmp`, and every process stopped and that directory removed before it reports.
 
 ## One round
 
