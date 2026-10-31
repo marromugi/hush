@@ -79,13 +79,17 @@ impl TryFrom<RawKdf> for StoredKdf {
                 raw.parallelism
             ));
         }
-        Ok(StoredKdf {
+        let kdf = StoredKdf {
             algorithm: raw.algorithm,
             memory_kib: raw.memory_kib,
             iterations: raw.iterations,
             parallelism: raw.parallelism,
             salt: raw.salt,
-        })
+        };
+        // Argon2's own lower limits, so a broken file is reported as broken
+        // here rather than as a failed key derivation after the passphrase.
+        crypto::check_kdf(&kdf.params()).map_err(|e| format!("kdf: {e}"))?;
+        Ok(kdf)
     }
 }
 
@@ -135,11 +139,13 @@ impl Vault {
     }
 
     /// Derives the key from `passphrase` and checks it against the verifier.
+    /// The cipher authenticates the verifier, so decrypting it at all proves
+    /// the key.
     pub fn unlock(&self, passphrase: &str) -> Result<VaultKey, AppError> {
         let key = crypto::derive_key(passphrase, &self.kdf.salt, &self.kdf.params())?;
         match crypto::decrypt(&key, VERIFIER_AAD, &self.verifier) {
-            Ok(text) if text == VERIFIER_TEXT => Ok(key),
-            Ok(_) | Err(AppError::Decryption) => Err(AppError::WrongPassphrase),
+            Ok(_) => Ok(key),
+            Err(AppError::Decryption) => Err(AppError::WrongPassphrase),
             Err(other) => Err(other),
         }
     }
@@ -254,5 +260,56 @@ mod tests {
     fn another_algorithm_is_broken() {
         let text = json_with(|v| v["kdf"]["algorithm"] = "scrypt".into());
         assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+    }
+
+    #[test]
+    fn kdf_settings_below_argon2s_limits_are_broken() {
+        for (field, value) in [("memory_kib", 0), ("iterations", 0), ("parallelism", 0)] {
+            let text = json_with(|v| v["kdf"][field] = value.into());
+            assert!(
+                matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))),
+                "{field} = {value} was accepted"
+            );
+        }
+        let text = json_with(|v| {
+            v["kdf"]["memory_kib"] = 8.into();
+            v["kdf"]["parallelism"] = 8.into();
+        });
+        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+    }
+
+    #[test]
+    fn unknown_fields_nested_in_kdf_or_verifier_are_broken() {
+        for section in ["kdf", "verifier"] {
+            let text = json_with(|v| v[section]["extra"] = 1.into());
+            assert!(
+                matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))),
+                "extra field in {section} was accepted"
+            );
+        }
+    }
+
+    /// A vault.json as this format writes it. The Mac and iPhone apps both
+    /// read these files, so field names and the Base64 form must not drift.
+    const FIXTURE: &str = r#"{
+  "version": 1,
+  "kdf": {
+    "algorithm": "argon2id",
+    "memory_kib": 8,
+    "iterations": 1,
+    "parallelism": 1,
+    "salt": "CQkJCQkJCQkJCQkJCQkJCQ=="
+  },
+  "verifier": {
+    "nonce": "vesARyJiSvEzaAR3w7JmzlkoZz25kaQ/",
+    "ciphertext": "gd3NST4zTbwTNLiiy3Fh7XAX6ZVOgfoSYlITFKw="
+  }
+}"#;
+
+    #[test]
+    fn the_fixed_vault_json_reads_unlocks_and_writes_back_unchanged() {
+        let vault = Vault::parse(FIXTURE).unwrap();
+        assert!(vault.unlock("correct horse").is_ok());
+        assert_eq!(vault.to_json(), FIXTURE);
     }
 }
