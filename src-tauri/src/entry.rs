@@ -110,7 +110,13 @@ pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppEr
             ciphertext: file.ciphertext,
         },
     )?;
-    let entry: Entry = serde_json::from_slice(&plaintext).map_err(AppError::BrokenEntry)?;
+    // serde's message can quote the decrypted text, and errors reach the
+    // frontend, so only that the format is wrong is reported.
+    let entry: Entry = serde_json::from_slice(&plaintext).map_err(|_| {
+        AppError::BrokenEntry(de::Error::custom(
+            "decrypted entry is not in the entry format",
+        ))
+    })?;
     if entry.date != *date {
         return Err(AppError::BrokenEntry(de::Error::custom(format!(
             "entry for {} found at {}",
@@ -291,6 +297,17 @@ mod tests {
             open(&key, &date("2026-10-29"), &text),
             Err(AppError::BrokenEntry(_))
         ));
+    }
+
+    #[test]
+    fn the_error_for_a_broken_entry_never_quotes_its_text() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["created_at_ms"] = "secret words".into();
+        let text = file_containing(&key, "2026-10-29", inner);
+        let error = open(&key, &date("2026-10-29"), &text).unwrap_err();
+        let message = serde_json::to_value(&error).unwrap()["message"].to_string();
+        assert!(!message.contains("secret words"), "{message}");
     }
 
     #[test]

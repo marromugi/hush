@@ -33,7 +33,9 @@ impl LocalStore {
     }
 
     /// Makes a new vault and writes `vault.json`. Refuses to replace an
-    /// existing vault, since that would make every entry unreadable.
+    /// existing vault, since that would make every entry unreadable. The
+    /// file system decides who wins when two calls race, so only the key of
+    /// the vault actually on disk is ever returned.
     pub fn create_vault(&self, passphrase: &str) -> Result<VaultKey, AppError> {
         if passphrase.is_empty() {
             return Err(AppError::EmptyPassphrase);
@@ -42,8 +44,11 @@ impl LocalStore {
             return Err(AppError::VaultExists);
         }
         let (vault, key) = Vault::create(passphrase)?;
-        write_atomically(&self.vault_path(), vault.to_json().as_bytes())?;
-        Ok(key)
+        match write_new(&self.vault_path(), vault.to_json().as_bytes()) {
+            Ok(()) => Ok(key),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Err(AppError::VaultExists),
+            Err(e) => Err(e.into()),
+        }
     }
 
     pub fn unlock(&self, passphrase: &str) -> Result<VaultKey, AppError> {
@@ -92,14 +97,41 @@ impl LocalStore {
 /// Writes to a temporary file next to `path` and renames it into place, so a
 /// crash mid-write leaves the previous file intact.
 fn write_atomically(path: &Path, contents: &[u8]) -> io::Result<()> {
+    let temporary = write_temporary(path, contents)?;
+    fs::rename(&temporary, path).inspect_err(|_| {
+        let _ = fs::remove_file(&temporary);
+    })
+}
+
+/// Like `write_atomically`, but fails with `AlreadyExists` if `path` exists.
+/// A hard link never replaces an existing name, so the check and the write
+/// are one step.
+fn write_new(path: &Path, contents: &[u8]) -> io::Result<()> {
+    let temporary = write_temporary(path, contents)?;
+    let linked = fs::hard_link(&temporary, path);
+    let _ = fs::remove_file(&temporary);
+    linked
+}
+
+/// A fully written and synced file next to `path`, under a random name so
+/// concurrent writers never share it.
+fn write_temporary(path: &Path, contents: &[u8]) -> io::Result<PathBuf> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let temporary = path.with_extension("tmp");
-    let mut file = File::create(&temporary)?;
-    file.write_all(contents)?;
-    file.sync_all()?;
-    fs::rename(&temporary, path)
+    let suffix = getrandom::u64().map_err(io::Error::other)?;
+    let temporary = path.with_extension(format!("{suffix:016x}.tmp"));
+    let written = File::create_new(&temporary).and_then(|mut file| {
+        file.write_all(contents)?;
+        file.sync_all()
+    });
+    match written {
+        Ok(()) => Ok(temporary),
+        Err(e) => {
+            let _ = fs::remove_file(&temporary);
+            Err(e)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -142,7 +174,54 @@ mod tests {
             .unwrap();
         assert!(dir.path().join("vault.json").is_file());
         assert!(dir.path().join("entries/2026/2026-10-29.enc").is_file());
-        assert!(!dir.path().join("entries/2026/2026-10-29.tmp").exists());
+        assert_eq!(
+            files_in(dir.path()),
+            ["entries/2026/2026-10-29.enc", "vault.json"]
+        );
+    }
+
+    /// Every file under `dir`, relative and sorted, so leftovers show up.
+    fn files_in(dir: &Path) -> Vec<String> {
+        fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
+            for entry in fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(root, &path, out);
+                } else {
+                    let relative = path.strip_prefix(root).unwrap();
+                    out.push(relative.to_string_lossy().into_owned());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(dir, dir, &mut out);
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn two_vaults_created_at_once_never_disagree_with_the_disk() {
+        for _ in 0..5 {
+            let (dir, store) = store();
+            let results: Vec<_> = std::thread::scope(|scope| {
+                let a = scope.spawn(|| ("alpha", store.create_vault("alpha")));
+                let b = scope.spawn(|| ("beta", store.create_vault("beta")));
+                vec![a.join().unwrap(), b.join().unwrap()]
+            });
+            let winners: Vec<_> = results.iter().filter(|(_, r)| r.is_ok()).collect();
+            assert_eq!(winners.len(), 1, "both or neither created a vault");
+            let (winner, _) = winners[0];
+            assert!(
+                store.unlock(winner).is_ok(),
+                "the returned key is not the vault on disk"
+            );
+            for (passphrase, result) in &results {
+                if *passphrase != *winner {
+                    assert!(matches!(result, Err(AppError::VaultExists)));
+                }
+            }
+            assert_eq!(files_in(dir.path()), ["vault.json"]);
+        }
     }
 
     #[test]
