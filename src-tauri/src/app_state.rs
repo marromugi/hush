@@ -7,6 +7,19 @@ pub struct AppStateInner {
     pub store: LocalStore,
     /// `Some` while unlocked. Locking drops the key, which wipes it.
     pub key: Option<VaultKey>,
+    /// Advanced by every lock. An unlock that started before a lock sees a
+    /// different value when it finishes and is discarded.
+    pub lock_count: u64,
 }
 
 pub type AppState = Mutex<AppStateInner>;
+
+impl AppStateInner {
+    pub fn new(store: LocalStore) -> Self {
+        AppStateInner {
+            store,
+            key: None,
+            lock_count: 0,
+        }
+    }
+}

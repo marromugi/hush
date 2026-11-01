@@ -111,4 +111,23 @@ mod tests {
         assert_eq!(value["kind"], "io");
         assert_eq!(value["message"], "file access failed: denied");
     }
+
+    /// The frontend branches on these strings; changing one breaks it.
+    #[test]
+    fn kinds_the_frontend_branches_on() {
+        let cases = [
+            (AppError::WrongPassphrase, "wrongPassphrase"),
+            (AppError::EmptyPassphrase, "emptyPassphrase"),
+            (AppError::NoVault, "noVault"),
+            (AppError::VaultExists, "vaultExists"),
+            (AppError::Locked, "locked"),
+            (AppError::InvalidDate(String::new()), "invalidDate"),
+            (AppError::NewerVaultVersion(2), "newerVaultVersion"),
+            (AppError::NewerEntryVersion(2), "newerEntryVersion"),
+            (AppError::Decryption, "decryption"),
+        ];
+        for (error, kind) in cases {
+            assert_eq!(serde_json::to_value(error).unwrap()["kind"], kind);
+        }
+    }
 }

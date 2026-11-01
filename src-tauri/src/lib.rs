@@ -6,6 +6,7 @@ pub mod crypto;
 pub mod entry;
 pub mod file_version;
 pub mod local_store;
+pub mod session;
 pub mod vault;
 
 use tauri::Manager;
@@ -18,10 +19,7 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
-            app.manage(AppState::new(AppStateInner {
-                store: LocalStore::new(dir),
-                key: None,
-            }));
+            app.manage(AppState::new(AppStateInner::new(LocalStore::new(dir))));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
