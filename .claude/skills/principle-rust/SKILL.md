@@ -114,7 +114,7 @@ Why: Tauri requires commands outside `lib.rs` to be `pub`, uses only the last `i
 Why: using the wrong type in `State<...>` is not a compile error; the command fails only when the frontend calls it. The alias rules out a missing or doubled `Mutex`. Tauri adds the `Arc` itself.
 ([Tauri: State Management](https://v2.tauri.app/develop/state-management/))
 
-**Use `std::sync::Mutex`. Copy what you need out of it and release the lock before any `.await`.**
+**Use `std::sync::Mutex`. Copy what you need out of it and release the lock before any `.await`. A check made before the release may be stale after it: make it again after the wait, or check and act in one step (for a file, a hard link or `create_new`).**
 
 ```rust
 let token = {
@@ -124,7 +124,7 @@ let token = {
 github::put_entry(&token, entry).await?;
 ```
 
-Why: holding the lock across a wait stops every other command from touching the state. Releasing it first also means the async `Mutex` is never needed. A poisoned lock means an earlier panic, which is a bug, so `expect` is right.
+Why: holding the lock across a wait stops every other command from touching the state. Releasing it first also means the async `Mutex` is never needed. In the gap another command can run: two `create_vault`s both saw no vault, and a `lock_vault` was undone by a slower `unlock_vault`. A poisoned lock means an earlier panic, which is a bug, so `expect` is right.
 ([Tauri: State Management](https://v2.tauri.app/develop/state-management/); Microsoft `M-PANIC-IS-STOP`)
 
 ## File formats
