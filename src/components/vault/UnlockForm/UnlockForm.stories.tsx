@@ -20,3 +20,7 @@ export const Busy: Story = { args: { busy: true } };
 export const WrongPassphrase: Story = {
   args: { error: new HushError("wrongPassphrase", "wrong passphrase") },
 };
+
+export const BrokenVault: Story = {
+  args: { error: new HushError("brokenVault", "broken vault") },
+};

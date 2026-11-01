@@ -1,14 +1,11 @@
-import { useId } from "react";
-
 import { readField } from "../../../lib/ui/readField";
 import { errorText } from "../../../lib/vault/errorText";
+import { isAboutPassphrase } from "../../../lib/vault/hushError";
 import { Button } from "../../ui/Button";
-import { Input } from "../../ui/Input";
+import { TextField } from "../../ui/TextField";
 import type { UnlockFormProps } from "./type";
 
 export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
-  const passphraseId = useId();
-
   return (
     <form
       className="flex flex-col gap-4"
@@ -18,17 +15,15 @@ export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
       }}
     >
       <h1 className="text-lg">日記帳を開く</h1>
-      <div className="flex flex-col gap-1">
-        <label htmlFor={passphraseId}>パスフレーズ</label>
-        <Input
-          id={passphraseId}
-          name="passphrase"
-          type="password"
-          autoComplete="current-password"
-        />
-      </div>
-      {error ? (
-        <p role="alert" className="text-danger">
+      <TextField
+        name="passphrase"
+        label="パスフレーズ"
+        type="password"
+        autoComplete="current-password"
+        error={error && isAboutPassphrase(error.kind) ? errorText(error.kind) : undefined}
+      />
+      {error && !isAboutPassphrase(error.kind) ? (
+        <p role="alert" className="text-sm text-error">
           {errorText(error.kind)}
         </p>
       ) : null}

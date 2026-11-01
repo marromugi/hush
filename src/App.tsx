@@ -20,7 +20,7 @@ export function App() {
         )}
       >
         {vault.status === "loading" && vault.error ? (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="text-error">
             {errorText(vault.error.kind)}
           </p>
         ) : null}

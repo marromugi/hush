@@ -39,6 +39,9 @@ Why: the second use is the first point where it is clear what the two have in co
 
 Why: the generated class reads the variable (`background-color: var(--color-surface)`), so switching the variable switches every use. A `@theme` value alone stays light in dark mode, and a second name for the dark value brings back the `bg-surface dark:bg-surface-dark` pair at every use, which the name was meant to remove.
 
+**A name that comes in with a component taken from another design keeps that name.**
+Why: its meaning was settled where it came from, so there is nothing left to guess, and keeping it lets the two be compared.
+
 **Naming on the second use is part of building, not a separate task.** When you notice it while building, do it in the same PR, and say so in the PR description (see "Build small" in `whats-next`).
 Why: left for later, the two copies drift apart and the shared meaning is lost.
 

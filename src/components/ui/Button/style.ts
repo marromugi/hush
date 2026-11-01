@@ -3,12 +3,18 @@ import { tv } from "../../../lib/ui/tv";
 export const button = tv({
   base: [
     // layout
-    "inline-flex items-center justify-center",
+    "inline-flex cursor-pointer items-center justify-center gap-2",
     // shape
-    "rounded-md px-4 py-2",
+    "rounded-control px-4 control-py-2",
+    // typography
+    "text-sm font-semibold",
     // color
-    "bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900",
+    "border border-on-accent/30 bg-accent text-on-accent hover:brightness-110",
+    // motion
+    "transition duration-160 ease-out active:scale-97",
+    // focus
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
     // state
-    "disabled:opacity-50",
+    "disabled:pointer-events-none disabled:opacity-50",
   ],
 });
