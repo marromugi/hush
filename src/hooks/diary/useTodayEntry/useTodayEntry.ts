@@ -4,9 +4,8 @@ import { readEntry, saveEntry } from "../../../lib/vault/commands";
 import type { EntryView } from "../../../lib/vault/commands";
 import { toHushError } from "../../../lib/vault/hushError";
 import type { HushError } from "../../../lib/vault/hushError";
-
-/** What was loaded, and for which date. */
-type Loaded = { date: string; entry: EntryView | null } | { date: string; error: HushError };
+import { shownFor } from "./lib/shownFor";
+import type { Loaded, SaveFailure } from "./lib/shownFor";
 
 export type UseTodayEntry = {
   /** True until the entry for `date` has been read. */
@@ -28,7 +27,7 @@ export type UseTodayEntry = {
 export function useTodayEntry(date: string): UseTodayEntry {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [pendingSaves, setPendingSaves] = useState(0);
-  const [saveFailure, setSaveFailure] = useState<{ date: string; error: HushError } | null>(null);
+  const [saveFailure, setSaveFailure] = useState<SaveFailure | null>(null);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
@@ -45,8 +44,6 @@ export function useTodayEntry(date: string): UseTodayEntry {
       ignore = true;
     };
   }, [date]);
-
-  const current = loaded?.date === date ? loaded : null;
 
   function save(body: string): Promise<void> {
     // The date the person was writing for, even if the day changes before
@@ -73,11 +70,8 @@ export function useTodayEntry(date: string): UseTodayEntry {
   }
 
   return {
-    loading: current === null,
-    entry: current && "entry" in current ? current.entry : null,
-    loadError: current && "error" in current ? current.error : null,
+    ...shownFor(date, loaded, saveFailure),
     save,
     saving: pendingSaves > 0,
-    saveError: saveFailure?.date === date ? saveFailure.error : null,
   };
 }
