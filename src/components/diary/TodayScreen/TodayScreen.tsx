@@ -23,7 +23,12 @@ export function TodayScreen({ onLock }: TodayScreenProps) {
               {screen.saveMessage.text}
             </output>
           ) : null}
-          <Button type="button" tone="neutral" onClick={() => void screen.lock()}>
+          <Button
+            type="button"
+            tone="neutral"
+            disabled={screen.locking}
+            onClick={() => void screen.lock()}
+          >
             ロック
           </Button>
         </div>
@@ -33,7 +38,11 @@ export function TodayScreen({ onLock }: TodayScreenProps) {
           {screen.loadError}
         </p>
       ) : (
-        <DiaryEditor initialBody={screen.initialBody} onChange={screen.onChange} />
+        <DiaryEditor
+          initialBody={screen.initialBody}
+          onChange={screen.onChange}
+          disabled={screen.locking}
+        />
       )}
     </div>
   );

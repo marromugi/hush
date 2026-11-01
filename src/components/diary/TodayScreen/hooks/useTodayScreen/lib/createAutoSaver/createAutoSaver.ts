@@ -1,9 +1,14 @@
 export type Save = (body: string) => Promise<boolean>;
 
+type Attempt = { body: string; save: Save };
+
 export type AutoSaver = {
   /** Saves `body` with `save` once nothing newer has come for the delay. */
   schedule: (body: string, save: Save) => void;
-  /** Saves a waiting body now. Resolves whether the newest body is stored. */
+  /**
+   * Saves a waiting body now, or tries a failed one again. Resolves whether
+   * the newest body is stored.
+   */
   flush: () => Promise<boolean>;
   /** Drops a waiting body without saving it. */
   cancel: () => void;
@@ -12,7 +17,9 @@ export type AutoSaver = {
 /** Saves only the newest body, after typing has paused for `delayMs`. */
 export function createAutoSaver(delayMs: number): AutoSaver {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let waiting: { body: string; save: Save } | undefined;
+  let waiting: Attempt | undefined;
+  /** The newest body, when saving it failed. */
+  let failed: Attempt | undefined;
   let last: Promise<boolean> = Promise.resolve(true);
 
   function stopTimer() {
@@ -22,11 +29,17 @@ export function createAutoSaver(delayMs: number): AutoSaver {
 
   function flush(): Promise<boolean> {
     stopTimer();
-    if (waiting !== undefined) {
-      last = waiting.save(waiting.body);
-      waiting = undefined;
-    }
-    return last;
+    const attempt = waiting ?? failed;
+    if (attempt === undefined) return last;
+    waiting = undefined;
+    failed = undefined;
+    const result = attempt.save(attempt.body);
+    last = result;
+    void result.then((saved) => {
+      // An older body that failed must not be retried over a newer one.
+      if (!saved && result === last && waiting === undefined) failed = attempt;
+    });
+    return result;
   }
 
   return {
@@ -39,6 +52,7 @@ export function createAutoSaver(delayMs: number): AutoSaver {
     cancel() {
       stopTimer();
       waiting = undefined;
+      failed = undefined;
     },
   };
 }

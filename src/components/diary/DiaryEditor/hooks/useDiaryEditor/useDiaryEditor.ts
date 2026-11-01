@@ -1,14 +1,19 @@
 import { useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { clsx } from "clsx";
+import { useEffect } from "react";
 
 /** An editor that starts with `initialBody` and reports every change as HTML. */
-export function useDiaryEditor(initialBody: string, onChange: (body: string) => void) {
-  return useEditor({
+export function useDiaryEditor(
+  initialBody: string,
+  onChange: (body: string) => void,
+  disabled: boolean,
+) {
+  const editor = useEditor({
     extensions: [StarterKit],
     content: initialBody,
     // Tiptap calls the handler from the newest render, so it never goes stale.
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
     editorProps: {
       attributes: {
         class: clsx(
@@ -22,4 +27,12 @@ export function useDiaryEditor(initialBody: string, onChange: (body: string) => 
       },
     },
   });
+
+  // useEditor keeps the editable state it was created with, so a later
+  // change is pushed to the editor here.
+  useEffect(() => {
+    editor.setEditable(!disabled, false);
+  }, [editor, disabled]);
+
+  return editor;
 }

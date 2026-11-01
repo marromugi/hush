@@ -47,3 +47,17 @@ test("flush with nothing waiting reports whether the last save failed", async ()
   vi.advanceTimersByTime(1000);
   expect(await saver.flush()).toBe(false);
 });
+
+test("flush tries a failed body again", async () => {
+  const saved: string[] = [];
+  const results = [false, true];
+  const save = async (body: string) => {
+    saved.push(body);
+    return results.shift() ?? true;
+  };
+  const saver = createAutoSaver(1000);
+  saver.schedule("<p>今日</p>", save);
+  expect(await saver.flush()).toBe(false);
+  expect(await saver.flush()).toBe(true);
+  expect(saved).toEqual(["<p>今日</p>", "<p>今日</p>"]);
+});

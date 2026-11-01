@@ -3,4 +3,6 @@ export type DiaryEditorProps = {
   initialBody: string;
   /** Called with the body as HTML after every change. */
   onChange: (body: string) => void;
+  /** True while nothing can be typed. */
+  disabled: boolean;
 };

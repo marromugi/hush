@@ -19,6 +19,8 @@ export type UseTodayScreen = {
   initialBody: string;
   saveMessage: SaveMessage | null;
   onChange: (body: string) => void;
+  /** True while locking; nothing can be typed then. */
+  locking: boolean;
   /** Saves what is waiting, then locks only if that save succeeded. */
   lock: () => Promise<void>;
 };
@@ -27,6 +29,7 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
   const [date] = useState(() => localDate(new Date()));
   const today = useTodayEntry(date);
   const [typed, setTyped] = useState<string | null>(null);
+  const [locking, setLocking] = useState(false);
 
   const [saver] = useState(() => createAutoSaver(SAVE_DELAY_MS));
   useEffect(() => () => saver.cancel(), [saver]);
@@ -46,8 +49,14 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
       setTyped(body);
       saver.schedule(body, today.save);
     },
+    locking,
     lock: async () => {
-      if (await saver.flush()) await onLock();
+      setLocking(true);
+      try {
+        if (await saver.flush()) await onLock();
+      } finally {
+        setLocking(false);
+      }
     },
   };
 }
