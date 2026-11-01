@@ -4,7 +4,10 @@ import { useCreateVaultForm } from "./hooks/useCreateVaultForm";
 import type { CreateVaultFormProps } from "./type";
 
 export function CreateVaultForm({ busy, error, onCreate }: CreateVaultFormProps) {
-  const { passphraseError, confirmError, handleSubmit } = useCreateVaultForm(onCreate, error);
+  const { passphraseError, confirmError, formError, handleSubmit } = useCreateVaultForm(
+    onCreate,
+    error,
+  );
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -24,6 +27,11 @@ export function CreateVaultForm({ busy, error, onCreate }: CreateVaultFormProps)
         autoComplete="new-password"
         error={confirmError}
       />
+      {formError === undefined ? null : (
+        <p role="alert" className="text-sm text-error">
+          {formError}
+        </p>
+      )}
       <Button type="submit" disabled={busy}>
         作る
       </Button>

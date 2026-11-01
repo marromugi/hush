@@ -53,3 +53,8 @@ export function toHushError(error: unknown): HushError {
   }
   return new HushError("unknown", String(error));
 }
+
+/** True for the kinds that mean the typed passphrase itself is wrong. */
+export function isAboutPassphrase(kind: HushErrorKind): boolean {
+  return kind === "wrongPassphrase" || kind === "emptyPassphrase";
+}

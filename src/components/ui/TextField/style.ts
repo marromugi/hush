@@ -18,7 +18,8 @@ export const control = tv({
   variants: {
     state: {
       default: "border-edge focus-visible:border-accent",
-      error: "border-error",
+      error:
+        "border-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error",
     },
   },
   defaultVariants: { state: "default" },

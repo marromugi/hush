@@ -1,5 +1,6 @@
 import { readField } from "../../../lib/ui/readField";
 import { errorText } from "../../../lib/vault/errorText";
+import { isAboutPassphrase } from "../../../lib/vault/hushError";
 import { Button } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
 import type { UnlockFormProps } from "./type";
@@ -19,8 +20,13 @@ export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
         label="パスフレーズ"
         type="password"
         autoComplete="current-password"
-        error={error ? errorText(error.kind) : undefined}
+        error={error && isAboutPassphrase(error.kind) ? errorText(error.kind) : undefined}
       />
+      {error && !isAboutPassphrase(error.kind) ? (
+        <p role="alert" className="text-sm text-error">
+          {errorText(error.kind)}
+        </p>
+      ) : null}
       <Button type="submit" disabled={busy}>
         開く
       </Button>
