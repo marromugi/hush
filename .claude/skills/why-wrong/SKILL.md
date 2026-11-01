@@ -15,6 +15,6 @@ When an assumption breaks, two things happen at once.
 - what actually happened,
 - where the assumption came from: what was read, what was skipped, what was guessed.
 
-Ask it what information would have caught this earlier, and which skill should have said so.
+Ask it what would have caught this earlier, and what general shape the failure has apart from where it showed up.
 
-**Improve the skill in a separate PR.** Turn the investigation into a change to the skill it points at. Keep it out of the round's PR: the skills carry the developer's intent, so that PR's merge is the developer's agreement, and it stays readable as a record of why the change was made.
+**Improve the skill in a separate PR.** Turn the investigation into the smallest change that covers that shape: widen an existing rule before adding one, and keep project-specific names out of skills. Keep it out of the round's PR: the skills carry the developer's intent, so that PR's merge is the developer's agreement, and it stays readable as a record of why the change was made.
