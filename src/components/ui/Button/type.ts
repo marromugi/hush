@@ -1,3 +1,5 @@
 import type { ComponentProps } from "react";
 
-export type ButtonProps = ComponentProps<"button">;
+export type ButtonProps = ComponentProps<"button"> & {
+  tone?: "primary" | "neutral";
+};

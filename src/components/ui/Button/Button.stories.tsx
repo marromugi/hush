@@ -15,3 +15,5 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Disabled: Story = { args: { disabled: true } };
+
+export const Neutral: Story = { args: { tone: "neutral", children: "ロック" } };
