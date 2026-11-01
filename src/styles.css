@@ -1,7 +1,17 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+  --color-danger: var(--color-red-700);
+}
+
 @layer base {
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-danger: var(--color-red-400);
+    }
+  }
+
   body {
     @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
   }
