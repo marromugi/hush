@@ -13,8 +13,11 @@ export type UseTodayEntry = {
   /** `null` when nothing has been written that day. */
   entry: EntryView | null;
   loadError: HushError | null;
-  /** Saves run one after another, in the order they were asked for. */
-  save: (body: string) => Promise<void>;
+  /**
+   * Saves run one after another, in the order they were asked for. Resolves
+   * true once this body is stored, false when storing it failed.
+   */
+  save: (body: string) => Promise<boolean>;
   saving: boolean;
   saveError: HushError | null;
 };
@@ -28,7 +31,7 @@ export function useTodayEntry(date: string): UseTodayEntry {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [pendingSaves, setPendingSaves] = useState(0);
   const [saveFailure, setSaveFailure] = useState<SaveFailure | null>(null);
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
     let ignore = false;
@@ -45,7 +48,7 @@ export function useTodayEntry(date: string): UseTodayEntry {
     };
   }, [date]);
 
-  function save(body: string): Promise<void> {
+  function save(body: string): Promise<boolean> {
     // The date the person was writing for, even if the day changes before
     // this save runs.
     const savingDate = date;
@@ -58,8 +61,10 @@ export function useTodayEntry(date: string): UseTodayEntry {
         setLoaded((shown) =>
           shown && shown.date !== savingDate ? shown : { date: savingDate, entry },
         );
+        return true;
       } catch (failure) {
         setSaveFailure({ date: savingDate, error: toHushError(failure) });
+        return false;
       } finally {
         setPendingSaves((count) => count - 1);
       }

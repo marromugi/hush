@@ -5,11 +5,9 @@ export const button = tv({
     // layout
     "inline-flex cursor-pointer items-center justify-center gap-2",
     // shape
-    "rounded-control px-4 control-py-2",
+    "rounded-control border px-4 control-py-2",
     // typography
     "text-sm font-semibold",
-    // color
-    "border border-on-accent/30 bg-accent text-on-accent hover:brightness-110",
     // motion
     "transition duration-160 ease-out active:scale-97",
     // focus
@@ -17,4 +15,11 @@ export const button = tv({
     // state
     "disabled:pointer-events-none disabled:opacity-50",
   ],
+  variants: {
+    tone: {
+      primary: "border-on-accent/30 bg-accent text-on-accent hover:brightness-110",
+      neutral: "border-edge hover:bg-edge",
+    },
+  },
+  defaultVariants: { tone: "primary" },
 });

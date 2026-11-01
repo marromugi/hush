@@ -51,7 +51,11 @@ test("saving stores the body and shows the saved entry", async () => {
   fakeEntries({});
   const { result } = renderHook(() => useTodayEntry("2026-10-29"));
   await waitFor(() => expect(result.current.loading).toBe(false));
-  await act(() => result.current.save("<p>雨</p>"));
+  let saved = false;
+  await act(async () => {
+    saved = await result.current.save("<p>雨</p>");
+  });
+  expect(saved).toBe(true);
   expect(result.current.entry?.body).toBe("<p>雨</p>");
   expect(result.current.saving).toBe(false);
 });
@@ -140,7 +144,7 @@ test("a save that finishes after the date changes leaves the new day shown", asy
   });
   await waitFor(() => expect(result.current.loading).toBe(false));
 
-  let pending: Promise<void> = Promise.resolve();
+  let pending: Promise<boolean> = Promise.resolve(true);
   act(() => {
     pending = result.current.save("<p>夜遅く</p>");
   });
@@ -162,8 +166,8 @@ test("saves run one after another and the last body is shown", async () => {
   const { result } = renderHook(() => useTodayEntry("2026-10-29"));
   await waitFor(() => expect(result.current.loading).toBe(false));
 
-  let first: Promise<void> = Promise.resolve();
-  let second: Promise<void> = Promise.resolve();
+  let first: Promise<boolean> = Promise.resolve(true);
+  let second: Promise<boolean> = Promise.resolve(true);
   act(() => {
     first = result.current.save("<p>一</p>");
     second = result.current.save("<p>二</p>");
@@ -196,7 +200,11 @@ test("a save error for one day is not shown on the next", async () => {
     initialProps: { date: "2026-10-29" },
   });
   await waitFor(() => expect(result.current.loading).toBe(false));
-  await act(() => result.current.save("<p>x</p>"));
+  let saved = true;
+  await act(async () => {
+    saved = await result.current.save("<p>x</p>");
+  });
+  expect(saved).toBe(false);
   expect(result.current.saveError?.kind).toBe("io");
   rerender({ date: "2026-10-30" });
   expect(result.current.saveError).toBeNull();

@@ -1,23 +1,10 @@
-import { EditorContent, useEditor } from "@tiptap/react";
-import { StarterKit } from "@tiptap/starter-kit";
-import { clsx } from "clsx";
+import { EditorContent } from "@tiptap/react";
 
-export function DiaryEditor() {
-  const editor = useEditor({
-    extensions: [StarterKit],
-    editorProps: {
-      attributes: {
-        class: clsx(
-          // size
-          "min-h-[60vh]",
-          // typography
-          "prose prose-stone prose-lg dark:prose-invert",
-          // focus
-          "outline-none",
-        ),
-      },
-    },
-  });
+import { useDiaryEditor } from "./hooks/useDiaryEditor";
+import type { DiaryEditorProps } from "./type";
+
+export function DiaryEditor({ initialBody, onChange }: DiaryEditorProps) {
+  const editor = useDiaryEditor(initialBody, onChange);
 
   return <EditorContent editor={editor} />;
 }

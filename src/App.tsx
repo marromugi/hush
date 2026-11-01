@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
 
-import { DiaryEditor } from "./components/diary/DiaryEditor";
+import { TodayScreen } from "./components/diary/TodayScreen";
 import { CreateVaultForm } from "./components/vault/CreateVaultForm";
 import { UnlockForm } from "./components/vault/UnlockForm";
 import { useVault } from "./hooks/vault/useVault";
@@ -30,7 +30,7 @@ export function App() {
         {vault.status === "locked" ? (
           <UnlockForm busy={vault.busy} error={vault.error} onUnlock={vault.unlock} />
         ) : null}
-        {vault.status === "unlocked" ? <DiaryEditor /> : null}
+        {vault.status === "unlocked" ? <TodayScreen onLock={vault.lock} /> : null}
       </div>
     </main>
   );

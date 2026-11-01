@@ -5,6 +5,7 @@ import { DiaryEditor } from "./DiaryEditor";
 const meta = {
   title: "diary/DiaryEditor",
   component: DiaryEditor,
+  args: { initialBody: "", onChange: () => {} },
 } satisfies Meta<typeof DiaryEditor>;
 
 export default meta;
@@ -12,3 +13,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {};
+
+export const Written: Story = { args: { initialBody: "<p>今日は晴れ。</p>" } };
