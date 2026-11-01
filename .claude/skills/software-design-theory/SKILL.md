@@ -152,10 +152,11 @@ around silently.
 - What a piece cannot give back faithfully, it leaves out and says so. This
   holds even when a neighbouring piece shows the same thing in an approximate
   form; keeping the two alike does not outrank it.
-- A record that others can change while the software works, such as an issue,
-  is read again right before the software acts on it. A sign of change that
-  the software cannot interpret, such as a new comment, stops the action. Its
-  content is not interpreted.
+- Anything others can change while the software works (a record such as an
+  issue, a file, state another task can touch) is checked again right before
+  the software acts on it, or checked and changed in one step. A sign of
+  change that the software cannot interpret, such as a new comment, stops the
+  action. Its content is not interpreted.
 - A failure shows the way the caller reads failure, and what counts as one
   follows from the piece's role. For a piece whose role is to judge — a
   check, a verification — a failed judgment is its failure, so it shows as
