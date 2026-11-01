@@ -2,13 +2,30 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-danger: var(--color-red-700);
+  --color-accent: oklch(50% 0.24 265);
+  --color-on-accent: #ffffff;
+  --color-edge: #8884;
+  --color-surface: #f3f3f4;
+  --color-surface-raised: #ffffff;
+  --color-error: #d33;
+}
+
+/* A control's corner is a third of its height. The height is never set; it is the line height plus the vertical padding, which each control declares through control-py-*. */
+@utility control-py-* {
+  --control-py: --spacing(--value(integer));
+  padding-block: var(--control-py);
+}
+@utility rounded-control {
+  border-radius: calc((1lh + 2 * var(--control-py)) / 3);
 }
 
 @layer base {
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-danger: var(--color-red-400);
+      --color-accent: oklch(56% 0.21 265);
+      --color-surface: #1f1f21;
+      --color-surface-raised: #2c2c2f;
+      --color-error: #f66;
     }
   }
 
