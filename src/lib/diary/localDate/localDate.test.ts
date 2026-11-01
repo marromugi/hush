@@ -8,7 +8,12 @@ beforeAll(() => {
   process.env.TZ = "Asia/Tokyo";
 });
 afterAll(() => {
-  process.env.TZ = originalTimeZone;
+  // Assigning undefined would set the string "undefined", an invalid zone.
+  if (originalTimeZone === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = originalTimeZone;
+  }
 });
 
 test("pads month and day", () => {

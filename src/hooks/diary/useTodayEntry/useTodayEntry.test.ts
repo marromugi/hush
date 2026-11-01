@@ -118,3 +118,86 @@ test("a reply for an earlier date that arrives late is ignored", async () => {
   expect(result.current.loading).toBe(false);
   expect(result.current.entry?.body).toBe("<p>新しい日</p>");
 });
+
+/** A fake Rust side whose saves wait until released, recording their order. */
+function heldSaves() {
+  const saves: Array<{ date: string; body: string; release: () => void }> = [];
+  mockIPC((command, args) => {
+    const date = String(args && "date" in args ? args.date : "");
+    if (command === "read_entry") return null;
+    const body = String(args && "body" in args ? args.body : "");
+    return new Promise<EntryView>((resolve) => {
+      saves.push({ date, body, release: () => resolve(entry(date, body)) });
+    });
+  });
+  return saves;
+}
+
+test("a save that finishes after the date changes leaves the new day shown", async () => {
+  const saves = heldSaves();
+  const { result, rerender } = renderHook(({ date }) => useTodayEntry(date), {
+    initialProps: { date: "2026-10-29" },
+  });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  let pending: Promise<void> = Promise.resolve();
+  act(() => {
+    pending = result.current.save("<p>夜遅く</p>");
+  });
+  rerender({ date: "2026-10-30" });
+  await settle();
+  expect(result.current.loading).toBe(false);
+
+  await act(async () => {
+    saves[0]?.release();
+    await pending;
+  });
+  expect(saves[0]?.date).toBe("2026-10-29");
+  expect(result.current.loading).toBe(false);
+  expect(result.current.entry).toBeNull();
+});
+
+test("saves run one after another and the last body is shown", async () => {
+  const saves = heldSaves();
+  const { result } = renderHook(() => useTodayEntry("2026-10-29"));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  let first: Promise<void> = Promise.resolve();
+  let second: Promise<void> = Promise.resolve();
+  act(() => {
+    first = result.current.save("<p>一</p>");
+    second = result.current.save("<p>二</p>");
+  });
+  await settle();
+  expect(saves.map((save) => save.body)).toEqual(["<p>一</p>"]);
+
+  await act(async () => {
+    saves[0]?.release();
+    await first;
+  });
+  await settle();
+  expect(result.current.saving).toBe(true);
+  expect(saves.map((save) => save.body)).toEqual(["<p>一</p>", "<p>二</p>"]);
+
+  await act(async () => {
+    saves[1]?.release();
+    await second;
+  });
+  expect(result.current.saving).toBe(false);
+  expect(result.current.entry?.body).toBe("<p>二</p>");
+});
+
+test("a save error for one day is not shown on the next", async () => {
+  mockIPC((command) => {
+    if (command === "read_entry") return null;
+    throw { kind: "io", message: "file access failed" };
+  });
+  const { result, rerender } = renderHook(({ date }) => useTodayEntry(date), {
+    initialProps: { date: "2026-10-29" },
+  });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(() => result.current.save("<p>x</p>"));
+  expect(result.current.saveError?.kind).toBe("io");
+  rerender({ date: "2026-10-30" });
+  expect(result.current.saveError).toBeNull();
+});

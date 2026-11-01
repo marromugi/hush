@@ -78,3 +78,53 @@ test("is busy while an unlock runs", async () => {
   });
   expect(result.current.busy).toBe(false);
 });
+
+test("a second unlock while one runs is ignored", async () => {
+  let finish: (() => void) | undefined;
+  let unlockCalls = 0;
+  mockIPC((command) => {
+    if (command === "vault_status") return "locked";
+    unlockCalls += 1;
+    return new Promise<null>((resolve) => {
+      finish = () => resolve(null);
+    });
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("locked"));
+
+  let first: Promise<void> = Promise.resolve();
+  act(() => {
+    first = result.current.unlock("correct");
+  });
+  await act(() => result.current.unlock("correct"));
+  expect(unlockCalls).toBe(1);
+  expect(result.current.busy).toBe(true);
+
+  await act(async () => {
+    finish?.();
+    await first;
+  });
+  expect(result.current.busy).toBe(false);
+  expect(result.current.status).toBe("unlocked");
+});
+
+test("a first status that arrives after an unlock does not undo it", async () => {
+  let answerStatus: ((status: string) => void) | undefined;
+  mockIPC((command) => {
+    if (command === "vault_status") {
+      return new Promise<string>((resolve) => {
+        answerStatus = resolve;
+      });
+    }
+    return null;
+  });
+  const { result } = renderHook(() => useVault());
+  await act(() => result.current.unlock("correct"));
+  expect(result.current.status).toBe("unlocked");
+
+  await act(async () => {
+    answerStatus?.("locked");
+    await Promise.resolve();
+  });
+  expect(result.current.status).toBe("unlocked");
+});
