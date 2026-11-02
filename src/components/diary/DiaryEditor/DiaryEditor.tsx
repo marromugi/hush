@@ -1,6 +1,6 @@
 import { EditorContent } from "@tiptap/react";
 
-import { fontLoadingBlur } from "../../../lib/diary/entryProse";
+import { fontLoadingStyle } from "../../../lib/diary/entryProse";
 import { useDiaryEditor } from "./hooks/useDiaryEditor";
 import type { DiaryEditorProps } from "./type";
 
@@ -17,7 +17,7 @@ export function DiaryEditor({
   return (
     <EditorContent
       editor={editor}
-      className={fontLoadingBlur(fontLoading)}
+      className={fontLoadingStyle(fontLoading)}
       style={{ fontFamily }}
     />
   );
