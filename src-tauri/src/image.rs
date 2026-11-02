@@ -6,14 +6,21 @@ use crate::crypto::{self, NONCE_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
 
 /// Current image file format. Bump when a field is added or changed, or when
-/// the file starts holding another kind of picture.
-pub const IMAGE_VERSION: u32 = 1;
+/// the file starts holding another kind of picture. Version 1 held only
+/// JPEG; from 2 it holds any `PictureFormat`.
+pub const IMAGE_VERSION: u32 = 2;
 
 /// Random bytes in an image's id.
 const IMAGE_ID_LEN: usize = 16;
 
 /// The first bytes of every JPEG (SOI marker and the next marker's start).
-const JPEG_START: [u8; 3] = [0xFF, 0xD8, 0xFF];
+const JPEG_START: &[u8] = &[0xFF, 0xD8, 0xFF];
+
+/// The PNG signature.
+const PNG_START: &[u8] = &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
+
+/// The start of both GIF headers, `GIF87a` and `GIF89a`.
+const GIF_START: &[u8] = b"GIF8";
 
 /// The name of an image file: 32 lowercase hex digits, chosen at random, so
 /// the name says nothing about the picture.
@@ -55,29 +62,50 @@ impl From<ImageId> for String {
     }
 }
 
-/// The bytes of a JPEG, the only kind of picture an image file holds. Only
-/// bytes that start as a JPEG can be one; the rest is not checked.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Jpeg(Vec<u8>);
+/// The kinds of picture an image file can hold.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PictureFormat {
+    Jpeg,
+    Png,
+    Gif,
+}
 
-impl TryFrom<Vec<u8>> for Jpeg {
+impl PictureFormat {
+    /// The format `bytes` start as, if it is one of these.
+    fn of(bytes: &[u8]) -> Option<Self> {
+        [
+            (JPEG_START, Self::Jpeg),
+            (PNG_START, Self::Png),
+            (GIF_START, Self::Gif),
+        ]
+        .into_iter()
+        .find_map(|(start, format)| bytes.starts_with(start).then_some(format))
+    }
+}
+
+/// The bytes of a picture in one of the `PictureFormat`s. Only bytes that
+/// start as one can be a picture; the rest is not checked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Picture(Vec<u8>);
+
+impl TryFrom<Vec<u8>> for Picture {
     type Error = AppError;
 
     fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-        if !bytes.starts_with(&JPEG_START) {
-            return Err(AppError::NotJpeg);
+        if PictureFormat::of(&bytes).is_none() {
+            return Err(AppError::UnsupportedPicture);
         }
-        Ok(Jpeg(bytes))
+        Ok(Picture(bytes))
     }
 }
 
-impl From<Jpeg> for Vec<u8> {
-    fn from(jpeg: Jpeg) -> Vec<u8> {
-        jpeg.0
+impl From<Picture> for Vec<u8> {
+    fn from(picture: Picture) -> Vec<u8> {
+        picture.0
     }
 }
 
-/// The contents of an image file: the version and the encrypted JPEG.
+/// The contents of an image file: the version and the encrypted picture.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ImageFile {
@@ -88,9 +116,9 @@ struct ImageFile {
     ciphertext: Vec<u8>,
 }
 
-/// Encrypts `jpeg` and returns the text of its image file at `id`.
-pub fn seal(key: &VaultKey, id: &ImageId, jpeg: &Jpeg) -> Result<String, AppError> {
-    let Sealed { nonce, ciphertext } = crypto::encrypt(key, id.path().as_bytes(), &jpeg.0)?;
+/// Encrypts `picture` and returns the text of its image file at `id`.
+pub fn seal(key: &VaultKey, id: &ImageId, picture: &Picture) -> Result<String, AppError> {
+    let Sealed { nonce, ciphertext } = crypto::encrypt(key, id.path().as_bytes(), &picture.0)?;
     let file = ImageFile {
         version: IMAGE_VERSION,
         nonce,
@@ -103,7 +131,7 @@ pub fn seal(key: &VaultKey, id: &ImageId, jpeg: &Jpeg) -> Result<String, AppErro
 /// Decrypts the image file `text` that was read from `id`'s path. The
 /// version is read first, so a file written by a newer app asks for an
 /// update instead of being reported as broken.
-pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Jpeg, AppError> {
+pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Picture, AppError> {
     let version = read_version(text).map_err(AppError::BrokenImage)?;
     if version > IMAGE_VERSION {
         return Err(AppError::NewerImageVersion(version));
@@ -122,8 +150,9 @@ pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Jpeg, AppError> 
             ciphertext: file.ciphertext,
         },
     )?;
-    Jpeg::try_from(plaintext)
-        .map_err(|_| AppError::BrokenImage(de::Error::custom("decrypted image is not a JPEG")))
+    Picture::try_from(plaintext).map_err(|_| {
+        AppError::BrokenImage(de::Error::custom("decrypted image is not a known picture"))
+    })
 }
 
 #[cfg(test)]
@@ -146,8 +175,8 @@ mod tests {
         ImageId::try_from(text.to_string()).unwrap()
     }
 
-    fn jpeg() -> Jpeg {
-        Jpeg::try_from(vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]).unwrap()
+    fn jpeg() -> Picture {
+        Picture::try_from(vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]).unwrap()
     }
 
     const ID: &str = "0123456789abcdef0123456789abcdef";
@@ -195,17 +224,51 @@ mod tests {
     }
 
     #[test]
-    fn bytes_that_are_not_a_jpeg_are_refused() {
-        let png = vec![0x89, b'P', b'N', b'G'];
-        assert!(matches!(Jpeg::try_from(png), Err(AppError::NotJpeg)));
+    fn jpeg_png_and_gif_are_told_apart() {
+        let cases = [
+            (vec![0xFF, 0xD8, 0xFF, 0xE0], PictureFormat::Jpeg),
+            (b"\x89PNG\r\n\x1a\n\0\0".to_vec(), PictureFormat::Png),
+            (b"GIF87a".to_vec(), PictureFormat::Gif),
+            (b"GIF89a".to_vec(), PictureFormat::Gif),
+        ];
+        for (bytes, format) in cases {
+            assert_eq!(PictureFormat::of(&bytes), Some(format));
+        }
+    }
+
+    #[test]
+    fn other_bytes_are_refused() {
+        for bytes in [
+            b"RIFF\0\0\0\0WEBP".to_vec(),
+            b"\x89PNX".to_vec(),
+            Vec::new(),
+        ] {
+            assert!(matches!(
+                Picture::try_from(bytes),
+                Err(AppError::UnsupportedPicture)
+            ));
+        }
+    }
+
+    #[test]
+    fn a_version_1_file_still_opens() {
+        let key = key(1);
+        let sealed = crypto::encrypt(&key, id(ID).path().as_bytes(), &jpeg().0).unwrap();
+        let text = serde_json::to_string(&ImageFile {
+            version: 1,
+            nonce: sealed.nonce,
+            ciphertext: sealed.ciphertext,
+        })
+        .unwrap();
+        assert_eq!(open(&key, &id(ID), &text).unwrap(), jpeg());
     }
 
     #[test]
     fn newer_version_asks_for_an_update() {
-        let text = r#"{"version":2,"nonce":"","ciphertext":"","mediaType":"image/webp"}"#;
+        let text = r#"{"version":3,"nonce":"","ciphertext":"","mediaType":"image/webp"}"#;
         assert!(matches!(
             open(&key(1), &id(ID), text),
-            Err(AppError::NewerImageVersion(2))
+            Err(AppError::NewerImageVersion(3))
         ));
     }
 

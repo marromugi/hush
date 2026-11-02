@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
 import { entryExtensions, entryImage } from "@/lib/diary/entryExtensions";
 import { entryProse } from "@/lib/diary/entryProse";
-import { shrinkImage } from "@/lib/diary/shrinkImage";
+import { preparePicture } from "@/lib/diary/preparePicture";
 import { saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
@@ -17,8 +17,8 @@ const CURSOR_ROOM = 16;
 /**
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
- * scrolls so it stays in view. A pasted picture is shrunk, saved as an
- * encrypted image, and put where the cursor is once saved; `imageError`
+ * scrolls so it stays in view. A pasted picture is prepared for saving
+ * (`preparePicture`), saved as an encrypted image, and put where the cursor is once saved; `imageError`
  * says why the last one that failed did not appear.
  */
 export function useDiaryEditor(
@@ -63,16 +63,16 @@ export function useDiaryEditor(
   async function addImages(files: File[]) {
     setImageError(null);
     for (const file of files) {
-      let jpeg: Uint8Array;
+      let picture: Uint8Array;
       try {
-        jpeg = await shrinkImage(file);
+        picture = await preparePicture(file);
       } catch {
         setImageError("この画像は読み込めませんでした。");
         continue;
       }
       let id: string;
       try {
-        id = await saveImage(jpeg);
+        id = await saveImage(picture);
       } catch (failure) {
         setImageError(`画像を保存できませんでした。${failureText(failure)}`);
         continue;

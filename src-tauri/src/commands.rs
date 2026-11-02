@@ -89,19 +89,19 @@ pub async fn show_secret_key(state: State<'_, AppState>) -> Result<String, AppEr
     session::secret_key_text(&state)
 }
 
-/// The picture is the request's raw body, a JPEG. Returns the new image's id.
+/// The picture is the request's raw body, a JPEG, PNG, or GIF. Returns the new image's id.
 #[tauri::command]
 pub async fn save_image(
     request: Request<'_>,
     state: State<'_, AppState>,
 ) -> Result<String, AppError> {
     let InvokeBody::Raw(bytes) = request.body() else {
-        return Err(AppError::NotJpeg);
+        return Err(AppError::UnsupportedPicture);
     };
     session::save_image(&state, bytes.clone())
 }
 
-/// The JPEG saved as `id`, as raw bytes.
+/// The picture saved as `id`, as raw bytes.
 #[tauri::command]
 pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Response, AppError> {
     Ok(Response::new(session::read_image(&state, id)?))

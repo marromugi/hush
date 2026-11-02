@@ -19,7 +19,7 @@ export const HUSH_ERROR_KINDS = [
   "brokenImage",
   "invalidImageId",
   "noImage",
-  "notJpeg",
+  "unsupportedPicture",
   "decryption",
   "encryption",
   "keyDerivation",

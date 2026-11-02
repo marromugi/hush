@@ -23,7 +23,7 @@ const TEXT: Record<HushErrorKind, string> = {
   brokenImage: "画像のファイルが壊れているため開けません。",
   invalidImageId: "画像の名前の形が正しくありません。",
   noImage: "画像のファイルが見つかりません。",
-  notJpeg: "JPEG ではない画像は保存できません。",
+  unsupportedPicture: "JPEG・PNG・GIF 以外の画像は保存できません。",
   decryption: "ファイルを開けませんでした。別の場所から移されたか、書き換えられています。",
   encryption: "日記を暗号化できませんでした。",
   keyDerivation: "日記帳の設定が正しくないため、鍵を作れませんでした。",

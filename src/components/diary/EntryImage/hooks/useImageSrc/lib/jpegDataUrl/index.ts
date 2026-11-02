@@ -1,1 +1,0 @@
-export { jpegDataUrl } from "./jpegDataUrl";

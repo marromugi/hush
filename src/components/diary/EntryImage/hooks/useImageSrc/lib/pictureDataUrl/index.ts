@@ -1,0 +1,1 @@
+export { pictureDataUrl } from "./pictureDataUrl";

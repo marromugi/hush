@@ -2,7 +2,7 @@ import { usePromise } from "@/hooks/common/usePromise";
 import { readImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
-import { jpegDataUrl } from "./lib/jpegDataUrl";
+import { pictureDataUrl } from "./lib/pictureDataUrl";
 
 export type UseImageSrc = {
   loading: boolean;
@@ -13,7 +13,7 @@ export type UseImageSrc = {
 
 /** The image saved as `id`, read and decrypted once per id. */
 export function useImageSrc(id: string): UseImageSrc {
-  const read = usePromise(() => readImage(id).then(jpegDataUrl), id);
+  const read = usePromise(() => readImage(id).then(pictureDataUrl), id);
   return {
     loading: read.status === "loading",
     src: read.status === "done" ? read.value : null,
