@@ -17,7 +17,7 @@ export function ImageFrame({ width, onResize, children }: ImageFrameProps) {
         // layout
         "relative",
         // size: a given width is filled; without one, the box fits the picture once it is in
-        shownWidth === null ? "max-w-full has-[img]:w-fit" : "*:w-full",
+        shownWidth === null ? "max-w-full has-[img]:w-fit" : "[&>img]:w-full",
       )}
       style={shownWidth === null ? undefined : { width: `${shownWidth}%` }}
     >
