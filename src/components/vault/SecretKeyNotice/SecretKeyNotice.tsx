@@ -4,7 +4,7 @@ import { SecretKeyCard } from "../SecretKeyCard";
 import type { SecretKeyNoticeProps } from "./type";
 
 /** Shown once, right after a vault is made, so its Secret Key can be kept. */
-export function SecretKeyNotice({ secretKey, onKept, onLock }: SecretKeyNoticeProps) {
+export function SecretKeyNotice({ secretKey, onKept, onLock, busy }: SecretKeyNoticeProps) {
   useAutoLock(onLock);
 
   return (
@@ -14,7 +14,7 @@ export function SecretKeyNotice({ secretKey, onKept, onLock }: SecretKeyNoticePr
       <p>なくすと、パスフレーズを覚えていても、ほかの端末では日記を開けません。</p>
       <p>あとからでも、日記帳を開いて左下の config から見られます。</p>
       <SecretKeyCard secretKey={secretKey} />
-      <Button type="button" onClick={onKept}>
+      <Button type="button" disabled={busy} onClick={onKept}>
         控えました
       </Button>
     </div>

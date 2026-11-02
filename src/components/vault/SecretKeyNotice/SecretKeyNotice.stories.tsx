@@ -9,6 +9,7 @@ const meta = {
     secretKey: "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A",
     onKept: () => {},
     onLock: async () => {},
+    busy: false,
   },
 } satisfies Meta<typeof SecretKeyNotice>;
 

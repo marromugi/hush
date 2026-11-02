@@ -1,6 +1,6 @@
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
 import { SecretKeyNotice } from "./SecretKeyNotice";
@@ -20,10 +20,24 @@ test("locks when the system asks, while the Secret Key is on screen", async () =
       onLock={async () => {
         locks += 1;
       }}
+      busy={false}
     />,
   );
   await waitFor(async () => {
     await emit("lock-requested");
     expect(locks).toBe(1);
   });
+});
+
+test("the diary cannot be opened while a lock runs", () => {
+  mockIPC(() => null, { shouldMockEvents: true });
+  render(
+    <SecretKeyNotice
+      secretKey="H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A"
+      onKept={() => {}}
+      onLock={async () => {}}
+      busy
+    />,
+  );
+  expect(screen.getByRole("button", { name: "控えました" }).hasAttribute("disabled")).toBe(true);
 });

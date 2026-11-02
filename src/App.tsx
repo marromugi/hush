@@ -38,6 +38,7 @@ export function App() {
             secretKey={vault.newSecretKey}
             onKept={vault.keptSecretKey}
             onLock={vault.lock}
+            busy={vault.busy}
           />
         ) : null}
         {vault.status === "needsSecretKey" ? (

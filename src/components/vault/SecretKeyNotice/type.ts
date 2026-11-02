@@ -5,4 +5,6 @@ export type SecretKeyNoticeProps = {
   onKept: () => void;
   /** Locks the vault when no one is there, as the diary does. */
   onLock: () => Promise<void>;
+  /** True while a lock runs; the diary must not open then. */
+  busy: boolean;
 };
