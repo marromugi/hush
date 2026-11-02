@@ -81,7 +81,16 @@ function DrawerBody({ label, open, onOpenChange, returnFocus, children }: Drawer
                         onClick={() => onOpenChange(false)}
                       />
                     </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+                    <div
+                      className={clsx(
+                        // size
+                        "min-h-0 flex-1 overflow-y-auto",
+                        // spacing: room for the focus outline, which the scroll area would clip
+                        "-mx-1 px-1 pb-1",
+                      )}
+                    >
+                      {children}
+                    </div>
                   </motion.div>
                 </FloatingFocusManager>
               </FloatingOverlay>

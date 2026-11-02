@@ -41,6 +41,9 @@ export type UseDiaryScreen = {
   datesError: string | null;
 };
 
+/** Wide enough for the sidebar beside the diary: Tailwind's `md`. */
+const WIDE = "(min-width: 48rem)";
+
 /** Which day is shown, the days to choose from, and the menus and panels over the diary. */
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
@@ -50,6 +53,16 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
   const [configOpen, setConfigOpen] = useState(false);
   const [secretKeyOpen, setSecretKeyOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // The days shown over the diary have no place once the sidebar is back.
+  useEffect(() => {
+    const wide = window.matchMedia(WIDE);
+    const putAway = () => {
+      if (wide.matches) setDatesOpen(false);
+    };
+    wide.addEventListener("change", putAway);
+    return () => wide.removeEventListener("change", putAway);
+  }, []);
 
   useEffect(() => {
     let ignore = false;

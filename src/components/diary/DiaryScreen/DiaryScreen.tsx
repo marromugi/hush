@@ -173,7 +173,7 @@ export function DiaryScreen() {
           </div>
         ) : null}
         <Drawer
-          label="日記の日付"
+          label="日付の一覧"
           open={screen.datesOpen}
           onOpenChange={screen.setDatesOpen}
           returnFocus={datesButton}
