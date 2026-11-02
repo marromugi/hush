@@ -10,6 +10,9 @@ import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
 
+/** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of. */
+const BANDS = { top: 84, bottom: 104 };
+
 /** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
 export function DiaryScreen() {
   const today = useTodayScreen();
@@ -59,8 +62,8 @@ export function DiaryScreen() {
           "sticky top-21 self-start",
           // size: between the header and the footer, scrolling only when a month is long
           "max-h-[calc(100dvh-var(--spacing)*47)] overflow-y-auto",
-          // spacing
-          "pt-18",
+          // spacing: room for the focus outline, which the scroll area would clip
+          "-mx-1 px-1 pt-18 pb-1",
         )}
       >
         <Sidebar
@@ -81,6 +84,7 @@ export function DiaryScreen() {
               initialBody={today.initialBody}
               onChange={today.onChange}
               disabled={today.locking}
+              keepClear={BANDS}
             />
           )
         ) : (
