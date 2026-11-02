@@ -1,8 +1,7 @@
 import { usePromise } from "@/hooks/common/usePromise";
 import { useEntryFont } from "@/hooks/diary/useEntryFont";
 import { readEntry } from "@/lib/vault/commands";
-import { errorText } from "@/lib/vault/errorText";
-import { toHushError } from "@/lib/vault/hushError";
+import { failureText } from "@/lib/vault/errorText";
 
 export type UsePastEntry = {
   loading: boolean;
@@ -26,6 +25,6 @@ export function usePastEntry(date: string): UsePastEntry {
     body: entry?.body ?? null,
     fontFamily: font.fontFamily,
     fontLoading: font.loading,
-    error: read.status === "failed" ? errorText(toHushError(read.error).kind) : null,
+    error: read.status === "failed" ? failureText(read.error) : null,
   };
 }

@@ -1,7 +1,6 @@
 import { usePromise } from "@/hooks/common/usePromise";
 import { showSecretKey } from "@/lib/vault/commands";
-import { errorText } from "@/lib/vault/errorText";
-import { toHushError } from "@/lib/vault/hushError";
+import { failureText } from "@/lib/vault/errorText";
 
 export type UseSecretKey = {
   loading: boolean;
@@ -16,6 +15,6 @@ export function useSecretKey(): UseSecretKey {
   return {
     loading: read.status === "loading",
     secretKey: read.status === "done" ? read.value : null,
-    error: read.status === "failed" ? errorText(toHushError(read.error).kind) : null,
+    error: read.status === "failed" ? failureText(read.error) : null,
   };
 }

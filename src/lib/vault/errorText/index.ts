@@ -1,1 +1,1 @@
-export { errorText } from "./errorText";
+export { errorText, failureText } from "./errorText";
