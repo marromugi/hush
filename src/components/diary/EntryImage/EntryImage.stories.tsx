@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { fn } from "storybook/test";
 
 import { EntryImage } from "./EntryImage";
 
@@ -41,6 +42,18 @@ export const Shown: Story = {
 export const Selected: Story = {
   ...Shown,
   args: { selected: true },
+};
+
+/** At 60% of the entry's width. */
+export const Narrow: Story = {
+  ...Shown,
+  args: { width: 60 },
+};
+
+/** Selected where it can be resized: drag the grip on its right edge. */
+export const Resizable: Story = {
+  ...Shown,
+  args: { selected: true, width: 60, onResize: fn() },
 };
 
 /** The image file is not on this device. */
