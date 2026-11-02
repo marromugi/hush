@@ -19,11 +19,27 @@ pub enum AppError {
     #[error("wrong passphrase")]
     WrongPassphrase,
 
+    /// The Secret Key was typed, so either of the two can be the wrong one.
+    #[error("wrong passphrase or secret key")]
+    WrongPassphraseOrSecretKey,
+
+    #[error("text is not a secret key")]
+    InvalidSecretKey,
+
+    #[error("this device has no secret key for the vault")]
+    NoSecretKey,
+
+    #[error("keychain access failed")]
+    Keychain(#[source] keyring::Error),
+
     #[error("passphrase is empty")]
     EmptyPassphrase,
 
     #[error("vault.json is version {0}, newer than this app")]
     NewerVaultVersion(u32),
+
+    #[error("vault.json is version {0}, from before secret keys")]
+    OutdatedVault(u32),
 
     #[error("vault.json is broken")]
     BrokenVault(#[source] serde_json::Error),
@@ -62,6 +78,11 @@ impl AppError {
             Self::Encryption => "encryption",
             Self::Random(_) => "random",
             Self::WrongPassphrase => "wrongPassphrase",
+            Self::WrongPassphraseOrSecretKey => "wrongPassphraseOrSecretKey",
+            Self::InvalidSecretKey => "invalidSecretKey",
+            Self::NoSecretKey => "noSecretKey",
+            Self::Keychain(_) => "keychain",
+            Self::OutdatedVault(_) => "outdatedVault",
             Self::EmptyPassphrase => "emptyPassphrase",
             Self::NewerVaultVersion(_) => "newerVaultVersion",
             Self::BrokenVault(_) => "brokenVault",
@@ -125,6 +146,13 @@ mod tests {
             (AppError::NewerVaultVersion(2), "newerVaultVersion"),
             (AppError::NewerEntryVersion(2), "newerEntryVersion"),
             (AppError::Decryption, "decryption"),
+            (
+                AppError::WrongPassphraseOrSecretKey,
+                "wrongPassphraseOrSecretKey",
+            ),
+            (AppError::InvalidSecretKey, "invalidSecretKey"),
+            (AppError::NoSecretKey, "noSecretKey"),
+            (AppError::OutdatedVault(1), "outdatedVault"),
         ];
         for (error, kind) in cases {
             assert_eq!(serde_json::to_value(error).unwrap()["kind"], kind);

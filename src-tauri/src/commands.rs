@@ -20,21 +20,35 @@ pub async fn vault_status(state: State<'_, AppState>) -> Result<VaultStatus, App
     Ok(session::status(&state))
 }
 
+/// Returns the new vault's Secret Key as text, for the person to keep.
 #[tauri::command]
-pub async fn create_vault(passphrase: String, state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn create_vault(
+    passphrase: String,
+    state: State<'_, AppState>,
+) -> Result<String, AppError> {
     let passphrase = Zeroizing::new(passphrase);
     let pending = session::begin_unlock(&state);
     let store = pending.store.clone();
-    let key = spawn_blocking(move || store.create_vault(&passphrase)).await??;
-    session::finish_unlock(&state, pending, key)
+    let (key, secret_key) = spawn_blocking(move || store.create_vault(&passphrase)).await??;
+    session::finish_unlock(&state, pending, key)?;
+    Ok(secret_key.to_text().to_string())
 }
 
+/// `secret_key` is typed only on a device that does not have it yet.
 #[tauri::command]
-pub async fn unlock_vault(passphrase: String, state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn unlock_vault(
+    passphrase: String,
+    secret_key: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
     let passphrase = Zeroizing::new(passphrase);
+    let secret_key = secret_key.map(Zeroizing::new);
     let pending = session::begin_unlock(&state);
     let store = pending.store.clone();
-    let key = spawn_blocking(move || store.unlock(&passphrase)).await??;
+    let key = spawn_blocking(move || {
+        store.unlock(&passphrase, secret_key.as_deref().map(String::as_str))
+    })
+    .await??;
     session::finish_unlock(&state, pending, key)
 }
 

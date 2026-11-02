@@ -12,6 +12,8 @@ use crate::local_store::LocalStore;
 #[serde(rename_all = "camelCase")]
 pub enum VaultStatus {
     Missing,
+    /// Locked, and this device has no Secret Key for the vault yet.
+    NeedsSecretKey,
     Locked,
     Unlocked,
 }
@@ -50,14 +52,18 @@ fn inner(state: &AppState) -> MutexGuard<'_, AppStateInner> {
         .expect("state lock is only poisoned by an earlier panic")
 }
 
+/// A vault that cannot be read, or a keychain that cannot be read, shows as
+/// `Locked`: unlocking then fails with the reason, on a screen that can retry.
 pub fn status(state: &AppState) -> VaultStatus {
     let inner = inner(state);
     if inner.key.is_some() {
         VaultStatus::Unlocked
-    } else if inner.store.has_vault() {
-        VaultStatus::Locked
-    } else {
+    } else if !inner.store.has_vault() {
         VaultStatus::Missing
+    } else if let Ok(false) = inner.store.has_secret_key() {
+        VaultStatus::NeedsSecretKey
+    } else {
+        VaultStatus::Locked
     }
 }
 
@@ -126,14 +132,51 @@ mod tests {
 
     fn state() -> (tempfile::TempDir, AppState) {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalStore::new(dir.path().to_path_buf());
+        let store = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
+        );
         (dir, AppState::new(AppStateInner::new(store)))
     }
 
     fn create_and_unlock(state: &AppState, passphrase: &str) {
         let pending = begin_unlock(state);
-        let key = pending.store.create_vault(passphrase).unwrap();
+        let (key, _) = pending.store.create_vault(passphrase).unwrap();
         finish_unlock(state, pending, key).unwrap();
+    }
+
+    #[test]
+    fn a_device_without_the_secret_key_says_it_needs_one() {
+        let (dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        let device = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
+        );
+        let device = AppState::new(AppStateInner::new(device));
+        assert_eq!(status(&device), VaultStatus::NeedsSecretKey);
+    }
+
+    #[test]
+    fn an_unreadable_vault_or_keychain_shows_as_locked_so_unlocking_can_say_why() {
+        let (dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        let device = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::BrokenKeychain),
+        );
+        assert_eq!(
+            status(&AppState::new(AppStateInner::new(device))),
+            VaultStatus::Locked
+        );
+
+        let (old_dir, old_state) = super::tests::state();
+        std::fs::write(
+            old_dir.path().join("vault.json"),
+            r#"{"version":1,"kdf":{},"verifier":{}}"#,
+        )
+        .unwrap();
+        assert_eq!(status(&old_state), VaultStatus::Locked);
     }
 
     #[test]
@@ -165,7 +208,7 @@ mod tests {
         lock(&state);
 
         let pending = begin_unlock(&state);
-        let key = pending.store.unlock("correct horse").unwrap();
+        let key = pending.store.unlock("correct horse", None).unwrap();
         lock(&state); // the user locks while the key is being derived
         assert!(matches!(
             finish_unlock(&state, pending, key),

@@ -30,6 +30,49 @@ function fakeVault() {
   });
 }
 
+test("creating shows the new Secret Key until it is kept", async () => {
+  mockIPC((command) => {
+    if (command === "vault_status") return "missing";
+    if (command === "create_vault") return "H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123";
+    throw new Error(`unexpected command ${command}`);
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("missing"));
+  await act(() => result.current.create("correct"));
+  expect(result.current.status).toBe("unlocked");
+  expect(result.current.newSecretKey).toBe("H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123");
+  act(() => result.current.keptSecretKey());
+  expect(result.current.newSecretKey).toBeNull();
+});
+
+test("a device without the Secret Key opens with it typed", async () => {
+  const calls: unknown[] = [];
+  mockIPC((command, args) => {
+    if (command === "vault_status") return "needsSecretKey";
+    if (command === "unlock_vault") {
+      calls.push(args);
+      return null;
+    }
+    throw new Error(`unexpected command ${command}`);
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("needsSecretKey"));
+  await act(() => result.current.unlock("correct", "H1-ABCDE"));
+  expect(calls).toEqual([{ passphrase: "correct", secretKey: "H1-ABCDE" }]);
+  expect(result.current.status).toBe("unlocked");
+});
+
+test("when the Secret Key is gone from the device, unlocking asks for it", async () => {
+  mockIPC((command) => {
+    if (command === "vault_status") return "locked";
+    throw { kind: "noSecretKey", message: "this device has no secret key for the vault" };
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("locked"));
+  await act(() => result.current.unlock("correct"));
+  expect(result.current.status).toBe("needsSecretKey");
+});
+
 test("starts loading, then shows the status from the Rust side", async () => {
   fakeVault();
   const { result } = renderHook(() => useVault());

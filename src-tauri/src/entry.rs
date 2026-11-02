@@ -131,6 +131,7 @@ pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppEr
 mod tests {
     use super::*;
     use crate::crypto::{KdfParams, SALT_LEN, derive_key};
+    use crate::secret_key::{SECRET_KEY_LEN, SecretKey};
 
     /// Cheap settings so the tests stay fast; the code path is the same.
     const TEST_KDF: KdfParams = KdfParams {
@@ -140,7 +141,8 @@ mod tests {
     };
 
     fn key(passphrase: &str) -> VaultKey {
-        derive_key(passphrase, &[7; SALT_LEN], &TEST_KDF).unwrap()
+        let secret_key = SecretKey::from_bytes(&[9; SECRET_KEY_LEN]).unwrap();
+        derive_key(passphrase, &secret_key, &[7; SALT_LEN], &TEST_KDF).unwrap()
     }
 
     fn date(text: &str) -> EntryDate {
@@ -327,8 +329,8 @@ mod tests {
     /// files, so field names and the Base64 form must not drift.
     const FIXTURE: &str = r#"{
   "version": 1,
-  "nonce": "Bj/f4qt/p+mTREWG+2chiSgOGeNeA3jo",
-  "ciphertext": "NIRjQNvdOBoQum8t57ESe7oE5Tbyq/pWa+M/ognKr3gZoOWkvdifhq9ufD9gpiwoZH9x2ckmMMieVhYpq4ZEPQki0a7RL0C/TBEHTOAyM9CreDz9zmhJiwhUteO4YbnpR3YxffujNfKsI1mHuUx6XjhipHYtgj9ix7M="
+  "nonce": "COxZRyFpl6erxrTaUJTEGAFMEoviBE7g",
+  "ciphertext": "Ir6Tcrkp1P3LGP/mw9oKv+O6VnaDoaltNNc5UbWD2eIL9SBCo9AcUTCBmo49Ei6HjNdw0EiQxewm5sXXnV2qYS7UWhVlKYvQM5SvwdUCdcfnTsvs/WkD3keJ2tdd3UCa6unv+XhyKe/t1zLHkkDQjG6tyw5iY4BPqqc="
 }"#;
 
     #[test]

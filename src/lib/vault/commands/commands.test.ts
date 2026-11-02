@@ -25,6 +25,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
   await vaultStatus();
   await createVault("pass");
   await unlockVault("pass");
+  await unlockVault("pass", "H1-ABCDE");
   await lockVault();
   await readEntry("2026-10-29");
   await saveEntry("2026-10-29", "晴れ");
@@ -33,6 +34,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
     ["vault_status", {}],
     ["create_vault", { passphrase: "pass" }],
     ["unlock_vault", { passphrase: "pass" }],
+    ["unlock_vault", { passphrase: "pass", secretKey: "H1-ABCDE" }],
     ["lock_vault", {}],
     ["read_entry", { date: "2026-10-29" }],
     ["save_entry", { date: "2026-10-29", body: "晴れ" }],

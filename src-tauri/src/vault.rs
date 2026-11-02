@@ -4,9 +4,16 @@ use crate::app_error::AppError;
 use crate::b64;
 use crate::crypto::{self, DEFAULT_KDF, KdfParams, SALT_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
+use crate::secret_key::SecretKey;
 
 /// Current `vault.json` format. Bump when a field is added or changed.
-pub const VAULT_VERSION: u32 = 1;
+pub const VAULT_VERSION: u32 = 2;
+
+/// Versions this app recognizes but cannot open: their key came from the
+/// passphrase alone, so they are rebuilt rather than read.
+const OUTDATED_VERSIONS: std::ops::RangeInclusive<u32> = 1..=1;
+
+const VAULT_ID_LEN: usize = 16;
 
 /// Encrypted into `verifier`; decrypting it proves the passphrase is right
 /// without opening any entry.
@@ -19,12 +26,16 @@ const MAX_MEMORY_KIB: u32 = 256 * 1024;
 const MAX_ITERATIONS: u32 = 16;
 const MAX_PARALLELISM: u32 = 8;
 
-/// The contents of `vault.json`. Not secret: it holds the salt, the KDF
-/// settings, and an encrypted known text used to check the passphrase.
+/// The contents of `vault.json`. Not secret: it holds the vault's id, the
+/// salt, the KDF settings, and an encrypted known text used to check the
+/// passphrase and the Secret Key.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Vault {
     version: u32,
+    /// Names the vault in each device's keychain.
+    #[serde(with = "b64::array")]
+    id: [u8; VAULT_ID_LEN],
     kdf: StoredKdf,
     verifier: Sealed,
 }
@@ -104,8 +115,12 @@ impl StoredKdf {
 }
 
 impl Vault {
-    /// Makes a new vault for `passphrase` and returns it with its key.
-    pub fn create(passphrase: &str) -> Result<(Vault, VaultKey), AppError> {
+    /// Makes a new vault for `passphrase` and a new Secret Key, and returns
+    /// them with the vault's key.
+    pub fn create(passphrase: &str) -> Result<(Vault, VaultKey, SecretKey), AppError> {
+        let secret_key = SecretKey::generate()?;
+        let mut id = [0; VAULT_ID_LEN];
+        getrandom::fill(&mut id).map_err(AppError::Random)?;
         let kdf = StoredKdf {
             algorithm: KdfAlgorithm::Argon2id,
             memory_kib: DEFAULT_KDF.memory_kib,
@@ -113,14 +128,15 @@ impl Vault {
             parallelism: DEFAULT_KDF.parallelism,
             salt: crypto::new_salt()?,
         };
-        let key = crypto::derive_key(passphrase, &kdf.salt, &kdf.params())?;
+        let key = crypto::derive_key(passphrase, &secret_key, &kdf.salt, &kdf.params())?;
         let verifier = crypto::encrypt(&key, VERIFIER_AAD, VERIFIER_TEXT)?;
         let vault = Vault {
             version: VAULT_VERSION,
+            id,
             kdf,
             verifier,
         };
-        Ok((vault, key))
+        Ok((vault, key, secret_key))
     }
 
     /// Parses `vault.json`. The version is read first, so a vault written by
@@ -130,6 +146,9 @@ impl Vault {
         if version > VAULT_VERSION {
             return Err(AppError::NewerVaultVersion(version));
         }
+        if OUTDATED_VERSIONS.contains(&version) {
+            return Err(AppError::OutdatedVault(version));
+        }
         if version < VAULT_VERSION {
             return Err(AppError::BrokenVault(de::Error::custom(format!(
                 "unknown version {version}"
@@ -138,14 +157,19 @@ impl Vault {
         serde_json::from_str(text).map_err(AppError::BrokenVault)
     }
 
-    /// Derives the key from `passphrase` and checks it against the verifier.
-    /// The cipher authenticates the verifier, so decrypting it at all proves
-    /// the key.
-    pub fn unlock(&self, passphrase: &str) -> Result<VaultKey, AppError> {
-        let key = crypto::derive_key(passphrase, &self.kdf.salt, &self.kdf.params())?;
+    /// The id that names this vault in a keychain.
+    pub fn id(&self) -> String {
+        self.id.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    /// Derives the key and checks it against the verifier. The cipher
+    /// authenticates the verifier, so decrypting it at all proves the key.
+    /// A wrong passphrase and a wrong Secret Key look the same.
+    pub fn unlock(&self, passphrase: &str, secret_key: &SecretKey) -> Result<VaultKey, AppError> {
+        let key = crypto::derive_key(passphrase, secret_key, &self.kdf.salt, &self.kdf.params())?;
         match crypto::decrypt(&key, VERIFIER_AAD, &self.verifier) {
             Ok(_) => Ok(key),
-            Err(AppError::Decryption) => Err(AppError::WrongPassphrase),
+            Err(AppError::Decryption) => Err(AppError::WrongPassphraseOrSecretKey),
             Err(other) => Err(other),
         }
     }
@@ -158,29 +182,38 @@ impl Vault {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::secret_key::SECRET_KEY_LEN;
 
-    #[test]
-    fn a_new_vault_unlocks_with_its_passphrase_after_a_round_trip() {
-        let (vault, _) = Vault::create("correct horse").unwrap();
-        let reread = Vault::parse(&vault.to_json()).unwrap();
-        assert_eq!(reread, vault);
-        assert!(reread.unlock("correct horse").is_ok());
+    fn secret(byte: u8) -> SecretKey {
+        SecretKey::from_bytes(&[byte; SECRET_KEY_LEN]).unwrap()
     }
 
     #[test]
-    fn wrong_passphrase_is_reported_as_such() {
-        let (vault, _) = Vault::create("correct horse").unwrap();
+    fn a_new_vault_unlocks_with_its_passphrase_and_secret_key_after_a_round_trip() {
+        let (vault, _, secret_key) = Vault::create("correct horse").unwrap();
+        let reread = Vault::parse(&vault.to_json()).unwrap();
+        assert_eq!(reread, vault);
+        assert!(reread.unlock("correct horse", &secret_key).is_ok());
+    }
+
+    #[test]
+    fn a_wrong_passphrase_or_secret_key_is_reported_as_such() {
+        let (vault, _, secret_key) = Vault::create("correct horse").unwrap();
         assert!(matches!(
-            vault.unlock("wrong horse"),
-            Err(AppError::WrongPassphrase)
+            vault.unlock("wrong horse", &secret_key),
+            Err(AppError::WrongPassphraseOrSecretKey)
+        ));
+        assert!(matches!(
+            vault.unlock("correct horse", &secret(1)),
+            Err(AppError::WrongPassphraseOrSecretKey)
         ));
     }
 
     #[test]
     fn unlock_gives_the_same_key_as_create() {
-        let (vault, created) = Vault::create("correct horse").unwrap();
+        let (vault, created, secret_key) = Vault::create("correct horse").unwrap();
         let sealed = crypto::encrypt(&created, b"entries/x.enc", b"diary").unwrap();
-        let unlocked = vault.unlock("correct horse").unwrap();
+        let unlocked = vault.unlock("correct horse", &secret_key).unwrap();
         assert_eq!(
             crypto::decrypt(&unlocked, b"entries/x.enc", &sealed).unwrap(),
             b"diary"
@@ -188,14 +221,16 @@ mod tests {
     }
 
     #[test]
-    fn each_vault_gets_its_own_salt() {
-        let (a, _) = Vault::create("correct horse").unwrap();
-        let (b, _) = Vault::create("correct horse").unwrap();
+    fn each_vault_gets_its_own_salt_id_and_secret_key() {
+        let (a, _, a_secret) = Vault::create("correct horse").unwrap();
+        let (b, _, b_secret) = Vault::create("correct horse").unwrap();
         assert_ne!(a.kdf.salt, b.kdf.salt);
+        assert_ne!(a.id(), b.id());
+        assert_ne!(a_secret.as_bytes(), b_secret.as_bytes());
     }
 
     fn json_with(change: impl FnOnce(&mut serde_json::Value)) -> String {
-        let (vault, _) = Vault::create("correct horse").unwrap();
+        let (vault, _, _) = Vault::create("correct horse").unwrap();
         let mut value: serde_json::Value = serde_json::from_str(&vault.to_json()).unwrap();
         change(&mut value);
         value.to_string()
@@ -204,12 +239,21 @@ mod tests {
     #[test]
     fn newer_version_with_new_fields_asks_for_an_update() {
         let text = json_with(|v| {
-            v["version"] = 2.into();
+            v["version"] = 3.into();
             v["mood"] = "sunny".into();
         });
         assert!(matches!(
             Vault::parse(&text),
-            Err(AppError::NewerVaultVersion(2))
+            Err(AppError::NewerVaultVersion(3))
+        ));
+    }
+
+    #[test]
+    fn a_vault_from_before_secret_keys_is_outdated() {
+        let text = r#"{"version":1,"kdf":{},"verifier":{}}"#;
+        assert!(matches!(
+            Vault::parse(text),
+            Err(AppError::OutdatedVault(1))
         ));
     }
 
@@ -292,7 +336,8 @@ mod tests {
     /// A vault.json as this format writes it. The Mac and iPhone apps both
     /// read these files, so field names and the Base64 form must not drift.
     const FIXTURE: &str = r#"{
-  "version": 1,
+  "version": 2,
+  "id": "AwMDAwMDAwMDAwMDAwMDAw==",
   "kdf": {
     "algorithm": "argon2id",
     "memory_kib": 8,
@@ -301,15 +346,15 @@ mod tests {
     "salt": "CQkJCQkJCQkJCQkJCQkJCQ=="
   },
   "verifier": {
-    "nonce": "vesARyJiSvEzaAR3w7JmzlkoZz25kaQ/",
-    "ciphertext": "gd3NST4zTbwTNLiiy3Fh7XAX6ZVOgfoSYlITFKw="
+    "nonce": "1jjTEXkcsx1+Dw4javRaiRmiVdxU9UdN",
+    "ciphertext": "vmEalJDm8swhYI4RggRxxcMx5xYOSmOaKU1s97I="
   }
 }"#;
 
     #[test]
     fn the_fixed_vault_json_reads_unlocks_and_writes_back_unchanged() {
         let vault = Vault::parse(FIXTURE).unwrap();
-        assert!(vault.unlock("correct horse").is_ok());
+        assert!(vault.unlock("correct horse", &secret(9)).is_ok());
         assert_eq!(vault.to_json(), FIXTURE);
     }
 }

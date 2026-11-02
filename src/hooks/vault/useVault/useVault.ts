@@ -11,8 +11,13 @@ export type UseVault = {
   /** True while a create, unlock, or lock is running. */
   busy: boolean;
   error: HushError | null;
+  /** The Secret Key of the vault just created, until the person has kept it. */
+  newSecretKey: string | null;
   create: (passphrase: string) => Promise<void>;
-  unlock: (passphrase: string) => Promise<void>;
+  /** Call once the person has kept `newSecretKey`. */
+  keptSecretKey: () => void;
+  /** `secretKey` only on a device that does not have it yet. */
+  unlock: (passphrase: string, secretKey?: string) => Promise<void>;
   lock: () => Promise<void>;
 };
 
@@ -20,6 +25,7 @@ export function useVault(): UseVault {
   const [status, setStatus] = useState<VaultStatus | "loading">("loading");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<HushError | null>(null);
+  const [newSecretKey, setNewSecretKey] = useState<string | null>(null);
   const running = useRef(false);
 
   useEffect(() => {
@@ -48,7 +54,10 @@ export function useVault(): UseVault {
       await action();
       setStatus(next);
     } catch (failure) {
-      setError(toHushError(failure));
+      const failed = toHushError(failure);
+      setError(failed);
+      // The device lost the vault's Secret Key, or never kept it: ask for it.
+      if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
     } finally {
       running.current = false;
       setBusy(false);
@@ -59,8 +68,11 @@ export function useVault(): UseVault {
     status,
     busy,
     error,
-    create: (passphrase) => run(() => createVault(passphrase), "unlocked"),
-    unlock: (passphrase) => run(() => unlockVault(passphrase), "unlocked"),
+    newSecretKey,
+    create: (passphrase) =>
+      run(async () => setNewSecretKey(await createVault(passphrase)), "unlocked"),
+    keptSecretKey: () => setNewSecretKey(null),
+    unlock: (passphrase, secretKey) => run(() => unlockVault(passphrase, secretKey), "unlocked"),
     lock: () => run(lockVault, "locked"),
   };
 }
