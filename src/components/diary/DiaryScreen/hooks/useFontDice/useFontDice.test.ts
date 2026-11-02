@@ -125,3 +125,15 @@ test("a font lacking one language's characters can still be picked for another",
   expect(result.current.font).toMatchObject(kana);
   expect(loaded).toEqual(["kana-only"]);
 });
+
+test("two presses before the first roll is done roll once", async () => {
+  const { loaded } = fakeFonts();
+  const { result } = renderDice();
+  const roll = result.current.roll;
+  await act(async () => {
+    const first = roll();
+    void roll();
+    await first;
+  });
+  expect(loaded).toHaveLength(1);
+});

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useSingleFlight } from "@/hooks/common/useSingleFlight";
 import { createVault, lockVault, unlockVault, vaultStatus } from "@/lib/vault/commands";
 import type { VaultStatus } from "@/lib/vault/commands";
 import { toHushError } from "@/lib/vault/hushError";
@@ -23,10 +24,8 @@ export type UseVault = {
 
 export function useVault(): UseVault {
   const [status, setStatus] = useState<VaultStatus | "loading">("loading");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<HushError | null>(null);
   const [newSecretKey, setNewSecretKey] = useState<string | null>(null);
-  const running = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -44,25 +43,21 @@ export function useVault(): UseVault {
     };
   }, []);
 
-  /** A second call while one is running is ignored, as from a double click. */
-  async function run(action: () => Promise<void>, next: VaultStatus) {
-    if (running.current) return;
-    running.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-      setStatus(next);
-    } catch (failure) {
-      const failed = toHushError(failure);
-      setError(failed);
-      // The device lost the vault's Secret Key, or never kept it: ask for it.
-      if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
-    } finally {
-      running.current = false;
-      setBusy(false);
-    }
-  }
+  // A second call while one is running is ignored, as from a double click.
+  const { run, running: busy } = useSingleFlight(
+    async (action: () => Promise<void>, next: VaultStatus) => {
+      setError(null);
+      try {
+        await action();
+        setStatus(next);
+      } catch (failure) {
+        const failed = toHushError(failure);
+        setError(failed);
+        // The device lost the vault's Secret Key, or never kept it: ask for it.
+        if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
+      }
+    },
+  );
 
   return {
     status,
