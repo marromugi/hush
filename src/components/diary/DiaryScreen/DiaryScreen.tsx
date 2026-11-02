@@ -1,7 +1,9 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
-import { fontStack } from "../../../lib/diary/fonts";
+import { useSettings } from "../../../hooks/settings/useSettings";
+import { fontStack, subsetFor } from "../../../lib/diary/fonts";
+import { SettingsModal } from "../../settings/SettingsModal";
 import { DiceIcon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
 import { optionList, optionRow } from "../../ui/Options";
@@ -21,7 +23,8 @@ const BANDS = { top: 84, bottom: 104 };
 export function DiaryScreen() {
   const today = useTodayScreen();
   const screen = useDiaryScreen(today.date);
-  const dice = useFontDice();
+  const settings = useSettings();
+  const dice = useFontDice(subsetFor(settings.language));
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
 
@@ -120,6 +123,9 @@ export function DiaryScreen() {
             }
           >
             <div className={optionList({ className: "w-48" })}>
+              <button type="button" className={optionRow()} onClick={screen.openSettings}>
+                設定
+              </button>
               <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
                 Secret Key
               </button>
@@ -150,6 +156,11 @@ export function DiaryScreen() {
             />
           </div>
         ) : null}
+        <SettingsModal
+          open={screen.settingsOpen}
+          onOpenChange={screen.setSettingsOpen}
+          returnFocus={config}
+        />
         <SecretKeyModal
           open={screen.secretKeyOpen}
           onOpenChange={screen.setSecretKeyOpen}

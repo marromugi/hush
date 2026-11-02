@@ -24,6 +24,11 @@ export type UseDiaryScreen = {
   setSecretKeyOpen: (open: boolean) => void;
   /** Closes the config menu and shows the Secret Key. */
   openSecretKey: () => void;
+  /** True while the settings are shown over the diary. */
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+  /** Closes the config menu and shows the settings. */
+  openSettings: () => void;
   /** Closes the config menu and locks, saving what is being written first. */
   lockFromConfig: () => void;
   /** Days with an entry, and today even before anything is written. Oldest first. */
@@ -38,6 +43,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
   const [listed, setListed] = useState<Listed | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [secretKeyOpen, setSecretKeyOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -67,6 +73,12 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     openSecretKey: () => {
       setConfigOpen(false);
       setSecretKeyOpen(true);
+    },
+    settingsOpen,
+    setSettingsOpen,
+    openSettings: () => {
+      setConfigOpen(false);
+      setSettingsOpen(true);
     },
     lockFromConfig: () => {
       setConfigOpen(false);

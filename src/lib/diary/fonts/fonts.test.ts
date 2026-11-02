@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { fontDetails, fontStack, listFonts, pickFont } from "./fonts";
+import { fontDetails, fontStack, listFonts, pickFont, subsetFor } from "./fonts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -98,4 +98,9 @@ test("falls back to the font's kind while it loads", () => {
   expect(fontStack({ id: "d", family: "M PLUS 1 Code", category: "monospace" })).toBe(
     '"M PLUS 1 Code", monospace',
   );
+});
+
+test("Japanese writing picks among fonts with Japanese characters, English among Latin ones", () => {
+  expect(subsetFor("ja")).toBe("japanese");
+  expect(subsetFor("en")).toBe("latin");
 });

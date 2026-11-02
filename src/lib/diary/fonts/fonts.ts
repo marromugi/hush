@@ -139,3 +139,8 @@ function withTimeout<T>(promise: Promise<T>, id: string): Promise<T> {
     ),
   ]);
 }
+
+/** The characters the dice's fonts must have, for each writing language. */
+export function subsetFor(language: "ja" | "en"): string {
+  return language === "ja" ? "japanese" : "latin";
+}
