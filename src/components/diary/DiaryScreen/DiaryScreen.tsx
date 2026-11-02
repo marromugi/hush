@@ -82,7 +82,8 @@ export function DiaryScreen() {
           <span aria-hidden>|</span>
           <span>{screen.selectedParts.day}</span>
         </time>
-        <div className="flex h-6 items-center justify-end">
+        {/* A long error wraps downward only, keeping its first line beside the date. */}
+        <div className="flex justify-end pt-0.5 text-right">
           {today.saveMessage ? (
             <output
               className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
