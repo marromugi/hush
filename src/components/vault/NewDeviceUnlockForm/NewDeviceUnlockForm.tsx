@@ -2,6 +2,7 @@ import { errorText } from "../../../lib/vault/errorText";
 import { isAboutPassphrase } from "../../../lib/vault/hushError";
 import { Button } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
+import { QrScanner } from "./components/QrScanner";
 import { useNewDeviceUnlockForm } from "./hooks/useNewDeviceUnlockForm";
 import type { NewDeviceUnlockFormProps } from "./type";
 
@@ -12,7 +13,10 @@ export function NewDeviceUnlockForm({ busy, error, onUnlock }: NewDeviceUnlockFo
   return (
     <form className="flex flex-col gap-4" onSubmit={form.handleSubmit}>
       <h1 className="text-lg">この端末で日記帳を開く</h1>
-      <p>はじめての端末では、パスフレーズと一緒に Secret Key が要ります。</p>
+      <p>
+        はじめての端末では、パスフレーズと一緒に Secret Key が要ります。Secret Key
+        は、ほかの端末に出した QR コードからも読み取れます。
+      </p>
       <TextField
         {...form.register("secretKey")}
         label="Secret Key"
@@ -20,6 +24,13 @@ export function NewDeviceUnlockForm({ busy, error, onUnlock }: NewDeviceUnlockFo
         autoComplete="off"
         error={error?.kind === "invalidSecretKey" ? errorText(error.kind) : undefined}
       />
+      {form.scanning ? (
+        <QrScanner onFound={form.onScanned} onCancel={form.stopScan} />
+      ) : (
+        <Button type="button" tone="neutral" onClick={form.startScan}>
+          QR コードで読み取る
+        </Button>
+      )}
       <TextField
         {...form.register("passphrase")}
         label="パスフレーズ"
