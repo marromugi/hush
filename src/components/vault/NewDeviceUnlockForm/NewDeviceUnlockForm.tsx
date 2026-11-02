@@ -1,34 +1,27 @@
-import { readField } from "../../../lib/ui/readField";
 import { errorText } from "../../../lib/vault/errorText";
 import { isAboutPassphrase } from "../../../lib/vault/hushError";
 import { Button } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
+import { useNewDeviceUnlockForm } from "./hooks/useNewDeviceUnlockForm";
 import type { NewDeviceUnlockFormProps } from "./type";
 
 /** Opens the vault on a device that does not have its Secret Key yet. */
 export function NewDeviceUnlockForm({ busy, error, onUnlock }: NewDeviceUnlockFormProps) {
+  const form = useNewDeviceUnlockForm(onUnlock);
+
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void onUnlock(
-          readField(event.currentTarget, "passphrase"),
-          readField(event.currentTarget, "secretKey"),
-        );
-      }}
-    >
+    <form className="flex flex-col gap-4" onSubmit={form.handleSubmit}>
       <h1 className="text-lg">この端末で日記帳を開く</h1>
       <p>はじめての端末では、パスフレーズと一緒に Secret Key が要ります。</p>
       <TextField
-        name="secretKey"
+        {...form.register("secretKey")}
         label="Secret Key"
         type="text"
         autoComplete="off"
         error={error?.kind === "invalidSecretKey" ? errorText(error.kind) : undefined}
       />
       <TextField
-        name="passphrase"
+        {...form.register("passphrase")}
         label="パスフレーズ"
         type="password"
         autoComplete="current-password"
