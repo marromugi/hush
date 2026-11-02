@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!--
+    Hush's app icon: a crescent moon with a keyhole, on the macOS icon grid
+    (an 824px rounded square inside 1024px). The source for `pnpm tauri icon app-icon.svg`.
+    The mark is drawn on a circle of radius 100 and scaled; its colors are
+    the page (stone-50) and the text (stone-900) of the light theme.
+  -->
+  <defs>
+    <mask id="moon">
+      <rect x="-100" y="-100" width="200" height="200" fill="#fff" />
+      <!-- the bright part of the moon, touching the edge on the right -->
+      <circle cx="45" cy="-5" r="55" fill="#000" />
+      <!-- the keyhole, left standing inside it -->
+      <circle cx="45" cy="-8" r="16.5" fill="#fff" />
+      <polygon points="37.7,-5 52.3,-5 64.1,55 25.9,55" fill="#fff" />
+    </mask>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#fafaf9" />
+  <g transform="translate(512 512) scale(2.5)">
+    <circle r="100" fill="#1c1917" mask="url(#moon)" />
+  </g>
+</svg>
