@@ -23,8 +23,10 @@ export function EntryImage({ id, selected = false }: EntryImageProps) {
         "max-w-full",
         // spacing
         "my-0",
+        // shape
+        "rounded-lg",
         // focus
-        selected && "outline-2 outline-offset-2 outline-current",
+        selected && "outline-2 outline-offset-2 outline-current/40",
       )}
     />
   ) : (
