@@ -38,13 +38,17 @@ test("a second call while the first runs is turned away, even in the same render
 });
 
 test("a failing action still frees the next call, and the failure reaches the caller", async () => {
+  let runs = 0;
   const { result } = renderHook(() =>
     useSingleFlight(async () => {
-      throw new Error("offline");
+      runs += 1;
+      if (runs === 1) throw new Error("offline");
     }),
   );
   await act(async () => {
     await expect(result.current.run()).rejects.toThrow("offline");
   });
   expect(result.current.running).toBe(false);
+  await act(() => result.current.run());
+  expect(runs).toBe(2);
 });
