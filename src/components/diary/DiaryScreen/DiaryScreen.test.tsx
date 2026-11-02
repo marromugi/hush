@@ -423,3 +423,20 @@ test("the header shows the day that is open, as year.month.day", async () => {
   expect(shown?.getAttribute("datetime")).toBe("2020-01-01");
   expect(shown?.textContent).toBe("2020.1.1");
 });
+
+test("the entry takes its size, line height and letter spacing from the settings", async () => {
+  fakeVault();
+  writeSettings({ text: { size: 20, lineHeight: 1.8, letterSpacing: 0.05 } });
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  const around = document.querySelector<HTMLElement>("main");
+  expect(around?.style.getPropertyValue("--entry-size")).toBe("20px");
+  expect(around?.style.getPropertyValue("--entry-line")).toBe("1.8");
+  expect(around?.style.getPropertyValue("--entry-tracking")).toBe("0.05em");
+  act(() => writeSettings({ text: { size: 16, lineHeight: 1.6, letterSpacing: 0 } }));
+  expect(around?.style.getPropertyValue("--entry-size")).toBe("16px");
+});

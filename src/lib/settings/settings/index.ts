@@ -1,2 +1,2 @@
-export { readSettings, subscribeSettings, writeSettings } from "./settings";
-export type { Language, Settings } from "./settings";
+export { readSettings, subscribeSettings, TEXT_RANGES, writeSettings } from "./settings";
+export type { Language, Settings, TextSettings } from "./settings";

@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 import { useRef } from "react";
 
 import { useSettings } from "../../../hooks/settings/useSettings";
+import { entryTextStyle } from "../../../lib/diary/entryTextStyle";
 import { subsetFor } from "../../../lib/diary/fonts";
 import { SettingsModal } from "../../settings/SettingsModal";
 import { Drawer } from "../../ui/Drawer";
@@ -110,10 +111,20 @@ export function DiaryScreen() {
       {/*
         The entry is centred on the page, not beside the sidebar: from md it
         spans both columns, padded on both sides by the sidebar and its gap
-        (10rem + 1.5rem), so the two never meet. text-lg is the entry's own
-        size, so 36em is 36 of its characters to a line.
+        (10rem + 1.5rem), so the two never meet. Its font size is the entry's
+        own, from the text settings, so 36em is 36 of its characters to a line.
       */}
-      <main className="pt-18 text-lg md:col-span-2 md:col-start-1 md:row-start-2 md:px-46">
+      <main
+        style={entryTextStyle(settings.text)}
+        className={clsx(
+          // layout
+          "md:col-span-2 md:col-start-1 md:row-start-2",
+          // spacing
+          "pt-18 md:px-46",
+          // typography
+          "text-[length:var(--entry-size)]",
+        )}
+      >
         <div className="mx-auto w-full max-w-[36em]">
           {screen.showsToday ? (
             today.loading ? null : today.loadError ? (

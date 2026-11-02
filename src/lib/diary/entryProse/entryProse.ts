@@ -1,15 +1,18 @@
 import { clsx } from "clsx";
 
 /**
- * How an entry's body looks, whether it is being written or read. Its width
- * is left to the page (36 characters of this size). Lines, and the
- * paragraphs Enter starts, sit closer than prose's own.
+ * How an entry's body looks, whether it is being written or read. Its size,
+ * line height and letter spacing come from the variables `entryTextStyle`
+ * sets around it, with the defaults when there are none. Its width is left
+ * to the page. Lines, and the paragraphs Enter starts, sit closer than
+ * prose's own.
  */
 export const entryProse = clsx(
   // typography
   "prose prose-stone prose-lg max-w-none dark:prose-invert",
+  "text-[length:var(--entry-size,18px)] leading-[var(--entry-line,1.6)] tracking-(--entry-tracking)",
   // spacing: the first and last paragraphs keep prose's flush edges
-  "leading-[1.6] prose-p:my-[0.5em] [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+  "prose-p:my-[0.5em] [&>:first-child]:mt-0 [&>:last-child]:mb-0",
 );
 
 /**
