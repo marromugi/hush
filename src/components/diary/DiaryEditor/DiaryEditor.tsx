@@ -1,7 +1,6 @@
 import { EditorContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 
-import { isImageSelected, selectedImageBox } from "@/lib/diary/entryExtensions";
 import { fontLoadingStyle } from "@/lib/diary/entryProse";
 
 import { ImageMenu } from "./components/ImageMenu";
@@ -16,7 +15,7 @@ export function DiaryEditor({
   fontFamily,
   fontLoading = false,
 }: DiaryEditorProps) {
-  const { editor, imageError, imageAlign, alignImage } = useDiaryEditor(
+  const { editor, imageError, imageAlign, alignImage, imageMenu } = useDiaryEditor(
     initialBody,
     onChange,
     disabled,
@@ -30,11 +29,8 @@ export function DiaryEditor({
           {imageError}
         </p>
       ) : null}
-      <BubbleMenu
-        editor={editor}
-        shouldShow={({ editor: shown }) => isImageSelected(shown)}
-        getReferencedVirtualElement={() => selectedImageBox(editor)}
-      >
+      {/* Over the sticky header and footer; shown and moved without the default delay. */}
+      <BubbleMenu editor={editor} updateDelay={0} className="z-10" {...imageMenu}>
         <ImageMenu align={imageAlign} onAlign={alignImage} />
       </BubbleMenu>
       <EditorContent

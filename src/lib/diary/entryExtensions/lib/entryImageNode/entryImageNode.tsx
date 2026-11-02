@@ -122,9 +122,13 @@ export function selectedImageAlign(editor: Editor): ImageAlign {
   return parseAlign(typeof align === "string" ? align : null);
 }
 
-/** Moves the selected image to `align`, keeping it selected. */
+/**
+ * Moves the selected image to `align`, keeping it selected and the page
+ * where it is. Does nothing once the editor is read-only, as while locking.
+ */
 export function alignSelectedImage(editor: Editor, align: ImageAlign): void {
-  editor.chain().focus().updateAttributes(NAME, { align }).run();
+  if (!editor.isEditable) return;
+  editor.chain().focus(null, { scrollIntoView: false }).updateAttributes(NAME, { align }).run();
 }
 
 /**

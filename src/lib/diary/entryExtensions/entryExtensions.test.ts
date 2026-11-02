@@ -2,7 +2,12 @@ import { Editor } from "@tiptap/react";
 import { expect, test } from "vitest";
 
 import { entryExtensions } from "./entryExtensions";
-import { alignSelectedImage, insertEntryImage, selectedImageAlign } from "./lib/entryImageNode";
+import {
+  alignSelectedImage,
+  insertEntryImage,
+  isImageSelected,
+  selectedImageAlign,
+} from "./lib/entryImageNode";
 
 test("an image in an entry's HTML is read back and written as the same HTML", () => {
   const body =
@@ -76,5 +81,27 @@ test("aligning the selected image writes it, and moving it back to the left writ
   expect(editor.getHTML()).toBe(`<img data-image="${id}" data-align="right"><p>海</p>`);
   alignSelectedImage(editor, "left");
   expect(editor.getHTML()).toBe(`<img data-image="${id}"><p>海</p>`);
+  editor.destroy();
+});
+
+test("a selected image can be changed only while the entry can be written", () => {
+  const id = "0123456789abcdef0123456789abcdef";
+  const editor = new Editor({
+    extensions: entryExtensions,
+    content: `<img data-image="${id}"><p>海</p>`,
+  });
+  editor.commands.setNodeSelection(0);
+  expect(isImageSelected(editor)).toBe(true);
+  editor.setEditable(false, false);
+  expect(isImageSelected(editor)).toBe(false);
+  alignSelectedImage(editor, "center");
+  expect(editor.getHTML()).toBe(`<img data-image="${id}"><p>海</p>`);
+  editor.destroy();
+});
+
+test("text that is selected is not an image", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  editor.commands.selectAll();
+  expect(isImageSelected(editor)).toBe(false);
   editor.destroy();
 });

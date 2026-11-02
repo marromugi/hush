@@ -1,13 +1,15 @@
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
 import {
   alignSelectedImage,
   entryExtensions,
   insertEntryImage,
+  isImageSelected,
   selectedImageAlign,
+  selectedImageBox,
 } from "@/lib/diary/entryExtensions";
 import { entryProse } from "@/lib/diary/entryProse";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
@@ -27,7 +29,7 @@ const CURSOR_ROOM = 16;
  * (`preparePicture`), saved as an encrypted image, and put where the cursor
  * is once saved; `imageError` says why the last one that failed did not
  * appear. `imageAlign` is where the selected image sits, and `alignImage`
- * moves it.
+ * moves it; `imageMenu` is what the bubble menu over a selected image needs.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -102,10 +104,23 @@ export function useDiaryEditor(
     selector: ({ editor: current }) => selectedImageAlign(current),
   });
 
+  // Built once per editor and edges: the bubble menu updates itself each time these change.
+  const { top, bottom } = keepClear;
+  const imageMenu = useMemo(() => {
+    // Kept out of the bands in `keepClear`, which would cover it.
+    const padding = { left: 0, right: 0, top, bottom };
+    return {
+      shouldShow: ({ editor: shown }: { editor: typeof editor }) => isImageSelected(shown),
+      getReferencedVirtualElement: () => selectedImageBox(editor),
+      options: { flip: { padding }, shift: { padding } },
+    };
+  }, [editor, top, bottom]);
+
   return {
     editor,
     imageError,
     imageAlign,
+    imageMenu,
     alignImage: (align: ImageAlign) => alignSelectedImage(editor, align),
   };
 }
