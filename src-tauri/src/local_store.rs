@@ -77,6 +77,8 @@ impl LocalStore {
     /// Opens the vault with the Secret Key in this device's keychain, or with
     /// `typed_secret_key` when given. A typed key that opens the vault is
     /// kept in the keychain, so the device needs only the passphrase after.
+    /// The vault opens even if keeping it fails; the next unlock then asks
+    /// for the key again (`NoSecretKey`).
     pub fn unlock(
         &self,
         passphrase: &str,
@@ -96,7 +98,7 @@ impl LocalStore {
         };
         let secret_key = SecretKey::parse(typed)?;
         let key = vault.unlock(passphrase, &secret_key)?;
-        self.secret_keys.set(&vault.id(), &secret_key)?;
+        let _ = self.secret_keys.set(&vault.id(), &secret_key);
         Ok(key)
     }
 
@@ -207,7 +209,7 @@ fn write_temporary(path: &Path, contents: &[u8]) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keychain::MemoryKeychain;
+    use crate::keychain::{BrokenKeychain, MemoryKeychain};
 
     fn date(text: &str) -> EntryDate {
         EntryDate::try_from(text.to_string()).unwrap()
@@ -380,6 +382,29 @@ mod tests {
             .unwrap();
         assert!(device.has_secret_key().unwrap());
         assert!(device.unlock("correct horse", None).is_ok());
+    }
+
+    #[test]
+    fn a_vault_is_not_written_when_its_secret_key_cannot_be_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = LocalStore::new(dir.path().to_path_buf(), Arc::new(BrokenKeychain));
+        assert!(matches!(
+            store.create_vault("correct horse"),
+            Err(AppError::Keychain(_))
+        ));
+        assert!(!store.has_vault());
+    }
+
+    #[test]
+    fn a_right_typed_secret_key_opens_even_when_it_cannot_be_kept() {
+        let (dir, store) = store();
+        let (_, secret_key) = store.create_vault("correct horse").unwrap();
+        let device = LocalStore::new(dir.path().to_path_buf(), Arc::new(BrokenKeychain));
+        assert!(
+            device
+                .unlock("correct horse", Some(&secret_key.to_text()))
+                .is_ok()
+        );
     }
 
     #[test]

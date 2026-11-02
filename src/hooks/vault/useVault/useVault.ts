@@ -54,7 +54,10 @@ export function useVault(): UseVault {
       await action();
       setStatus(next);
     } catch (failure) {
-      setError(toHushError(failure));
+      const failed = toHushError(failure);
+      setError(failed);
+      // The device lost the vault's Secret Key, or never kept it: ask for it.
+      if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
     } finally {
       running.current = false;
       setBusy(false);

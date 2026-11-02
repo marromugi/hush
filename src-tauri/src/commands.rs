@@ -17,7 +17,7 @@ fn now_ms() -> u64 {
 
 #[tauri::command]
 pub async fn vault_status(state: State<'_, AppState>) -> Result<VaultStatus, AppError> {
-    session::status(&state)
+    Ok(session::status(&state))
 }
 
 /// Returns the new vault's Secret Key as text, for the person to keep.

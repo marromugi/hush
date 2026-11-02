@@ -68,7 +68,11 @@ impl SecretKey {
             }
         }
         symbols.push(ALPHABET[usize::from((buffer << (5 - bits)) & 0x1f)]);
-        let mut text = Zeroizing::new(String::from(TEXT_PREFIX));
+        // Sized up front: a buffer that grows leaves unwiped copies behind.
+        let mut text = Zeroizing::new(String::with_capacity(
+            TEXT_PREFIX.len() + GROUPS.len() + SYMBOLS,
+        ));
+        text.push_str(TEXT_PREFIX);
         let mut rest = &symbols[..];
         for size in GROUPS {
             let (group, after) = rest.split_at(size);
@@ -80,14 +84,18 @@ impl SecretKey {
     }
 
     /// Reads the text form. Case, spaces, and hyphens do not matter, and the
-    /// letters people mistake for digits (O, I, L) read as those digits.
+    /// letters people mistake for digits (O, I, L) read as those digits,
+    /// in the prefix too.
     pub fn parse(text: &str) -> Result<Self, AppError> {
-        let cleaned: Zeroizing<String> = Zeroizing::new(
-            text.chars()
-                .filter(|c| !c.is_whitespace() && *c != '-')
-                .map(|c| c.to_ascii_uppercase())
-                .collect(),
-        );
+        // Sized up front: a buffer that grows leaves unwiped copies behind.
+        let mut cleaned = Zeroizing::new(String::with_capacity(text.len()));
+        for c in text.chars().filter(|c| !c.is_whitespace() && *c != '-') {
+            cleaned.push(match c.to_ascii_uppercase() {
+                'O' => '0',
+                'I' | 'L' => '1',
+                other => other,
+            });
+        }
         let body = cleaned
             .strip_prefix(TEXT_PREFIX)
             .filter(|body| body.len() == SYMBOLS)
@@ -97,11 +105,6 @@ impl SecretKey {
         let mut bits = 0;
         let mut filled = 0;
         for c in body.chars() {
-            let c = match c {
-                'O' => '0',
-                'I' | 'L' => '1',
-                other => other,
-            };
             let value = ALPHABET
                 .iter()
                 .position(|&symbol| char::from(symbol) == c)
@@ -114,7 +117,7 @@ impl SecretKey {
                 filled += 1;
             }
         }
-        // The last symbol carries 3 bits of padding; text from `to_text`
+        // The last symbol carries 2 bits of padding; text from `to_text`
         // always has them zero.
         if buffer & ((1 << bits) - 1) != 0 {
             return Err(AppError::InvalidSecretKey);
@@ -156,7 +159,7 @@ mod tests {
     #[test]
     fn typed_text_is_read_forgivingly() {
         let original = key([0xff; SECRET_KEY_LEN]);
-        let typed = "h1 zzzzz zzzzz zzzzzzzzzz-zzzzz w";
+        let typed = "hl zzzzz zzzzz zzzzzzzzzz-zzzzz w";
         assert_eq!(
             SecretKey::parse(typed).unwrap().as_bytes(),
             original.as_bytes()

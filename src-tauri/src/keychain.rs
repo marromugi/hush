@@ -7,7 +7,7 @@ use crate::secret_key::SecretKey;
 
 /// Where this device keeps each vault's Secret Key, by vault id.
 pub trait SecretKeyStore: fmt::Debug + Send + Sync {
-    /// `None` when this device has no Secret Key for the vault.
+    /// `None` when this device has no usable Secret Key for the vault.
     fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, AppError>;
     fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), AppError>;
 }
@@ -23,12 +23,9 @@ impl SecretKeyStore for Keychain {
     fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, AppError> {
         let entry = keyring::Entry::new(SERVICE, vault_id).map_err(AppError::Keychain)?;
         match entry.get_secret().map(Zeroizing::new) {
-            Ok(bytes) => SecretKey::from_bytes(&bytes).map(Some).ok_or_else(|| {
-                AppError::Keychain(keyring::Error::Invalid(
-                    "secret".to_string(),
-                    format!("{} bytes, not a Secret Key", bytes.len()),
-                ))
-            }),
+            // An item that is not a Secret Key is as good as none: the person
+            // types the key, and the typed key replaces it once it opens the vault.
+            Ok(bytes) => Ok(SecretKey::from_bytes(&bytes)),
             Err(keyring::Error::NoEntry) => Ok(None),
             Err(e) => Err(AppError::Keychain(e)),
         }
@@ -38,6 +35,26 @@ impl SecretKeyStore for Keychain {
         keyring::Entry::new(SERVICE, vault_id)
             .and_then(|entry| entry.set_secret(key.as_bytes()))
             .map_err(AppError::Keychain)
+    }
+}
+
+/// A keychain that fails every read and write, for tests.
+#[cfg(test)]
+#[derive(Debug)]
+pub struct BrokenKeychain;
+
+#[cfg(test)]
+impl SecretKeyStore for BrokenKeychain {
+    fn get(&self, _: &str) -> Result<Option<SecretKey>, AppError> {
+        Err(AppError::Keychain(keyring::Error::NoStorageAccess(
+            "denied".into(),
+        )))
+    }
+
+    fn set(&self, _: &str, _: &SecretKey) -> Result<(), AppError> {
+        Err(AppError::Keychain(keyring::Error::NoStorageAccess(
+            "denied".into(),
+        )))
     }
 }
 

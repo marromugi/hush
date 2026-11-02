@@ -52,17 +52,19 @@ fn inner(state: &AppState) -> MutexGuard<'_, AppStateInner> {
         .expect("state lock is only poisoned by an earlier panic")
 }
 
-pub fn status(state: &AppState) -> Result<VaultStatus, AppError> {
+/// A vault that cannot be read, or a keychain that cannot be read, shows as
+/// `Locked`: unlocking then fails with the reason, on a screen that can retry.
+pub fn status(state: &AppState) -> VaultStatus {
     let inner = inner(state);
-    Ok(if inner.key.is_some() {
+    if inner.key.is_some() {
         VaultStatus::Unlocked
     } else if !inner.store.has_vault() {
         VaultStatus::Missing
-    } else if inner.store.has_secret_key()? {
-        VaultStatus::Locked
-    } else {
+    } else if let Ok(false) = inner.store.has_secret_key() {
         VaultStatus::NeedsSecretKey
-    })
+    } else {
+        VaultStatus::Locked
+    }
 }
 
 pub fn begin_unlock(state: &AppState) -> Pending {
@@ -152,17 +154,39 @@ mod tests {
             std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
         );
         let device = AppState::new(AppStateInner::new(device));
-        assert_eq!(status(&device).unwrap(), VaultStatus::NeedsSecretKey);
+        assert_eq!(status(&device), VaultStatus::NeedsSecretKey);
+    }
+
+    #[test]
+    fn an_unreadable_vault_or_keychain_shows_as_locked_so_unlocking_can_say_why() {
+        let (dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        let device = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::BrokenKeychain),
+        );
+        assert_eq!(
+            status(&AppState::new(AppStateInner::new(device))),
+            VaultStatus::Locked
+        );
+
+        let (old_dir, old_state) = super::tests::state();
+        std::fs::write(
+            old_dir.path().join("vault.json"),
+            r#"{"version":1,"kdf":{},"verifier":{}}"#,
+        )
+        .unwrap();
+        assert_eq!(status(&old_state), VaultStatus::Locked);
     }
 
     #[test]
     fn status_follows_create_lock_and_unlock() {
         let (_dir, state) = state();
-        assert_eq!(status(&state).unwrap(), VaultStatus::Missing);
+        assert_eq!(status(&state), VaultStatus::Missing);
         create_and_unlock(&state, "correct horse");
-        assert_eq!(status(&state).unwrap(), VaultStatus::Unlocked);
+        assert_eq!(status(&state), VaultStatus::Unlocked);
         lock(&state);
-        assert_eq!(status(&state).unwrap(), VaultStatus::Locked);
+        assert_eq!(status(&state), VaultStatus::Locked);
     }
 
     #[test]
@@ -190,7 +214,7 @@ mod tests {
             finish_unlock(&state, pending, key),
             Err(AppError::Locked)
         ));
-        assert_eq!(status(&state).unwrap(), VaultStatus::Locked);
+        assert_eq!(status(&state), VaultStatus::Locked);
     }
 
     #[test]
