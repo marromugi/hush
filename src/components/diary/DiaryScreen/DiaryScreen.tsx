@@ -1,13 +1,13 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
+import { useAutoLock } from "../../../hooks/vault/useAutoLock";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
 import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
-import { useAutoLock } from "./hooks/useAutoLock";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
 import type { DiaryScreenProps } from "./type";

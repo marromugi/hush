@@ -73,6 +73,11 @@ export function useVault(): UseVault {
       run(async () => setNewSecretKey(await createVault(passphrase)), "unlocked"),
     keptSecretKey: () => setNewSecretKey(null),
     unlock: (passphrase, secretKey) => run(() => unlockVault(passphrase, secretKey), "unlocked"),
-    lock: () => run(lockVault, "locked"),
+    lock: () =>
+      run(async () => {
+        await lockVault();
+        // A Secret Key still waiting to be kept is not shown again once locked.
+        setNewSecretKey(null);
+      }, "locked"),
   };
 }
