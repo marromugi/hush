@@ -1,10 +1,15 @@
 import { useEditor } from "@tiptap/react";
-import { StarterKit } from "@tiptap/starter-kit";
 import { clsx } from "clsx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
+import { entryExtensions, entryImage } from "@/lib/diary/entryExtensions";
 import { entryProse } from "@/lib/diary/entryProse";
+import { shrinkImage } from "@/lib/diary/shrinkImage";
+import { saveImage } from "@/lib/vault/commands";
+import { failureText } from "@/lib/vault/errorText";
+
+import { imageFiles } from "./lib/imageFiles";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
 const CURSOR_ROOM = 16;
@@ -12,7 +17,9 @@ const CURSOR_ROOM = 16;
 /**
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
- * scrolls so it stays in view.
+ * scrolls so it stays in view. A pasted picture is shrunk, saved as an
+ * encrypted image, and put where the cursor is once saved; `imageError`
+ * says why the last one that failed did not appear.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -20,9 +27,10 @@ export function useDiaryEditor(
   disabled: boolean,
   keepClear: KeepClear = { top: 0, bottom: 0 },
 ) {
+  const [imageError, setImageError] = useState<string | null>(null);
   const edges = { left: 0, right: 0, top: keepClear.top, bottom: keepClear.bottom };
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: entryExtensions,
     content: initialBody,
     // Tiptap calls the handler from the newest render, so it never goes stale.
     onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
@@ -32,6 +40,12 @@ export function useDiaryEditor(
         ...edges,
         top: edges.top + CURSOR_ROOM,
         bottom: edges.bottom + CURSOR_ROOM,
+      },
+      handlePaste: (_view, event) => {
+        const files = imageFiles(event.clipboardData);
+        if (files.length === 0) return false;
+        void addImages(files);
+        return true;
       },
       attributes: {
         class: clsx(
@@ -46,11 +60,34 @@ export function useDiaryEditor(
     },
   });
 
+  async function addImages(files: File[]) {
+    setImageError(null);
+    for (const file of files) {
+      let jpeg: Uint8Array;
+      try {
+        jpeg = await shrinkImage(file);
+      } catch {
+        setImageError("この画像は読み込めませんでした。");
+        continue;
+      }
+      let id: string;
+      try {
+        id = await saveImage(jpeg);
+      } catch (failure) {
+        setImageError(`画像を保存できませんでした。${failureText(failure)}`);
+        continue;
+      }
+      // The editor is gone once the day changes or the vault locks; the image file stays unused.
+      if (editor.isDestroyed) return;
+      editor.chain().focus().insertContent(entryImage(id)).run();
+    }
+  }
+
   // useEditor keeps the editable state it was created with, so a later
   // change is pushed to the editor here.
   useEffect(() => {
     editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
-  return editor;
+  return { editor, imageError };
 }

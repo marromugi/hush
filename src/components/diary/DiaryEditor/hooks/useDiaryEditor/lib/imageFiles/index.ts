@@ -1,0 +1,1 @@
+export { imageFiles } from "./imageFiles";

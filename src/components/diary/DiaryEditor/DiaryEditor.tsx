@@ -13,13 +13,20 @@ export function DiaryEditor({
   fontFamily,
   fontLoading = false,
 }: DiaryEditorProps) {
-  const editor = useDiaryEditor(initialBody, onChange, disabled, keepClear);
+  const { editor, imageError } = useDiaryEditor(initialBody, onChange, disabled, keepClear);
 
   return (
-    <EditorContent
-      editor={editor}
-      className={fontLoadingStyle(fontLoading)}
-      style={{ fontFamily }}
-    />
+    <>
+      {imageError ? (
+        <p role="alert" className="mb-4 text-sm text-error">
+          {imageError}
+        </p>
+      ) : null}
+      <EditorContent
+        editor={editor}
+        className={fontLoadingStyle(fontLoading)}
+        style={{ fontFamily }}
+      />
+    </>
   );
 }

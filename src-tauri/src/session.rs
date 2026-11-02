@@ -6,6 +6,7 @@ use crate::app_error::AppError;
 use crate::app_state::{AppState, AppStateInner};
 use crate::crypto::VaultKey;
 use crate::entry::{Entry, EntryDate, EntryFont};
+use crate::image::{ImageId, Jpeg};
 use crate::local_store::LocalStore;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -114,6 +115,22 @@ pub fn save_entry(
         .store
         .save_entry(key, &date, body, font, now_ms)?
         .into())
+}
+
+/// Saves `bytes`, a JPEG, as a new image and returns its id.
+pub fn save_image(state: &AppState, bytes: Vec<u8>) -> Result<String, AppError> {
+    let jpeg = Jpeg::try_from(bytes)?;
+    let inner = inner(state);
+    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    Ok(inner.store.save_image(key, &jpeg)?.into())
+}
+
+/// The JPEG saved as `id`.
+pub fn read_image(state: &AppState, id: String) -> Result<Vec<u8>, AppError> {
+    let id = ImageId::try_from(id).map_err(AppError::InvalidImageId)?;
+    let inner = inner(state);
+    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    Ok(inner.store.read_image(key, &id)?.into())
 }
 
 /// The vault's Secret Key as text, for the person to keep again. Only while

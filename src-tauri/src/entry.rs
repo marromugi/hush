@@ -6,8 +6,10 @@ use crate::crypto::{self, NONCE_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
 
 /// Current entry file format. Bump when a field is added or changed, in the
-/// file or in the encrypted `Entry` inside it.
-pub const ENTRY_VERSION: u32 = 2;
+/// file or in the encrypted `Entry` inside it, and when the body starts
+/// holding something an older app would drop on saving. From 3 the body may
+/// hold images (`<img data-image="…">`).
+pub const ENTRY_VERSION: u32 = 3;
 
 /// One day's entry, as it is before encryption and after decryption.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -282,12 +284,12 @@ mod tests {
     #[test]
     fn newer_version_with_new_fields_asks_for_an_update() {
         let text = file_with(|v| {
-            v["version"] = 3.into();
+            v["version"] = 4.into();
             v["mood"] = "sunny".into();
         });
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::NewerEntryVersion(3))
+            Err(AppError::NewerEntryVersion(4))
         ));
     }
 

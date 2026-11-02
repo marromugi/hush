@@ -7,13 +7,24 @@ import { localDate } from "@/lib/diary/localDate";
 import { DiaryScreen } from "./DiaryScreen";
 
 /**
- * A fake Rust side that keeps entries in memory. Give past days oldest
+ * A fake Rust side that keeps entries and images in memory. Give past days oldest
  * first; today starts empty and comes after them.
  */
 function fakeEntries(past: Record<string, string>) {
   const entries = new Map(Object.entries(past));
+  const images = new Map<string, Uint8Array>();
   mockIPC(
     (command, args) => {
+      if (command === "save_image" && args instanceof Uint8Array) {
+        const id = crypto.randomUUID().replaceAll("-", "");
+        images.set(id, args);
+        return id;
+      }
+      if (command === "read_image") {
+        const image = images.get(String(args && "id" in args ? args.id : ""));
+        if (!image) throw { kind: "noImage", message: "no image file with this id" };
+        return image.slice().buffer;
+      }
       const date = String(args && "date" in args ? args.date : "");
       if (command === "list_entry_dates") return [...entries.keys()];
       if (command === "show_secret_key") return "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
