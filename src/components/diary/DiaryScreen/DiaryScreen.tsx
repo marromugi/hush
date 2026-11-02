@@ -112,7 +112,7 @@ export function DiaryScreen() {
         The entry is centred on the page, not beside the sidebar: from md it
         spans both columns, padded on both sides by the sidebar and its gap
         (10rem + 1.5rem), so the two never meet. Its font size is the entry's
-        own, from the text settings, so 36em is 36 of its characters to a line.
+        own, from the text settings, so its width is 36 of its characters to a line.
       */}
       <main
         style={entryTextStyle(settings.text)}
@@ -125,7 +125,7 @@ export function DiaryScreen() {
           "text-[length:var(--entry-size)]",
         )}
       >
-        <div className="mx-auto w-full max-w-[36em]">
+        <div className="mx-auto w-full max-w-(--entry-width)">
           {screen.showsToday ? (
             today.loading ? null : today.loadError ? (
               <p role="alert" className="text-sm text-error">

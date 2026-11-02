@@ -79,4 +79,9 @@ test("the text settings are kept, and a value out of range or not a number reads
     JSON.stringify({ text: { size: 99, lineHeight: "loose", letterSpacing: 0.1 } }),
   );
   expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.6, letterSpacing: 0.1 });
+  localStorage.setItem(
+    "hush.settings",
+    JSON.stringify({ text: { size: 18.4, lineHeight: 1.66, letterSpacing: 0.123 } }),
+  );
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.7, letterSpacing: 0.12 });
 });

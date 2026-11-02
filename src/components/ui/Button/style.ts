@@ -13,7 +13,7 @@ export const button = tv({
     // focus
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
     // state
-    "disabled:pointer-events-none disabled:opacity-50",
+    "disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50",
   ],
   variants: {
     tone: {

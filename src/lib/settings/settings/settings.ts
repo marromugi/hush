@@ -28,9 +28,20 @@ export const TEXT_RANGES = {
 
 type Range = (typeof TEXT_RANGES)[keyof typeof TEXT_RANGES];
 
-/** A number inside `range`; anything else reads as its default. */
+/**
+ * A number inside `range`, put on its nearest step, as the slider would;
+ * anything else reads as its default.
+ */
 const within = (range: Range) =>
-  v.fallback(v.pipe(v.number(), v.minValue(range.min), v.maxValue(range.max)), range.initial);
+  v.fallback(
+    v.pipe(
+      v.number(),
+      v.minValue(range.min),
+      v.maxValue(range.max),
+      v.transform((value) => Number((Math.round(value / range.step) * range.step).toFixed(2))),
+    ),
+    range.initial,
+  );
 
 const TextShape = v.object({
   size: within(TEXT_RANGES.size),

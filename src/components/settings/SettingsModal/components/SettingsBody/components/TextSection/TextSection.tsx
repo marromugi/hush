@@ -46,12 +46,18 @@ export function TextSection() {
         );
       })}
       <div>
-        <Button type="button" tone="neutral" disabled={section.initial} onClick={section.reset}>
+        {/* aria-disabled, not disabled, so the focus stays on it after it is pressed. */}
+        <Button
+          type="button"
+          tone="neutral"
+          aria-disabled={section.initial}
+          onClick={section.initial ? undefined : section.reset}
+        >
           元に戻す
         </Button>
       </div>
       <div style={entryTextStyle(section.text)}>
-        <p className={clsx(entryProse, "rounded-container border border-edge p-4")}>
+        <p className={clsx(entryProse, "rounded-container border border-edge container-p-4")}>
           今日は晴れ。午後から少し風が出てきて、窓の外の木がずっと揺れていた。
         </p>
       </div>
