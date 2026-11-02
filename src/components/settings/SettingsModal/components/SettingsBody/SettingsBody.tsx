@@ -1,12 +1,7 @@
-import { clsx } from "clsx";
-
 import { optionRow } from "../../../../ui/Options";
+import { FontSection } from "./components/FontSection";
+import { LanguageSection } from "./components/LanguageSection";
 import { SECTIONS, useSettingsModal } from "./hooks/useSettingsModal";
-
-const LANGUAGES = [
-  { value: "ja", label: "日本語" },
-  { value: "en", label: "English" },
-] as const;
 
 /** The modal's content, mounted only while it is open. */
 export function SettingsBody() {
@@ -30,32 +25,8 @@ export function SettingsBody() {
           ))}
         </ul>
       </nav>
-      {settings.section === "language" ? (
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-1 font-semibold">言語</legend>
-          <p className="text-sm opacity-70">
-            サイコロが選ぶフォントの候補が、この言語の字を持つものに変わります。
-          </p>
-          {LANGUAGES.map((language) => (
-            <label key={language.value} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="language"
-                value={language.value}
-                checked={settings.language === language.value}
-                onChange={() => settings.setLanguage(language.value)}
-                className={clsx(
-                  // size
-                  "size-4",
-                  // color
-                  "accent-accent",
-                )}
-              />
-              {language.label}
-            </label>
-          ))}
-        </fieldset>
-      ) : null}
+      {settings.section === "language" ? <LanguageSection /> : null}
+      {settings.section === "font" ? <FontSection /> : null}
     </div>
   );
 }

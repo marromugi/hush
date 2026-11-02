@@ -1,0 +1,1 @@
+export { useDefaultFont } from "./useDefaultFont";

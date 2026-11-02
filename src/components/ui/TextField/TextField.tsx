@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-import { control } from "./style";
+import { control } from "../Field";
 import type { TextFieldProps } from "./type";
 
 /** A labelled input, with its error under it. */

@@ -29,3 +29,19 @@ export function DiceIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function CheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} strokeWidth="2.5" {...props}>
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} strokeWidth="2" {...props}>
+      <path d="M4 6l4 4 4-4" />
+    </svg>
+  );
+}
