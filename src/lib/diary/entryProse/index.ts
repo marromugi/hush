@@ -1,0 +1,1 @@
+export { entryProse } from "./entryProse";

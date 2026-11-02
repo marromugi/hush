@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
 
-import { TodayScreen } from "./components/diary/TodayScreen";
+import { DiaryScreen } from "./components/diary/DiaryScreen";
 import { CreateVaultForm } from "./components/vault/CreateVaultForm";
 import { UnlockForm } from "./components/vault/UnlockForm";
 import { useVault } from "./hooks/vault/useVault";
@@ -8,6 +8,8 @@ import { errorText } from "./lib/vault/errorText";
 
 export function App() {
   const vault = useVault();
+
+  if (vault.status === "unlocked") return <DiaryScreen onLock={vault.lock} />;
 
   return (
     <main className="min-h-screen">
@@ -30,7 +32,6 @@ export function App() {
         {vault.status === "locked" ? (
           <UnlockForm busy={vault.busy} error={vault.error} onUnlock={vault.unlock} />
         ) : null}
-        {vault.status === "unlocked" ? <TodayScreen onLock={vault.lock} /> : null}
       </div>
     </main>
   );

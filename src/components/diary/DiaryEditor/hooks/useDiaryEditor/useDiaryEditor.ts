@@ -3,6 +3,8 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { clsx } from "clsx";
 import { useEffect } from "react";
 
+import { entryProse } from "../../../../../lib/diary/entryProse";
+
 /** An editor that starts with `initialBody` and reports every change as HTML. */
 export function useDiaryEditor(
   initialBody: string,
@@ -20,7 +22,7 @@ export function useDiaryEditor(
           // size
           "min-h-[60vh]",
           // typography
-          "prose prose-stone prose-lg dark:prose-invert",
+          entryProse,
           // focus
           "outline-none",
         ),
