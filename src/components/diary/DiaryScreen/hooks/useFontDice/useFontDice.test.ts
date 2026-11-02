@@ -96,3 +96,22 @@ test("each subset has its own font list", async () => {
   await act(() => result.current.roll());
   expect(lists.mock.calls).toEqual([["japanese"], ["latin"]]);
 });
+
+test("a font lacking one language's characters can still be picked for another", async () => {
+  const { loaded } = fakeFonts();
+  const kana = { id: "kana-only", family: "Kana Only", category: "display" };
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([kana]);
+  vi.spyOn(fonts, "fontDetails").mockImplementation(async (id, subset) => ({
+    stylesheet: `css/${id}`,
+    complete: subset !== "japanese",
+  }));
+  const { result, rerender } = renderHook(({ subset }) => useFontDice(subset), {
+    initialProps: { subset: "japanese" },
+  });
+  await act(() => result.current.roll());
+  expect(result.current.font).toBeNull();
+  rerender({ subset: "latin" });
+  await act(() => result.current.roll());
+  expect(result.current.font).toEqual(kana);
+  expect(loaded).toEqual(["kana-only"]);
+});

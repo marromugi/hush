@@ -31,6 +31,26 @@ test("lists the Google fonts that have the subset's characters, leaving out icon
   ]);
 });
 
+/** A Google font as the list answers it. */
+function google(id: string, category: string) {
+  return { id, family: id, category, type: "google" };
+}
+
+test("leaves out fonts whose letters do not read as text, whatever their category", async () => {
+  fakeFetch({
+    "https://api.fontsource.org/v1/fonts?subsets=latin": [
+      google("lora", "serif"),
+      google("material-symbols", "monospace"),
+      google("flow-block", "display"),
+      google("redacted-script", "display"),
+      google("libre-barcode-39", "display"),
+      google("linefont", "display"),
+      google("wavefont", "display"),
+    ],
+  });
+  expect((await listFonts("latin")).map((font) => font.id)).toEqual(["lora"]);
+});
+
 /** Numbered Japanese slices, as Fontsource lists them, plus the Latin ones. */
 function slices(count: number) {
   return {

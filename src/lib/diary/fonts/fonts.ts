@@ -44,7 +44,14 @@ export type FontDetails = {
   complete: boolean;
 };
 
-/** Google Fonts that have the characters of `subset`, as in `japanese` or `latin`. */
+/**
+ * Fonts whose letters are not letters: icons drawn from words, blobs, bars,
+ * barcodes, and waveforms. Fontsource files some of them under ordinary
+ * categories, so they are known by the start of their id.
+ */
+const NOT_TEXT = ["material-", "flow-", "redacted", "libre-barcode", "linefont", "wavefont"];
+
+/** Google Fonts that have the characters of `subset`, as in `japanese` or `latin`, and draw them as text. */
 export async function listFonts(subset: string): Promise<FontChoice[]> {
   const response = await fetch(`${API}?subsets=${encodeURIComponent(subset)}`, {
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -52,7 +59,12 @@ export async function listFonts(subset: string): Promise<FontChoice[]> {
   if (!response.ok) throw new Error(`font list: ${response.status}`);
   const fonts = v.parse(ListedFonts, await response.json());
   return fonts
-    .filter((font) => font.type === "google" && font.category !== "icons")
+    .filter(
+      (font) =>
+        font.type === "google" &&
+        font.category !== "icons" &&
+        !NOT_TEXT.some((start) => font.id.startsWith(start)),
+    )
     .map(({ id, family, category }) => ({ id, family, category }));
 }
 

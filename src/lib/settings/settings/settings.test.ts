@@ -1,8 +1,9 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { readSettings, subscribeSettings, writeSettings } from "./settings";
 
 afterEach(() => {
+  vi.restoreAllMocks();
   localStorage.clear();
 });
 
@@ -33,4 +34,16 @@ test("stored text that is broken, or a value not understood, reads as the defaul
   expect(readSettings()).toEqual({ language: "ja" });
   localStorage.setItem("hush.settings", JSON.stringify({ language: "fr" }));
   expect(readSettings()).toEqual({ language: "ja" });
+});
+
+test("when storage refuses, a written setting lasts until the app closes", () => {
+  vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+    throw new DOMException("full", "QuotaExceededError");
+  });
+  let heard = 0;
+  const stop = subscribeSettings(() => (heard += 1));
+  writeSettings({ language: "en" });
+  expect(readSettings()).toEqual({ language: "en" });
+  expect(heard).toBe(1);
+  stop();
 });
