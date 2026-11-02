@@ -15,6 +15,14 @@ export type UseDiaryScreen = {
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
+  /** True while the config menu is open. */
+  configOpen: boolean;
+  setConfigOpen: (open: boolean) => void;
+  /** True while the Secret Key is shown over the diary. */
+  secretKeyOpen: boolean;
+  setSecretKeyOpen: (open: boolean) => void;
+  /** Closes the config menu and shows the Secret Key. */
+  openSecretKey: () => void;
   /** Days with an entry, and today even before anything is written. Oldest first. */
   dates: string[];
   datesError: string | null;
@@ -24,6 +32,8 @@ export type UseDiaryScreen = {
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const [selected, setSelected] = useState(today);
   const [listed, setListed] = useState<Listed | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [secretKeyOpen, setSecretKeyOpen] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -46,6 +56,14 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     selectedParts: dateParts(selected),
     showsToday: selected === today,
     select: setSelected,
+    configOpen,
+    setConfigOpen,
+    secretKeyOpen,
+    setSecretKeyOpen,
+    openSecretKey: () => {
+      setConfigOpen(false);
+      setSecretKeyOpen(true);
+    },
     dates: written.includes(today)
       ? written
       : [

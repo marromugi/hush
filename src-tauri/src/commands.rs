@@ -79,3 +79,9 @@ pub async fn save_entry(
 pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {
     session::entry_dates(&state)
 }
+
+/// The Secret Key as text, for the person to keep again.
+#[tauri::command]
+pub async fn show_secret_key(state: State<'_, AppState>) -> Result<String, AppError> {
+    session::secret_key_text(&state)
+}

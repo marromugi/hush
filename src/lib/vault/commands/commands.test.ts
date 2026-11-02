@@ -8,6 +8,7 @@ import {
   lockVault,
   readEntry,
   saveEntry,
+  showSecretKey,
   unlockVault,
   vaultStatus,
 } from "./commands";
@@ -30,6 +31,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
   await readEntry("2026-10-29");
   await saveEntry("2026-10-29", "晴れ");
   await listEntryDates();
+  await showSecretKey();
   expect(calls).toEqual([
     ["vault_status", {}],
     ["create_vault", { passphrase: "pass" }],
@@ -39,6 +41,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
     ["read_entry", { date: "2026-10-29" }],
     ["save_entry", { date: "2026-10-29", body: "晴れ" }],
     ["list_entry_dates", {}],
+    ["show_secret_key", {}],
   ]);
 });
 

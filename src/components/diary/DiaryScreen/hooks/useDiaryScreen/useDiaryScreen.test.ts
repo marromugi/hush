@@ -32,6 +32,15 @@ test("choosing another day shows that day, read only", async () => {
   expect(result.current.showsToday).toBe(false);
 });
 
+test("choosing Secret Key in the config menu closes the menu and shows the Secret Key", () => {
+  mockIPC(() => []);
+  const { result } = renderHook(() => useDiaryScreen("2022-12-18"));
+  act(() => result.current.setConfigOpen(true));
+  act(() => result.current.openSecretKey());
+  expect(result.current.configOpen).toBe(false);
+  expect(result.current.secretKeyOpen).toBe(true);
+});
+
 test("when the days cannot be listed, today is still there and the reason is shown", async () => {
   mockIPC(() => {
     throw { kind: "io", message: "file access failed" };

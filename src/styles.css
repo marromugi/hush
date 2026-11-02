@@ -8,6 +8,10 @@
   --color-surface: #f3f3f4;
   --color-surface-raised: #ffffff;
   --color-error: #d33;
+  --color-scrim: #0006;
+
+  /* Tailwind writes a shadow's value into its class, so the color that changes with the scheme sits in a variable of its own. */
+  --shadow-float: 0 1px 6px 0 var(--shadow-float-color);
 }
 
 /* A control's corner is a third of its height. The height is never set; it is the line height plus the vertical padding, which each control declares through control-py-*. */
@@ -19,13 +23,31 @@
   border-radius: calc((1lh + 2 * var(--control-py)) / 3);
 }
 
+/* A container's corner is the corner of the control it holds plus its own padding, which it declares through container-p-*. A container around controls declares their padding through around-control-py-*, without taking it itself; one that holds only text keeps --control-py at 0. */
+@utility around-control-py-* {
+  --control-py: --spacing(--value(integer));
+}
+@utility container-p-* {
+  --container-p: --spacing(--value(integer));
+  padding: var(--container-p);
+}
+@utility rounded-container {
+  border-radius: calc((1lh + 2 * var(--control-py, 0px)) / 3 + var(--container-p));
+}
+
 @layer base {
+  :root {
+    --shadow-float-color: #0002;
+  }
+
   @media (prefers-color-scheme: dark) {
     :root {
       --color-accent: oklch(56% 0.21 265);
       --color-surface: #1f1f21;
       --color-surface-raised: #2c2c2f;
       --color-error: #f66;
+      --color-scrim: #000a;
+      --shadow-float-color: #0006;
     }
   }
 

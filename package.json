@@ -17,6 +17,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@floating-ui/react": "0.27.20",
     "@hookform/resolvers": "5.9.2",
     "@tauri-apps/api": "^2",
     "@tiptap/pm": "3.32.1",
@@ -24,6 +25,7 @@
     "@tiptap/starter-kit": "3.32.1",
     "clsx": "2.1.1",
     "jsqr": "1.4.0",
+    "motion": "14.0.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-hook-form": "7.90.0",

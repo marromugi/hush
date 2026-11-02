@@ -1,8 +1,12 @@
 import { clsx } from "clsx";
+import { useRef } from "react";
 
 import { Button } from "../../ui/Button";
+import { optionList, optionRow } from "../../ui/Options";
+import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
+import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
@@ -12,12 +16,14 @@ import type { DiaryScreenProps } from "./type";
 export function DiaryScreen({ onLock }: DiaryScreenProps) {
   const today = useTodayScreen(onLock);
   const screen = useDiaryScreen(today.date);
+  // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
+  const config = useRef<HTMLButtonElement>(null);
 
   return (
     <div
       className={clsx(
         // layout
-        "grid min-h-screen grid-cols-[10rem_1fr] grid-rows-[auto_1fr]",
+        "grid min-h-screen grid-cols-[10rem_1fr] grid-rows-[auto_1fr_auto]",
         // spacing
         "gap-x-6 px-10 py-10",
       )}
@@ -71,6 +77,30 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
           <PastEntry key={screen.selected} date={screen.selected} />
         )}
       </main>
+      <footer className="col-span-2">
+        <Popover
+          direction="top"
+          align="start"
+          open={screen.configOpen}
+          onOpenChange={screen.setConfigOpen}
+          trigger={
+            <button ref={config} className="cursor-pointer">
+              config
+            </button>
+          }
+        >
+          <div className={optionList({ className: "w-48" })}>
+            <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
+              Secret Key
+            </button>
+          </div>
+        </Popover>
+        <SecretKeyModal
+          open={screen.secretKeyOpen}
+          onOpenChange={screen.setSecretKeyOpen}
+          returnFocus={config}
+        />
+      </footer>
     </div>
   );
 }
