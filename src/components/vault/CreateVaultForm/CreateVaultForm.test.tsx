@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
 import { CreateVaultForm } from "./CreateVaultForm";
@@ -21,23 +21,26 @@ function renderForm() {
   return created;
 }
 
-function submit(passphrase: string, confirm: string) {
+/** Submitting is asynchronous; this waits until it has settled. */
+async function submit(passphrase: string, confirm: string) {
   fireEvent.change(screen.getByLabelText("パスフレーズ"), { target: { value: passphrase } });
   fireEvent.change(screen.getByLabelText("もう一度"), { target: { value: confirm } });
-  fireEvent.click(screen.getByRole("button", { name: "作る" }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "作る" }));
+  });
 }
 
-test("two different passphrases do not create and say why", () => {
+test("two different passphrases do not create and say why", async () => {
   const created = renderForm();
-  submit("correct horse", "correct hose");
+  await submit("correct horse", "correct hose");
   expect(created).toEqual([]);
   expect(screen.getByRole("alert").textContent).toBe("パスフレーズが一致しません。");
 });
 
-test("the same passphrase twice creates with it", () => {
+test("the same passphrase twice creates with it", async () => {
   const created = renderForm();
-  submit("correct horse", "correct hose");
-  submit("correct horse", "correct horse");
+  await submit("correct horse", "correct hose");
+  await submit("correct horse", "correct horse");
   expect(created).toEqual(["correct horse"]);
   expect(screen.queryByRole("alert")).toBeNull();
 });

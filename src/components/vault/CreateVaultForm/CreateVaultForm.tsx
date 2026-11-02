@@ -4,7 +4,7 @@ import { useCreateVaultForm } from "./hooks/useCreateVaultForm";
 import type { CreateVaultFormProps } from "./type";
 
 export function CreateVaultForm({ busy, error, onCreate }: CreateVaultFormProps) {
-  const { passphraseError, confirmError, formError, handleSubmit } = useCreateVaultForm(
+  const { register, passphraseError, confirmError, formError, handleSubmit } = useCreateVaultForm(
     onCreate,
     error,
   );
@@ -14,14 +14,14 @@ export function CreateVaultForm({ busy, error, onCreate }: CreateVaultFormProps)
       <h1 className="text-lg">日記帳を作る</h1>
       <p>パスフレーズを忘れると、日記は二度と開けません。</p>
       <TextField
-        name="passphrase"
+        {...register("passphrase")}
         label="パスフレーズ"
         type="password"
         autoComplete="new-password"
         error={passphraseError}
       />
       <TextField
-        name="confirm"
+        {...register("confirm")}
         label="もう一度"
         type="password"
         autoComplete="new-password"

@@ -1,12 +1,29 @@
-import { useState } from "react";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import type { FormEvent } from "react";
+import { useForm } from "react-hook-form";
+import type { UseFormRegister } from "react-hook-form";
+import * as v from "valibot";
 
-import { readField } from "../../../../../lib/ui/readField";
 import { errorText } from "../../../../../lib/vault/errorText";
 import { isAboutPassphrase } from "../../../../../lib/vault/hushError";
 import type { HushError } from "../../../../../lib/vault/hushError";
 
+const schema = v.pipe(
+  v.object({ passphrase: v.string(), confirm: v.string() }),
+  v.forward(
+    v.partialCheck(
+      [["passphrase"], ["confirm"]],
+      (input) => input.passphrase === input.confirm,
+      "パスフレーズが一致しません。",
+    ),
+    ["confirm"],
+  ),
+);
+
+type Fields = v.InferInput<typeof schema>;
+
 export type UseCreateVaultForm = {
+  register: UseFormRegister<Fields>;
   /** A failure to create caused by the passphrase. */
   passphraseError: string | undefined;
   /** A failure to create with any other cause. */
@@ -21,23 +38,23 @@ export function useCreateVaultForm(
   onCreate: (passphrase: string) => Promise<void>,
   error: HushError | null,
 ): UseCreateVaultForm {
-  const [mismatch, setMismatch] = useState(false);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const passphrase = readField(event.currentTarget, "passphrase");
-    const matches = passphrase === readField(event.currentTarget, "confirm");
-    setMismatch(!matches);
-    if (matches) void onCreate(passphrase);
-  }
+  const form = useForm<Fields>({
+    resolver: valibotResolver(schema),
+    defaultValues: { passphrase: "", confirm: "" },
+    // A message stays until the next submit, not until the next keystroke.
+    reValidateMode: "onSubmit",
+  });
+  const mismatch = form.formState.errors.confirm?.message;
 
   // A mismatch means nothing was tried, so an error from an earlier try is stale.
-  const shown = mismatch ? null : error;
+  const shown = mismatch === undefined ? error : null;
 
   return {
+    register: form.register,
     passphraseError: shown && isAboutPassphrase(shown.kind) ? errorText(shown.kind) : undefined,
     formError: shown && !isAboutPassphrase(shown.kind) ? errorText(shown.kind) : undefined,
-    confirmError: mismatch ? "パスフレーズが一致しません。" : undefined,
-    handleSubmit,
+    confirmError: mismatch,
+    handleSubmit: (event) =>
+      void form.handleSubmit(({ passphrase }) => onCreate(passphrase))(event),
   };
 }

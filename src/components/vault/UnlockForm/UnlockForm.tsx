@@ -1,22 +1,18 @@
-import { readField } from "../../../lib/ui/readField";
 import { errorText } from "../../../lib/vault/errorText";
 import { isAboutPassphrase } from "../../../lib/vault/hushError";
 import { Button } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
+import { useUnlockForm } from "./hooks/useUnlockForm";
 import type { UnlockFormProps } from "./type";
 
 export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
+  const form = useUnlockForm(onUnlock);
+
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void onUnlock(readField(event.currentTarget, "passphrase"));
-      }}
-    >
+    <form className="flex flex-col gap-4" onSubmit={form.handleSubmit}>
       <h1 className="text-lg">日記帳を開く</h1>
       <TextField
-        name="passphrase"
+        {...form.register("passphrase")}
         label="パスフレーズ"
         type="password"
         autoComplete="current-password"

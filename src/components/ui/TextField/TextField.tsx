@@ -4,7 +4,7 @@ import { control } from "./style";
 import type { TextFieldProps } from "./type";
 
 /** A labelled input, with its error under it. */
-export function TextField({ name, label, error, ...props }: TextFieldProps) {
+export function TextField({ label, error, ...props }: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
 
@@ -16,7 +16,6 @@ export function TextField({ name, label, error, ...props }: TextFieldProps) {
       <input
         {...props}
         id={id}
-        name={name}
         aria-invalid={error === undefined ? undefined : true}
         aria-describedby={error === undefined ? undefined : errorId}
         className={control({ state: error === undefined ? "default" : "error" })}
