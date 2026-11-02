@@ -5,6 +5,7 @@ import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 
+import { UnlockedSession } from "../../vault/UnlockedSession";
 import { DiaryScreen } from "./DiaryScreen";
 
 // The test DOM cancels animations by rejecting a promise nothing awaits; what
@@ -39,7 +40,11 @@ function fakeVault(log: string[] = []) {
 
 test("config opens a menu whose Secret Key item shows the key, and closing returns to config", async () => {
   fakeVault();
-  render(<DiaryScreen onLock={async () => {}} />);
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
   const config = await screen.findByRole("button", { name: "config" });
 
   fireEvent.click(config);
@@ -60,11 +65,13 @@ test("ロック in the config menu locks", async () => {
   fakeVault();
   let locks = 0;
   render(
-    <DiaryScreen
+    <UnlockedSession
       onLock={async () => {
         locks += 1;
       }}
-    />,
+    >
+      <DiaryScreen />
+    </UnlockedSession>,
   );
   fireEvent.click(await screen.findByRole("button", { name: "config" }));
   await act(async () => {
@@ -86,11 +93,13 @@ test("a lock the system asks for saves what was just typed first", async () => {
   const log: string[] = [];
   fakeVault(log);
   render(
-    <DiaryScreen
+    <UnlockedSession
       onLock={async () => {
         log.push("lock");
       }}
-    />,
+    >
+      <DiaryScreen />
+    </UnlockedSession>,
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   act(() => type("晴れ"));

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { UnlockedSession } from "../UnlockedSession";
 import { SecretKeyNotice } from "./SecretKeyNotice";
 
 const meta = {
@@ -8,9 +9,14 @@ const meta = {
   args: {
     secretKey: "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A",
     onKept: () => {},
-    onLock: async () => {},
-    busy: false,
   },
+  decorators: [
+    (Story) => (
+      <UnlockedSession onLock={async () => {}}>
+        <Story />
+      </UnlockedSession>
+    ),
+  ],
 } satisfies Meta<typeof SecretKeyNotice>;
 
 export default meta;

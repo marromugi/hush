@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
-import { useAutoLock } from "../../../hooks/vault/useAutoLock";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
@@ -10,13 +9,11 @@ import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
-import type { DiaryScreenProps } from "./type";
 
-/** Today's entry, saved as it is written, and the days before it to read. Mount it on unlock. */
-export function DiaryScreen({ onLock }: DiaryScreenProps) {
-  const today = useTodayScreen(onLock);
-  const screen = useDiaryScreen(today.date, today.lock);
-  useAutoLock(today.lock);
+/** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
+export function DiaryScreen() {
+  const today = useTodayScreen();
+  const screen = useDiaryScreen(today.date);
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
 

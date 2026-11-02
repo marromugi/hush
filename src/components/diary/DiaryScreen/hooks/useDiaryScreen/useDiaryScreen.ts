@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { useSession } from "../../../../../hooks/vault/useSession";
 import { listEntryDates } from "../../../../../lib/vault/commands";
 import { errorText } from "../../../../../lib/vault/errorText";
 import { toHushError } from "../../../../../lib/vault/hushError";
@@ -30,11 +31,9 @@ export type UseDiaryScreen = {
   datesError: string | null;
 };
 
-/**
- * Which day is shown, the days to choose from, and the config menu. `lock`
- * saves what is being written, then locks. Mount it on unlock.
- */
-export function useDiaryScreen(today: string, lock: () => Promise<void>): UseDiaryScreen {
+/** Which day is shown, the days to choose from, and the config menu. */
+export function useDiaryScreen(today: string): UseDiaryScreen {
+  const { lock } = useSession();
   const [selected, setSelected] = useState(today);
   const [listed, setListed] = useState<Listed | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
