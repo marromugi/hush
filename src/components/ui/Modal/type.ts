@@ -10,5 +10,10 @@ export type ModalProps = {
    * menu item that closed as the modal opened.
    */
   returnFocus?: RefObject<HTMLElement | null>;
+  /**
+   * "full" keeps it as tall as the screen allows, so its size stays put while
+   * its content changes. "content" by default.
+   */
+  height?: "content" | "full";
   children: ReactNode;
 };

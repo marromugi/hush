@@ -8,7 +8,13 @@ import type { SettingsModalProps } from "./type";
  */
 export function SettingsModal({ open, onOpenChange, returnFocus }: SettingsModalProps) {
   return (
-    <Modal title="設定" open={open} onOpenChange={onOpenChange} returnFocus={returnFocus}>
+    <Modal
+      title="設定"
+      open={open}
+      onOpenChange={onOpenChange}
+      returnFocus={returnFocus}
+      height="full"
+    >
       <SettingsBody />
     </Modal>
   );
