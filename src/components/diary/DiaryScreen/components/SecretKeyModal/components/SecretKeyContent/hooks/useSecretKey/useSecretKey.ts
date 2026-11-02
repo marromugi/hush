@@ -1,10 +1,7 @@
-import { useEffect, useState } from "react";
-
+import { usePromise } from "@/hooks/common/usePromise";
 import { showSecretKey } from "@/lib/vault/commands";
 import { errorText } from "@/lib/vault/errorText";
 import { toHushError } from "@/lib/vault/hushError";
-
-type Read = { secretKey: string } | { error: string };
 
 export type UseSecretKey = {
   loading: boolean;
@@ -14,26 +11,11 @@ export type UseSecretKey = {
 
 /** The vault's Secret Key, read from the keychain each time it is shown. */
 export function useSecretKey(): UseSecretKey {
-  const [read, setRead] = useState<Read | null>(null);
-
-  useEffect(() => {
-    let ignore = false;
-    void showSecretKey().then(
-      (secretKey) => {
-        if (!ignore) setRead({ secretKey });
-      },
-      (failure: unknown) => {
-        if (!ignore) setRead({ error: errorText(toHushError(failure).kind) });
-      },
-    );
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const read = usePromise(showSecretKey);
 
   return {
-    loading: read === null,
-    secretKey: read && "secretKey" in read ? read.secretKey : null,
-    error: read && "error" in read ? read.error : null,
+    loading: read.status === "loading",
+    secretKey: read.status === "done" ? read.value : null,
+    error: read.status === "failed" ? errorText(toHushError(read.error).kind) : null,
   };
 }

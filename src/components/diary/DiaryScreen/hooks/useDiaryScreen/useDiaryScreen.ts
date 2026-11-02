@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 
 import { dateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
 import type { DateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
+import { usePromise } from "@/hooks/common/usePromise";
 import { useSession } from "@/hooks/vault/useSession";
 import { listEntryDates } from "@/lib/vault/commands";
 import { errorText } from "@/lib/vault/errorText";
 import { toHushError } from "@/lib/vault/hushError";
-
-type Listed = { dates: string[] } | { error: string };
 
 export type UseDiaryScreen = {
   /** The day shown, as `YYYY-MM-DD`. Today at first. */
@@ -48,7 +47,7 @@ const WIDE = "(min-width: 48rem)";
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
   const [selected, setSelected] = useState(today);
-  const [listed, setListed] = useState<Listed | null>(null);
+  const listed = usePromise(listEntryDates);
   const [datesOpen, setDatesOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [secretKeyOpen, setSecretKeyOpen] = useState(false);
@@ -64,22 +63,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     return () => wide.removeEventListener("change", putAway);
   }, []);
 
-  useEffect(() => {
-    let ignore = false;
-    void listEntryDates().then(
-      (dates) => {
-        if (!ignore) setListed({ dates });
-      },
-      (failure: unknown) => {
-        if (!ignore) setListed({ error: errorText(toHushError(failure).kind) });
-      },
-    );
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const written = listed && "dates" in listed ? listed.dates : [];
+  const written = listed.status === "done" ? listed.value : [];
   return {
     selected,
     selectedParts: dateParts(selected),
@@ -116,6 +100,6 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
           today,
           ...written.filter((date) => date > today),
         ],
-    datesError: listed && "error" in listed ? listed.error : null,
+    datesError: listed.status === "failed" ? errorText(toHushError(listed.error).kind) : null,
   };
 }
