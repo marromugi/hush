@@ -16,7 +16,18 @@
     "import/no-duplicates": "error",
     "import/no-cycle": "error",
     "react/react-in-jsx-scope": "off",
-    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../**"],
+            "message": "Import from outside the unit's directory with \"@/\", e.g. \"@/lib/vault/commands\"."
+          }
+        ]
+      }
+    ]
   },
   "env": {
     "builtin": true,

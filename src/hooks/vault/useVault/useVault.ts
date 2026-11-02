@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-import { createVault, lockVault, unlockVault, vaultStatus } from "../../../lib/vault/commands";
-import type { VaultStatus } from "../../../lib/vault/commands";
-import { toHushError } from "../../../lib/vault/hushError";
-import type { HushError } from "../../../lib/vault/hushError";
+import { createVault, lockVault, unlockVault, vaultStatus } from "@/lib/vault/commands";
+import type { VaultStatus } from "@/lib/vault/commands";
+import { toHushError } from "@/lib/vault/hushError";
+import type { HushError } from "@/lib/vault/hushError";
 
 export type UseVault = {
   /** `loading` until the first status arrives from the Rust side. */

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { useEntryFont } from "../../../../../../../hooks/diary/useEntryFont";
-import type { SavedFont } from "../../../../../../../lib/diary/fonts";
-import { readEntry } from "../../../../../../../lib/vault/commands";
-import { errorText } from "../../../../../../../lib/vault/errorText";
-import { toHushError } from "../../../../../../../lib/vault/hushError";
+import { useEntryFont } from "@/hooks/diary/useEntryFont";
+import type { SavedFont } from "@/lib/diary/fonts";
+import { readEntry } from "@/lib/vault/commands";
+import { errorText } from "@/lib/vault/errorText";
+import { toHushError } from "@/lib/vault/hushError";
 
 type Read = { body: string | null; font: SavedFont | null } | { error: string };
 

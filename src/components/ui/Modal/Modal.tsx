@@ -12,9 +12,10 @@ import {
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useId } from "react";
 
-import { CloseIcon } from "../Icon";
-import { IconButton } from "../IconButton";
-import { Nested } from "../Nested";
+import { CloseIcon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { Nested } from "@/components/ui/Nested";
+
 import { modal } from "./style";
 import type { ModalProps } from "./type";
 

@@ -2,8 +2,9 @@ import { act, renderHook } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import * as fonts from "../../../../../lib/diary/fonts";
-import type { SavedFont } from "../../../../../lib/diary/fonts";
+import * as fonts from "@/lib/diary/fonts";
+import type { SavedFont } from "@/lib/diary/fonts";
+
 import { useFontDice } from "./useFontDice";
 
 afterEach(() => {

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
-import { HushError } from "../../../../../../../lib/vault/hushError";
+import { HushError } from "@/lib/vault/hushError";
+
 import { saveMessage } from "./saveMessage";
 
 const saved = {

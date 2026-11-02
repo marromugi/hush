@@ -1,4 +1,5 @@
-import { Modal } from "../../../../ui/Modal";
+import { Modal } from "@/components/ui/Modal";
+
 import { SecretKeyContent } from "./components/SecretKeyContent";
 import type { SecretKeyModalProps } from "./type";
 

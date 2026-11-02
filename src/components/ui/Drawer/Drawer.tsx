@@ -12,9 +12,10 @@ import {
 import { clsx } from "clsx";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 
-import { CloseIcon } from "../Icon";
-import { IconButton } from "../IconButton";
-import { Nested } from "../Nested";
+import { CloseIcon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { Nested } from "@/components/ui/Nested";
+
 import type { DrawerProps } from "./type";
 
 /**

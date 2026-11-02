@@ -1,4 +1,4 @@
-import type { HushErrorKind } from "../hushError";
+import type { HushErrorKind } from "@/lib/vault/hushError";
 
 /** What to tell the person for each kind. Every kind needs an entry. */
 const TEXT: Record<HushErrorKind, string> = {

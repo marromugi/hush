@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { calendarOf } from "../../lib/calendarOf";
-import type { CalendarMonth } from "../../lib/calendarOf";
+import { calendarOf } from "@/components/diary/DiaryScreen/components/Sidebar/lib/calendarOf";
+import type { CalendarMonth } from "@/components/diary/DiaryScreen/components/Sidebar/lib/calendarOf";
 
 export type SidebarDay = { date: string; label: string; selected: boolean };
 

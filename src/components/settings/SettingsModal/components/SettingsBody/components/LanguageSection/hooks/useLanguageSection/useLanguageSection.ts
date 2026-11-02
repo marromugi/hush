@@ -1,6 +1,6 @@
-import { useSettings } from "../../../../../../../../../hooks/settings/useSettings";
-import { writeSettings } from "../../../../../../../../../lib/settings/settings";
-import type { Language } from "../../../../../../../../../lib/settings/settings";
+import { useSettings } from "@/hooks/settings/useSettings";
+import { writeSettings } from "@/lib/settings/settings";
+import type { Language } from "@/lib/settings/settings";
 
 export type UseLanguageSection = {
   language: Language;

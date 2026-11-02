@@ -1,4 +1,5 @@
-import { SessionContext } from "../../../hooks/vault/useSession";
+import { SessionContext } from "@/hooks/vault/useSession";
+
 import { useAutoLock } from "./hooks/useAutoLock";
 import { useLockFlow } from "./hooks/useLockFlow";
 import type { UnlockedSessionProps } from "./type";

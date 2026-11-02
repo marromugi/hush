@@ -1,4 +1,4 @@
-import { tv } from "../../../lib/ui/tv";
+import { tv } from "@/lib/ui/tv";
 
 /** The look of a list of options that opens from a control: the panel. */
 export const optionList = tv({

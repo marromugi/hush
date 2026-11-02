@@ -3,10 +3,11 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useId, useState } from "react";
 import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
 
-import { control } from "../Field";
-import { CheckIcon, ChevronDownIcon, Icon } from "../Icon";
-import { Nested } from "../Nested";
-import { optionList, optionRow } from "../Options";
+import { control } from "@/components/ui/Field";
+import { CheckIcon, ChevronDownIcon, Icon } from "@/components/ui/Icon";
+import { Nested } from "@/components/ui/Nested";
+import { optionList, optionRow } from "@/components/ui/Options";
+
 import { useOptionPanel } from "./hooks/useOptionPanel";
 import { matchOptions } from "./lib/matchOptions";
 import type { Option } from "./lib/matchOptions";

@@ -2,9 +2,10 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { useSession } from "../../../../../hooks/vault/useSession";
-import * as fonts from "../../../../../lib/diary/fonts";
-import { UnlockedSession } from "../../../../vault/UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import { useSession } from "@/hooks/vault/useSession";
+import * as fonts from "@/lib/diary/fonts";
+
 import { useTodayScreen } from "./useTodayScreen";
 
 afterEach(() => {

@@ -1,6 +1,7 @@
 import { EditorContent } from "@tiptap/react";
 
-import { fontLoadingStyle } from "../../../lib/diary/entryProse";
+import { fontLoadingStyle } from "@/lib/diary/entryProse";
+
 import { useDiaryEditor } from "./hooks/useDiaryEditor";
 import type { DiaryEditorProps } from "./type";
 

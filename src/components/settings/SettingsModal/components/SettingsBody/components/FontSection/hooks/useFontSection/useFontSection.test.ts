@@ -1,8 +1,9 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import * as fonts from "../../../../../../../../../lib/diary/fonts";
-import { readSettings, writeSettings } from "../../../../../../../../../lib/settings/settings";
+import * as fonts from "@/lib/diary/fonts";
+import { readSettings, writeSettings } from "@/lib/settings/settings";
+
 import { useFontSection } from "./useFontSection";
 
 afterEach(() => {

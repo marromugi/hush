@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import type { IconSource } from "../Icon";
+import type { IconSource } from "@/components/ui/Icon";
 
 export type IconButtonProps = {
   icon: IconSource;

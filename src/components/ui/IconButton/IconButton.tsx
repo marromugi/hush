@@ -1,4 +1,5 @@
-import { Icon } from "../Icon";
+import { Icon } from "@/components/ui/Icon";
+
 import { iconButton } from "./style";
 import type { IconButtonProps } from "./type";
 

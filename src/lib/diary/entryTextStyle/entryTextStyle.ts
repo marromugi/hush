@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import type { TextSettings } from "../../settings/settings";
+import type { TextSettings } from "@/lib/settings/settings";
 
 /** Full-width characters to a line of the entry. */
 const LINE_CHARACTERS = 36;

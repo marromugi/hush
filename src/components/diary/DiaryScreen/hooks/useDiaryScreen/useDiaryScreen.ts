@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { useSession } from "../../../../../hooks/vault/useSession";
-import { listEntryDates } from "../../../../../lib/vault/commands";
-import { errorText } from "../../../../../lib/vault/errorText";
-import { toHushError } from "../../../../../lib/vault/hushError";
-import { dateParts } from "../../lib/dateParts";
-import type { DateParts } from "../../lib/dateParts";
+import { dateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
+import type { DateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
+import { useSession } from "@/hooks/vault/useSession";
+import { listEntryDates } from "@/lib/vault/commands";
+import { errorText } from "@/lib/vault/errorText";
+import { toHushError } from "@/lib/vault/hushError";
 
 type Listed = { dates: string[] } | { error: string };
 

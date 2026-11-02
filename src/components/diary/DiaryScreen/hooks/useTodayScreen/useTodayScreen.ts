@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useEntryFont } from "../../../../../hooks/diary/useEntryFont";
-import { useTodayEntry } from "../../../../../hooks/diary/useTodayEntry";
-import { useBeforeLock } from "../../../../../hooks/vault/useBeforeLock";
-import { useSession } from "../../../../../hooks/vault/useSession";
-import type { SavedFont } from "../../../../../lib/diary/fonts";
-import { localDate } from "../../../../../lib/diary/localDate";
-import { errorText } from "../../../../../lib/vault/errorText";
+import { useEntryFont } from "@/hooks/diary/useEntryFont";
+import { useTodayEntry } from "@/hooks/diary/useTodayEntry";
+import { useBeforeLock } from "@/hooks/vault/useBeforeLock";
+import { useSession } from "@/hooks/vault/useSession";
+import type { SavedFont } from "@/lib/diary/fonts";
+import { localDate } from "@/lib/diary/localDate";
+import { errorText } from "@/lib/vault/errorText";
+
 import { createAutoSaver } from "./lib/createAutoSaver";
 import { saveMessage } from "./lib/saveMessage";
 import type { SaveMessage } from "./lib/saveMessage";

@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Button } from "../Button";
-import { optionList, optionRow } from "../Options";
+import { Button } from "@/components/ui/Button";
+import { optionList, optionRow } from "@/components/ui/Options";
+
 import { Popover } from "./Popover";
 
 const meta: Meta<typeof Popover> = {

@@ -2,7 +2,8 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
-import type { EntryView } from "../../../lib/vault/commands";
+import type { EntryView } from "@/lib/vault/commands";
+
 import { useTodayEntry } from "./useTodayEntry";
 
 afterEach(() => {

@@ -1,7 +1,7 @@
-import type { SavedFont } from "../../../lib/diary/fonts";
-import { useSettings } from "../../settings/useSettings";
-import { useLoadedFont } from "../useLoadedFont";
-import type { LoadedFont } from "../useLoadedFont";
+import { useLoadedFont } from "@/hooks/diary/useLoadedFont";
+import type { LoadedFont } from "@/hooks/diary/useLoadedFont";
+import { useSettings } from "@/hooks/settings/useSettings";
+import type { SavedFont } from "@/lib/diary/fonts";
 
 /**
  * The font an entry is shown in: its own `font`, else the default font for

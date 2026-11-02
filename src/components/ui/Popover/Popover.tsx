@@ -16,7 +16,8 @@ import {
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { cloneElement, useState } from "react";
 
-import { Nested } from "../Nested";
+import { Nested } from "@/components/ui/Nested";
+
 import { originFor, placementFor } from "./lib/placement";
 import type { PopoverProps } from "./type";
 

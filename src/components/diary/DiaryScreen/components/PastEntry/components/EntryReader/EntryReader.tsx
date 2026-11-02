@@ -1,7 +1,8 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 
-import { entryProse, fontLoadingStyle } from "../../../../../../../lib/diary/entryProse";
+import { entryProse, fontLoadingStyle } from "@/lib/diary/entryProse";
+
 import type { EntryReaderProps } from "./type";
 
 /** An entry's body, shown as written and never editable. */

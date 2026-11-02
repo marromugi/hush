@@ -2,8 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
-import type { SavedFont } from "../../diary/fonts";
-import { toHushError } from "../hushError";
+import type { SavedFont } from "@/lib/diary/fonts";
+import { toHushError } from "@/lib/vault/hushError";
 
 /** `needsSecretKey`: locked, on a device that has no Secret Key for the vault yet. */
 export type VaultStatus = "missing" | "needsSecretKey" | "locked" | "unlocked";

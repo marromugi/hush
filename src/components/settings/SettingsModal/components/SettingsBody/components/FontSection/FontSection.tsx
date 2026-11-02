@@ -1,5 +1,6 @@
-import { Button } from "../../../../../../ui/Button";
-import { Combobox } from "../../../../../../ui/Combobox";
+import { Button } from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
+
 import { useFontSection } from "./hooks/useFontSection";
 
 /** The font entries are shown in until the dice picks another. */

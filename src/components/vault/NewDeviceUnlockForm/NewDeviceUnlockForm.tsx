@@ -1,7 +1,8 @@
-import { errorText } from "../../../lib/vault/errorText";
-import { isAboutPassphrase } from "../../../lib/vault/hushError";
-import { Button } from "../../ui/Button";
-import { TextField } from "../../ui/TextField";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { errorText } from "@/lib/vault/errorText";
+import { isAboutPassphrase } from "@/lib/vault/hushError";
+
 import { QrScanner } from "./components/QrScanner";
 import { useNewDeviceUnlockForm } from "./hooks/useNewDeviceUnlockForm";
 import type { NewDeviceUnlockFormProps } from "./type";

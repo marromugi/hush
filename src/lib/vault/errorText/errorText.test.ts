@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
-import { HUSH_ERROR_KINDS } from "../hushError";
+import { HUSH_ERROR_KINDS } from "@/lib/vault/hushError";
+
 import { errorText } from "./errorText";
 
 test("every kind has its own sentence", () => {

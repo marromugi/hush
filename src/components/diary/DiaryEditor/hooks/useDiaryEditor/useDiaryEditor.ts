@@ -3,8 +3,8 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { clsx } from "clsx";
 import { useEffect } from "react";
 
-import { entryProse } from "../../../../../lib/diary/entryProse";
-import type { KeepClear } from "../../type";
+import type { KeepClear } from "@/components/diary/DiaryEditor/type";
+import { entryProse } from "@/lib/diary/entryProse";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
 const CURSOR_ROOM = 16;

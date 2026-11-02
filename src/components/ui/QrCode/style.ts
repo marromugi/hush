@@ -1,4 +1,4 @@
-import { tv } from "../../../lib/ui/tv";
+import { tv } from "@/lib/ui/tv";
 
 export const qrCode = tv({
   base: [

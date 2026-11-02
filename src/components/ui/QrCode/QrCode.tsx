@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
-import { qrModules } from "../../../lib/ui/qr";
+import { qrModules } from "@/lib/ui/qr";
+
 import { qrCode } from "./style";
 import type { QrCodeProps } from "./type";
 

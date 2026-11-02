@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { CloseIcon } from "../Icon";
+import { CloseIcon } from "@/components/ui/Icon";
+
 import { IconButton } from "./IconButton";
 
 const meta = {

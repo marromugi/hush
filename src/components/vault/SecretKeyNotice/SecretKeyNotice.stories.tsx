@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { UnlockedSession } from "../UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+
 import { SecretKeyNotice } from "./SecretKeyNotice";
 
 const meta = {

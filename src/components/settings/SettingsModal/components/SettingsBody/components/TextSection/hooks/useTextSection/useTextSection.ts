@@ -1,6 +1,6 @@
-import { useSettings } from "../../../../../../../../../hooks/settings/useSettings";
-import { TEXT_RANGES, writeSettings } from "../../../../../../../../../lib/settings/settings";
-import type { TextSettings } from "../../../../../../../../../lib/settings/settings";
+import { useSettings } from "@/hooks/settings/useSettings";
+import { TEXT_RANGES, writeSettings } from "@/lib/settings/settings";
+import type { TextSettings } from "@/lib/settings/settings";
 
 export type UseTextSection = {
   text: TextSettings;

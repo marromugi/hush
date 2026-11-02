@@ -1,4 +1,5 @@
-import { SecretKeyCard } from "../../../../../../vault/SecretKeyCard";
+import { SecretKeyCard } from "@/components/vault/SecretKeyCard";
+
 import { useSecretKey } from "./hooks/useSecretKey";
 
 /** The vault's Secret Key, read when this is shown. */
