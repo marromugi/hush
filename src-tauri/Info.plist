@@ -4,5 +4,7 @@
 <dict>
   <key>NSCameraUsageDescription</key>
   <string>Secret Key の QR コードを読み取るために、カメラを使います。</string>
+  <key>NSCameraUseContinuityCameraDeviceType</key>
+  <true/>
 </dict>
 </plist>
