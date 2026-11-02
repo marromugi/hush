@@ -1,5 +1,4 @@
-import { clsx } from "clsx";
-
+import { Radio } from "../../../../../../ui/Radio";
 import { useLanguageSection } from "./hooks/useLanguageSection";
 
 const LANGUAGES = [
@@ -18,22 +17,14 @@ export function LanguageSection() {
         サイコロが選ぶフォントと、ふだんのフォントの候補が、この言語の字を持つものに変わります。
       </p>
       {LANGUAGES.map((language) => (
-        <label key={language.value} className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="language"
-            value={language.value}
-            checked={section.language === language.value}
-            onChange={() => section.setLanguage(language.value)}
-            className={clsx(
-              // size
-              "size-4",
-              // color
-              "accent-accent",
-            )}
-          />
-          {language.label}
-        </label>
+        <Radio
+          key={language.value}
+          name="language"
+          value={language.value}
+          label={language.label}
+          checked={section.language === language.value}
+          onChange={() => section.setLanguage(language.value)}
+        />
       ))}
     </fieldset>
   );
