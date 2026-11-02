@@ -5,9 +5,8 @@ import { useSettings } from "../../../hooks/settings/useSettings";
 import { subsetFor } from "../../../lib/diary/fonts";
 import { SettingsModal } from "../../settings/SettingsModal";
 import { Drawer } from "../../ui/Drawer";
-import { DiceIcon, MenuIcon } from "../../ui/Icon";
+import { DiceIcon, Icon, LogoIcon, MenuIcon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
-import { Logo } from "../../ui/Logo";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
@@ -68,7 +67,9 @@ export function DiaryScreen() {
           </span>
           <h1>
             {/* Below md the header holds the button for the days, and the mark gives way. */}
-            <Logo aria-hidden className="hidden h-6 w-auto md:block" />
+            <span className="hidden md:block">
+              <Icon icon={LogoIcon} size="xl" />
+            </span>
             <span className="sr-only">Hush</span>
           </h1>
         </div>
