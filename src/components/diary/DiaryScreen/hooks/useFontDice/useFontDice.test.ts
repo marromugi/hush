@@ -16,9 +16,9 @@ function fakeFonts() {
   const loaded: string[] = [];
   const lists = vi.spyOn(fonts, "listFonts").mockResolvedValue([klee, noto]);
   const details: string[] = [];
-  vi.spyOn(fonts, "stylesheetUrl").mockImplementation(async (id) => {
+  vi.spyOn(fonts, "fontDetails").mockImplementation(async (id) => {
     details.push(id);
-    return `css/${id}`;
+    return { stylesheet: `css/${id}`, complete: id !== "kana-only" };
   });
   vi.spyOn(fonts, "loadFont").mockImplementation(async (font) => {
     loaded.push(font.id);
@@ -69,4 +69,18 @@ test("a font shown before is shown again without asking for its details", async 
   await act(() => result.current.roll());
   expect(result.current.font).toEqual(klee);
   expect(details).toEqual(["klee-one", "noto-sans-jp"]);
+});
+
+test("a font lacking characters is never shown, and is not picked again", async () => {
+  const kana = { id: "kana-only", family: "Kana Only", category: "display" };
+  const { loaded, details } = fakeFonts();
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([kana, klee]);
+  vi.spyOn(Math, "random").mockReturnValue(0);
+  const { result } = renderHook(() => useFontDice());
+  await act(() => result.current.roll());
+  expect(result.current.font).toEqual(klee);
+  await act(() => result.current.roll());
+  expect(result.current.font).toEqual(klee);
+  expect(loaded).toEqual(["klee-one"]);
+  expect(details).toEqual(["kana-only", "klee-one"]);
 });

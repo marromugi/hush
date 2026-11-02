@@ -24,7 +24,25 @@ const ListedFonts = v.array(
   v.object({ id: v.string(), family: v.string(), category: v.string(), type: v.string() }),
 );
 
-const FontDetails = v.object({ npmVersion: v.string() });
+const FontDetailsAnswer = v.object({
+  npmVersion: v.string(),
+  unicodeRange: v.record(v.string(), v.string()),
+});
+
+/**
+ * Japanese fonts come in numbered slices of characters. Fonts with the
+ * common kanji have over 100 of them; fonts with fewer have kana and only
+ * some kanji, so kanji would show in another font.
+ */
+const FULL_JAPANESE_SLICES = 100;
+
+/** What is needed to show a font, and whether it has every character the text needs. */
+export type FontDetails = {
+  /** The stylesheet at the font's current version. */
+  stylesheet: string;
+  /** False when the font lacks characters of `subset`, as kanji in a kana-only font. */
+  complete: boolean;
+};
 
 /** Google Fonts that have the characters of `subset`, as in `japanese` or `latin`. */
 export async function listFonts(subset: string): Promise<FontChoice[]> {
@@ -38,14 +56,22 @@ export async function listFonts(subset: string): Promise<FontChoice[]> {
     .map(({ id, family, category }) => ({ id, family, category }));
 }
 
-/** The stylesheet of `id` at its current version. Japanese fonts are split by character range, so only the ranges a page uses are fetched. */
-export async function stylesheetUrl(id: string): Promise<string> {
+/**
+ * The stylesheet of `id` at its current version, and whether it covers
+ * `subset`. Japanese fonts are split by character range, so only the ranges
+ * a page uses are fetched.
+ */
+export async function fontDetails(id: string, subset: string): Promise<FontDetails> {
   const response = await fetch(`${API}/${encodeURIComponent(id)}`, {
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`font ${id}: ${response.status}`);
-  const { npmVersion } = v.parse(FontDetails, await response.json());
-  return `${CDN}/${id}@${npmVersion}/index.css`;
+  const { npmVersion, unicodeRange } = v.parse(FontDetailsAnswer, await response.json());
+  const slices = Object.keys(unicodeRange).filter((key) => /^\[\d+\]$/.test(key)).length;
+  return {
+    stylesheet: `${CDN}/${id}@${npmVersion}/index.css`,
+    complete: subset !== "japanese" || slices >= FULL_JAPANESE_SLICES,
+  };
 }
 
 /** A font other than `current`, chosen at random. `null` when there is no other. */

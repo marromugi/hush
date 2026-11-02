@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
-import { listFonts, loadFont, pickFont, stylesheetUrl } from "../../../../../lib/diary/fonts";
-import type { FontChoice } from "../../../../../lib/diary/fonts";
+import { fontDetails, listFonts, loadFont, pickFont } from "../../../../../lib/diary/fonts";
+import type { FontChoice, FontDetails } from "../../../../../lib/diary/fonts";
 
 /** The characters the dice's fonts must have. A language setting will choose this. */
 const SUBSET = "japanese";
@@ -17,16 +17,19 @@ export type UseFontDice = {
 };
 
 /**
- * Picks another font at random each roll. The font list is fetched on the
- * first roll and kept; a font is shown only once it has loaded.
+ * Picks another font at random each roll, among fonts with every character
+ * the text needs. The font list is fetched on the first roll and kept; a
+ * font is shown only once it has loaded.
  */
 export function useFontDice(): UseFontDice {
   const [font, setFont] = useState<FontChoice | null>(null);
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const catalog = useRef<Promise<FontChoice[]> | null>(null);
-  // A font's stylesheet address, once known, so a font shown before needs no network.
-  const stylesheets = useRef(new Map<string, string>());
+  // A font's details, once known, so a font shown before needs no network.
+  const details = useRef(new Map<string, FontDetails>());
+  // Fonts found to lack characters; they are not picked again.
+  const lacking = useRef(new Set<string>());
 
   return {
     font,
@@ -42,12 +45,23 @@ export function useFontDice(): UseFontDice {
           catalog.current = null;
           throw failure;
         });
-        const next = pickFont(await catalog.current, font);
-        if (next === null) return;
-        const stylesheet = stylesheets.current.get(next.id) ?? (await stylesheetUrl(next.id));
-        stylesheets.current.set(next.id, stylesheet);
-        await loadFont(next, stylesheet);
-        setFont(next);
+        const fonts = await catalog.current;
+        for (;;) {
+          const next = pickFont(
+            fonts.filter((candidate) => !lacking.current.has(candidate.id)),
+            font,
+          );
+          if (next === null) return;
+          const known = details.current.get(next.id) ?? (await fontDetails(next.id, SUBSET));
+          details.current.set(next.id, known);
+          if (!known.complete) {
+            lacking.current.add(next.id);
+            continue;
+          }
+          await loadFont(next, known.stylesheet);
+          setFont(next);
+          return;
+        }
       } catch {
         setError("フォントを読み込めませんでした。");
       } finally {

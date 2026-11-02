@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { fontStack, listFonts, pickFont, stylesheetUrl } from "./fonts";
+import { fontDetails, fontStack, listFonts, pickFont } from "./fonts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,22 +31,47 @@ test("lists the Google fonts that have the subset's characters, leaving out icon
   ]);
 });
 
+/** Numbered Japanese slices, as Fontsource lists them, plus the Latin ones. */
+function slices(count: number) {
+  return {
+    ...Object.fromEntries(Array.from({ length: count }, (_, i) => [`[${i}]`, "U+4e00-4e10"])),
+    latin: "U+0000-00ff",
+  };
+}
+
 test("a font's stylesheet is pinned to its current version", async () => {
-  fakeFetch({ "https://api.fontsource.org/v1/fonts/noto-sans-jp": { npmVersion: "5.3.1" } });
-  expect(await stylesheetUrl("noto-sans-jp")).toBe(
-    "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.3.1/index.css",
-  );
+  fakeFetch({
+    "https://api.fontsource.org/v1/fonts/noto-sans-jp": {
+      npmVersion: "5.3.1",
+      unicodeRange: slices(124),
+    },
+  });
+  expect(await fontDetails("noto-sans-jp", "japanese")).toEqual({
+    stylesheet: "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.3.1/index.css",
+    complete: true,
+  });
+});
+
+test("a Japanese font with few slices lacks kanji; other subsets do not count slices", async () => {
+  fakeFetch({
+    "https://api.fontsource.org/v1/fonts/chokokutai": {
+      npmVersion: "5.0.1",
+      unicodeRange: slices(60),
+    },
+  });
+  expect((await fontDetails("chokokutai", "japanese")).complete).toBe(false);
+  expect((await fontDetails("chokokutai", "latin")).complete).toBe(true);
 });
 
 test("a failed answer is an error, not an empty list", async () => {
   fakeFetch({});
   await expect(listFonts("japanese")).rejects.toThrow("font list: 404");
-  await expect(stylesheetUrl("noto-sans-jp")).rejects.toThrow("font noto-sans-jp: 404");
+  await expect(fontDetails("noto-sans-jp", "japanese")).rejects.toThrow("font noto-sans-jp: 404");
 });
 
 test("an answer of another shape is an error", async () => {
   fakeFetch({ "https://api.fontsource.org/v1/fonts/noto-sans-jp": { version: "v57" } });
-  await expect(stylesheetUrl("noto-sans-jp")).rejects.toThrow("npmVersion");
+  await expect(fontDetails("noto-sans-jp", "japanese")).rejects.toThrow("npmVersion");
 });
 
 const fonts = [

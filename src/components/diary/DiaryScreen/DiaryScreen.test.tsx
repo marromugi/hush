@@ -123,7 +123,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
   vi.spyOn(fonts, "listFonts").mockResolvedValue([
     { id: "klee-one", family: "Klee One", category: "handwriting" },
   ]);
-  vi.spyOn(fonts, "stylesheetUrl").mockResolvedValue("css/klee-one");
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/klee-one", complete: true });
   vi.spyOn(fonts, "loadFont").mockResolvedValue();
   render(
     <UnlockedSession onLock={async () => {}}>
