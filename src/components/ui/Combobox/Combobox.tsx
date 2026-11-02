@@ -7,6 +7,7 @@ import { control } from "@/components/ui/Field";
 import { CheckIcon, ChevronDownIcon, Icon } from "@/components/ui/Icon";
 import { Nested } from "@/components/ui/Nested";
 import { optionList, optionRow } from "@/components/ui/Options";
+import { useDisclosure } from "@/hooks/common/useDisclosure";
 
 import { useOptionPanel } from "./hooks/useOptionPanel";
 import { matchOptions } from "./lib/matchOptions";
@@ -37,13 +38,13 @@ function ComboboxBody({
 
   // What is being typed, or null while the control shows the choice.
   const [typed, setTyped] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const panel = useDisclosure();
   const [active, setActive] = useState<number | null>(null);
   const matches = matchOptions(options, typed ?? "");
   const shown = matches.slice(0, MAX_ROWS);
 
   const close = () => {
-    setOpen(false);
+    panel.close();
     setTyped(null);
     setActive(null);
   };
@@ -57,8 +58,8 @@ function ComboboxBody({
     getPanelProps,
     getRowProps,
   } = useOptionPanel({
-    open,
-    onOpenChange: (next) => (next ? setOpen(true) : close()),
+    open: panel.isOpen,
+    onOpenChange: (next) => (next ? panel.open() : close()),
     active,
     onNavigate: setActive,
   });
@@ -72,7 +73,7 @@ function ComboboxBody({
       <label htmlFor={id} className="text-sm font-semibold">
         {label}
       </label>
-      <div className="group/combobox relative" data-open={open ? "" : undefined}>
+      <div className="group/combobox relative" data-open={panel.isOpen ? "" : undefined}>
         <input
           ref={setControl}
           id={id}
@@ -86,13 +87,13 @@ function ComboboxBody({
             onChange: (event: ChangeEvent<HTMLInputElement>) => {
               setTyped(event.target.value);
               setActive(0);
-              setOpen(true);
+              panel.open();
               if (event.target.value === "") onChange(null);
             },
-            onClick: () => setOpen(true),
+            onClick: () => panel.open(),
             onKeyDown: (event: KeyboardEvent) => {
               const option = active === null ? undefined : shown[active];
-              if (event.key === "Enter" && open && option !== undefined) {
+              if (event.key === "Enter" && panel.isOpen && option !== undefined) {
                 event.preventDefault();
                 pick(option);
               }
@@ -108,7 +109,7 @@ function ComboboxBody({
         <FloatingPortal>
           <MotionConfig reducedMotion="user">
             <AnimatePresence>
-              {open ? (
+              {panel.isOpen ? (
                 <div
                   ref={setPanel}
                   style={panelStyles}

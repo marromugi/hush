@@ -1,9 +1,10 @@
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useState } from "react";
 import type { BaseSyntheticEvent } from "react";
 import { useForm } from "react-hook-form";
 import type { UseFormRegister } from "react-hook-form";
 import * as v from "valibot";
+
+import { useDisclosure } from "@/hooks/common/useDisclosure";
 
 const schema = v.object({ secretKey: v.string(), passphrase: v.string() });
 
@@ -27,18 +28,18 @@ export function useNewDeviceUnlockForm(
     resolver: valibotResolver(schema),
     defaultValues: { secretKey: "", passphrase: "" },
   });
-  const [scanning, setScanning] = useState(false);
+  const scanner = useDisclosure();
 
   return {
     register: form.register,
     handleSubmit: (event) =>
       void form.handleSubmit(({ passphrase, secretKey }) => onUnlock(passphrase, secretKey))(event),
-    scanning,
-    startScan: () => setScanning(true),
-    stopScan: () => setScanning(false),
+    scanning: scanner.isOpen,
+    startScan: scanner.open,
+    stopScan: scanner.close,
     onScanned: (text) => {
       form.setValue("secretKey", text);
-      setScanning(false);
+      scanner.close();
     },
   };
 }

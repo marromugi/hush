@@ -46,10 +46,10 @@ test("choosing another day shows that day, read only", async () => {
 test("choosing a day from the days shown over the diary shows it and puts them away", () => {
   mockIPC(() => ["2022-12-01"], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.setDatesOpen(true));
+  act(() => result.current.datesDrawer.open());
   act(() => result.current.selectFromDates("2022-12-01"));
   expect(result.current.selected).toBe("2022-12-01");
-  expect(result.current.datesOpen).toBe(false);
+  expect(result.current.datesDrawer.isOpen).toBe(false);
 });
 
 /** A window whose width can be made to match a media query, as it is resized. */
@@ -70,18 +70,18 @@ test("the days shown over the diary are put away once the window is wide enough 
   const screen = new FakeScreen();
   vi.spyOn(window, "matchMedia").mockReturnValue(screen);
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.setDatesOpen(true));
+  act(() => result.current.datesDrawer.open());
   act(() => screen.widen());
-  expect(result.current.datesOpen).toBe(false);
+  expect(result.current.datesDrawer.isOpen).toBe(false);
 });
 
 test("choosing Secret Key in the config menu closes the menu and shows the Secret Key", () => {
   mockIPC(() => [], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.setConfigOpen(true));
+  act(() => result.current.configMenu.open());
   act(() => result.current.openSecretKey());
-  expect(result.current.configOpen).toBe(false);
-  expect(result.current.secretKeyOpen).toBe(true);
+  expect(result.current.configMenu.isOpen).toBe(false);
+  expect(result.current.secretKeyModal.isOpen).toBe(true);
 });
 
 test("choosing ロック in the config menu closes the menu and locks", async () => {
@@ -90,9 +90,9 @@ test("choosing ロック in the config menu closes the menu and locks", async ()
   const { result } = renderDiary("2022-12-18", async () => {
     locks += 1;
   });
-  act(() => result.current.setConfigOpen(true));
+  act(() => result.current.configMenu.open());
   act(() => result.current.lockFromConfig());
-  expect(result.current.configOpen).toBe(false);
+  expect(result.current.configMenu.isOpen).toBe(false);
   await waitFor(() => expect(locks).toBe(1));
 });
 
