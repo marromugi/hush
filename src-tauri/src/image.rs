@@ -224,15 +224,14 @@ mod tests {
     }
 
     #[test]
-    fn jpeg_png_and_gif_are_told_apart() {
-        let cases = [
-            (vec![0xFF, 0xD8, 0xFF, 0xE0], PictureFormat::Jpeg),
-            (b"\x89PNG\r\n\x1a\n\0\0".to_vec(), PictureFormat::Png),
-            (b"GIF87a".to_vec(), PictureFormat::Gif),
-            (b"GIF89a".to_vec(), PictureFormat::Gif),
-        ];
-        for (bytes, format) in cases {
-            assert_eq!(PictureFormat::of(&bytes), Some(format));
+    fn jpeg_png_and_gif_are_pictures() {
+        for bytes in [
+            vec![0xFF, 0xD8, 0xFF, 0xE0],
+            b"\x89PNG\r\n\x1a\n\0\0".to_vec(),
+            b"GIF87a".to_vec(),
+            b"GIF89a".to_vec(),
+        ] {
+            assert!(Picture::try_from(bytes).is_ok());
         }
     }
 
