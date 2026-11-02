@@ -1,1 +1,1 @@
-export { entryProse, fontLoadingBlur } from "./entryProse";
+export { entryProse, fontLoadingStyle } from "./entryProse";
