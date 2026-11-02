@@ -2,7 +2,7 @@ import { clsx } from "clsx";
 import { useRef } from "react";
 
 import { useSettings } from "../../../hooks/settings/useSettings";
-import { fontStack, subsetFor } from "../../../lib/diary/fonts";
+import { subsetFor } from "../../../lib/diary/fonts";
 import { SettingsModal } from "../../settings/SettingsModal";
 import { DiceIcon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
@@ -25,7 +25,7 @@ export function DiaryScreen() {
   const today = useTodayScreen();
   const screen = useDiaryScreen(today.date);
   const settings = useSettings();
-  const dice = useFontDice(subsetFor(settings.language));
+  const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
   const defaultFont = useDefaultFont();
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
@@ -95,11 +95,11 @@ export function DiaryScreen() {
               onChange={today.onChange}
               disabled={today.locking}
               keepClear={BANDS}
-              fontFamily={dice.font ? fontStack(dice.font) : defaultFont}
+              fontFamily={today.fontFamily ?? defaultFont}
             />
           )
         ) : (
-          <PastEntry key={screen.selected} date={screen.selected} fontFamily={defaultFont} />
+          <PastEntry key={screen.selected} date={screen.selected} defaultFontFamily={defaultFont} />
         )}
       </main>
       <footer
@@ -153,7 +153,7 @@ export function DiaryScreen() {
               icon={DiceIcon}
               label="フォントを変える"
               type="button"
-              disabled={dice.rolling || today.locking}
+              disabled={dice.rolling || today.locking || today.loading}
               onClick={() => void dice.roll()}
             />
           </div>

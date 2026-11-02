@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::app_error::AppError;
 use crate::crypto::VaultKey;
-use crate::entry::{self, Entry, EntryDate};
+use crate::entry::{self, Entry, EntryDate, EntryFont};
 use crate::keychain::SecretKeyStore;
 use crate::secret_key::SecretKey;
 use crate::vault::Vault;
@@ -125,6 +125,7 @@ impl LocalStore {
         key: &VaultKey,
         date: &EntryDate,
         body: String,
+        font: Option<EntryFont>,
         now_ms: u64,
     ) -> Result<Entry, AppError> {
         let created_at_ms = self
@@ -135,6 +136,7 @@ impl LocalStore {
             body,
             created_at_ms,
             updated_at_ms: now_ms,
+            font,
         };
         write_atomically(&self.entry_path(date), entry::seal(key, &entry)?.as_bytes())?;
         Ok(entry)
@@ -242,7 +244,13 @@ mod tests {
         let (_dir, store) = store();
         let (key, _) = store.create_vault("correct horse").unwrap();
         store
-            .save_entry(&key, &date("2026-10-29"), "今日は晴れ".to_string(), 1_000)
+            .save_entry(
+                &key,
+                &date("2026-10-29"),
+                "今日は晴れ".to_string(),
+                None,
+                1_000,
+            )
             .unwrap();
         drop(key);
 
@@ -259,7 +267,7 @@ mod tests {
         let (dir, store) = store();
         let (key, _) = store.create_vault("correct horse").unwrap();
         store
-            .save_entry(&key, &date("2026-10-29"), "diary".to_string(), 1_000)
+            .save_entry(&key, &date("2026-10-29"), "diary".to_string(), None, 1_000)
             .unwrap();
         assert!(dir.path().join("vault.json").is_file());
         assert!(dir.path().join("entries/2026/2026-10-29.enc").is_file());
@@ -318,10 +326,10 @@ mod tests {
         let (_dir, store) = store();
         let (key, _) = store.create_vault("correct horse").unwrap();
         store
-            .save_entry(&key, &date("2026-10-29"), "a".to_string(), 1_000)
+            .save_entry(&key, &date("2026-10-29"), "a".to_string(), None, 1_000)
             .unwrap();
         let entry = store
-            .save_entry(&key, &date("2026-10-29"), "b".to_string(), 2_000)
+            .save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000)
             .unwrap();
         assert_eq!((entry.created_at_ms, entry.updated_at_ms), (1_000, 2_000));
     }
@@ -333,7 +341,7 @@ mod tests {
         assert!(store.entry_dates().unwrap().is_empty());
         for day in ["2026-10-29", "2025-12-31", "2026-01-02"] {
             store
-                .save_entry(&key, &date(day), "diary".to_string(), 1_000)
+                .save_entry(&key, &date(day), "diary".to_string(), None, 1_000)
                 .unwrap();
         }
         assert_eq!(
@@ -475,11 +483,11 @@ mod tests {
         let (key, _) = store.create_vault("correct horse").unwrap();
         let path = dir.path().join("entries/2026/2026-10-29.enc");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let newer = r#"{"version":2,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
+        let newer = r#"{"version":3,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
         fs::write(&path, newer).unwrap();
 
-        let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), 2_000);
-        assert!(matches!(result, Err(AppError::NewerEntryVersion(2))));
+        let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000);
+        assert!(matches!(result, Err(AppError::NewerEntryVersion(3))));
         assert_eq!(fs::read_to_string(&path).unwrap(), newer);
     }
 }

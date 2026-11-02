@@ -10,22 +10,25 @@ afterEach(() => {
 });
 
 function entry(date: string, body: string): EntryView {
-  return { date, body, createdAtMs: 1, updatedAtMs: 2 };
+  return { date, body, createdAtMs: 1, updatedAtMs: 2, font: null };
 }
 
 /** A fake Rust side holding entries in memory. */
 function fakeEntries(initial: Record<string, string>) {
   const entries = new Map(Object.entries(initial));
+  const fonts = new Map<string, unknown>();
   mockIPC((command, args) => {
     const date = String(args && "date" in args ? args.date : "");
     if (command === "read_entry") {
       const body = entries.get(date);
-      return body === undefined ? null : entry(date, body);
+      return body === undefined ? null : { ...entry(date, body), font: fonts.get(date) ?? null };
     }
     if (command === "save_entry") {
       const body = String(args && "body" in args ? args.body : "");
+      const font = args && "font" in args ? args.font : null;
       entries.set(date, body);
-      return entry(date, body);
+      fonts.set(date, font);
+      return { ...entry(date, body), font };
     }
     throw new Error(`unexpected command ${command}`);
   });
@@ -37,6 +40,15 @@ test("reads the entry for the date", async () => {
   expect(result.current.loading).toBe(true);
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.entry?.body).toBe("<p>晴れ</p>");
+});
+
+test("saving stores the font with the body", async () => {
+  fakeEntries({});
+  const { result } = renderHook(() => useTodayEntry("2026-10-29"));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  const klee = { id: "klee-one", family: "Klee One", category: "handwriting", stylesheet: "css/k" };
+  await act(() => result.current.save("<p>雨</p>", klee));
+  expect(result.current.entry?.font).toEqual(klee);
 });
 
 test("a day with nothing written has no entry and no error", async () => {
@@ -53,7 +65,7 @@ test("saving stores the body and shows the saved entry", async () => {
   await waitFor(() => expect(result.current.loading).toBe(false));
   let saved = false;
   await act(async () => {
-    saved = await result.current.save("<p>雨</p>");
+    saved = await result.current.save("<p>雨</p>", null);
   });
   expect(saved).toBe(true);
   expect(result.current.entry?.body).toBe("<p>雨</p>");
@@ -79,7 +91,7 @@ test("a failed save keeps the loaded entry and reports the error", async () => {
   const { result } = renderHook(() => useTodayEntry("2026-10-29"));
   await waitFor(() => expect(result.current.loading).toBe(false));
   failSave = true;
-  await act(() => result.current.save("<p>雨</p>"));
+  await act(() => result.current.save("<p>雨</p>", null));
   expect(result.current.saveError?.kind).toBe("newerEntryVersion");
   expect(result.current.entry?.body).toBe("<p>晴れ</p>");
 });
@@ -146,7 +158,7 @@ test("a save that finishes after the date changes leaves the new day shown", asy
 
   let pending: Promise<boolean> = Promise.resolve(true);
   act(() => {
-    pending = result.current.save("<p>夜遅く</p>");
+    pending = result.current.save("<p>夜遅く</p>", null);
   });
   rerender({ date: "2026-10-30" });
   await settle();
@@ -169,8 +181,8 @@ test("saves run one after another and the last body is shown", async () => {
   let first: Promise<boolean> = Promise.resolve(true);
   let second: Promise<boolean> = Promise.resolve(true);
   act(() => {
-    first = result.current.save("<p>一</p>");
-    second = result.current.save("<p>二</p>");
+    first = result.current.save("<p>一</p>", null);
+    second = result.current.save("<p>二</p>", null);
   });
   await settle();
   expect(saves.map((save) => save.body)).toEqual(["<p>一</p>"]);
@@ -202,7 +214,7 @@ test("a save error for one day is not shown on the next", async () => {
   await waitFor(() => expect(result.current.loading).toBe(false));
   let saved = true;
   await act(async () => {
-    saved = await result.current.save("<p>x</p>");
+    saved = await result.current.save("<p>x</p>", null);
   });
   expect(saved).toBe(false);
   expect(result.current.saveError?.kind).toBe("io");

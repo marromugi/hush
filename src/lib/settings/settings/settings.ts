@@ -1,5 +1,7 @@
 import * as v from "valibot";
 
+import type { SavedFont } from "../../diary/fonts";
+
 /** Where this device keeps its settings, in the WebView's storage. */
 const KEY = "hush.settings";
 
@@ -8,9 +10,8 @@ const SavedFontShape = v.object({
   id: v.string(),
   family: v.string(),
   category: v.string(),
-  /** The font's stylesheet at a pinned version, so it loads from the cache when offline. */
   stylesheet: v.string(),
-});
+}) satisfies v.GenericSchema<unknown, SavedFont>;
 
 const noFont = v.fallback(v.nullable(SavedFontShape), null);
 
@@ -28,8 +29,6 @@ const SettingsShape = v.object({
 export type Settings = v.InferOutput<typeof SettingsShape>;
 
 export type Language = Settings["language"];
-
-export type SavedFont = NonNullable<Settings["defaultFonts"]["ja"]>;
 
 const listeners = new Set<() => void>();
 let read: { raw: string | null; settings: Settings } | null = null;

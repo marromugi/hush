@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::app_error::AppError;
 use crate::app_state::{AppState, AppStateInner};
 use crate::crypto::VaultKey;
-use crate::entry::{Entry, EntryDate};
+use crate::entry::{Entry, EntryDate, EntryFont};
 use crate::local_store::LocalStore;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -26,6 +26,7 @@ pub struct EntryView {
     pub body: String,
     pub created_at_ms: u64,
     pub updated_at_ms: u64,
+    pub font: Option<EntryFont>,
 }
 
 impl From<Entry> for EntryView {
@@ -35,6 +36,7 @@ impl From<Entry> for EntryView {
             body: entry.body,
             created_at_ms: entry.created_at_ms,
             updated_at_ms: entry.updated_at_ms,
+            font: entry.font,
         }
     }
 }
@@ -102,12 +104,16 @@ pub fn save_entry(
     state: &AppState,
     date: String,
     body: String,
+    font: Option<EntryFont>,
     now_ms: u64,
 ) -> Result<EntryView, AppError> {
     let date = parse_date(date)?;
     let inner = inner(state);
     let key = inner.key.as_ref().ok_or(AppError::Locked)?;
-    Ok(inner.store.save_entry(key, &date, body, now_ms)?.into())
+    Ok(inner
+        .store
+        .save_entry(key, &date, body, font, now_ms)?
+        .into())
 }
 
 /// The vault's Secret Key as text, for the person to keep again. Only while
@@ -232,7 +238,7 @@ mod tests {
         create_and_unlock(&state, "correct horse");
         lock(&state);
         assert!(matches!(
-            save_entry(&state, "2026-10-29".to_string(), "b".to_string(), 1),
+            save_entry(&state, "2026-10-29".to_string(), "b".to_string(), None, 1),
             Err(AppError::Locked)
         ));
     }
@@ -252,7 +258,7 @@ mod tests {
     fn listing_dates_needs_an_unlocked_vault() {
         let (_dir, state) = state();
         create_and_unlock(&state, "correct horse");
-        save_entry(&state, "2026-10-29".to_string(), "b".to_string(), 1).unwrap();
+        save_entry(&state, "2026-10-29".to_string(), "b".to_string(), None, 1).unwrap();
         assert_eq!(entry_dates(&state).unwrap(), ["2026-10-29"]);
         lock(&state);
         assert!(matches!(entry_dates(&state), Err(AppError::Locked)));
@@ -262,7 +268,20 @@ mod tests {
     fn a_saved_entry_reads_back_as_the_frontend_sees_it() {
         let (_dir, state) = state();
         create_and_unlock(&state, "correct horse");
-        save_entry(&state, "2026-10-29".to_string(), "晴れ".to_string(), 5).unwrap();
+        let font = EntryFont {
+            id: "klee-one".to_string(),
+            family: "Klee One".to_string(),
+            category: "handwriting".to_string(),
+            stylesheet: "css/klee".to_string(),
+        };
+        save_entry(
+            &state,
+            "2026-10-29".to_string(),
+            "晴れ".to_string(),
+            Some(font.clone()),
+            5,
+        )
+        .unwrap();
         assert_eq!(
             read_entry(&state, "2026-10-29".to_string()).unwrap(),
             Some(EntryView {
@@ -270,6 +289,7 @@ mod tests {
                 body: "晴れ".to_string(),
                 created_at_ms: 5,
                 updated_at_ms: 5,
+                font: Some(font),
             })
         );
     }
@@ -291,6 +311,7 @@ mod tests {
             body: String::new(),
             created_at_ms: 1,
             updated_at_ms: 2,
+            font: None,
         };
         let value = serde_json::to_value(view).unwrap();
         assert_eq!(value["createdAtMs"], 1);

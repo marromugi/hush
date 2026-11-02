@@ -6,6 +6,7 @@ use zeroize::Zeroizing;
 
 use crate::app_error::AppError;
 use crate::app_state::AppState;
+use crate::entry::EntryFont;
 use crate::session::{self, EntryView, VaultStatus};
 
 fn now_ms() -> u64 {
@@ -70,9 +71,10 @@ pub async fn read_entry(
 pub async fn save_entry(
     date: String,
     body: String,
+    font: Option<EntryFont>,
     state: State<'_, AppState>,
 ) -> Result<EntryView, AppError> {
-    session::save_entry(&state, date, body, now_ms())
+    session::save_entry(&state, date, body, font, now_ms())
 }
 
 #[tauri::command]
