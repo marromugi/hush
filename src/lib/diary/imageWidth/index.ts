@@ -1,1 +1,1 @@
-export { parseWidth, widthAt } from "./imageWidth";
+export { grownWidth, parseWidth } from "./imageWidth";

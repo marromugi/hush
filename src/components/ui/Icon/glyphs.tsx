@@ -70,3 +70,27 @@ export function LogoIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function AlignLeftIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} {...props}>
+      <path d="M2.5 4h11M2.5 8h7M2.5 12h9" />
+    </svg>
+  );
+}
+
+export function AlignCenterIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} {...props}>
+      <path d="M2.5 4h11M4.5 8h7M3.5 12h9" />
+    </svg>
+  );
+}
+
+export function AlignRightIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} {...props}>
+      <path d="M2.5 4h11M6.5 8h7M4.5 12h9" />
+    </svg>
+  );
+}

@@ -2,7 +2,7 @@ import { Editor } from "@tiptap/react";
 import { expect, test } from "vitest";
 
 import { entryExtensions } from "./entryExtensions";
-import { insertEntryImage } from "./lib/entryImageNode";
+import { alignSelectedImage, insertEntryImage, selectedImageAlign } from "./lib/entryImageNode";
 
 test("an image in an entry's HTML is read back and written as the same HTML", () => {
   const body =
@@ -53,5 +53,28 @@ test("a width out of range is dropped, leaving the image at its own size", () =>
     content: '<img data-image="0123456789abcdef0123456789abcdef" data-width="500">',
   });
   expect(editor.getHTML()).toBe('<img data-image="0123456789abcdef0123456789abcdef">');
+  editor.destroy();
+});
+
+test("an image's alignment is read back and written as the same HTML", () => {
+  const body =
+    '<img data-image="0123456789abcdef0123456789abcdef" data-width="60" data-align="center"><p>海</p>';
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  expect(editor.getHTML()).toBe(body);
+  editor.destroy();
+});
+
+test("aligning the selected image writes it, and moving it back to the left writes nothing", () => {
+  const id = "0123456789abcdef0123456789abcdef";
+  const editor = new Editor({
+    extensions: entryExtensions,
+    content: `<img data-image="${id}"><p>海</p>`,
+  });
+  editor.commands.setNodeSelection(0);
+  alignSelectedImage(editor, "right");
+  expect(selectedImageAlign(editor)).toBe("right");
+  expect(editor.getHTML()).toBe(`<img data-image="${id}" data-align="right"><p>海</p>`);
+  alignSelectedImage(editor, "left");
+  expect(editor.getHTML()).toBe(`<img data-image="${id}"><p>海</p>`);
   editor.destroy();
 });

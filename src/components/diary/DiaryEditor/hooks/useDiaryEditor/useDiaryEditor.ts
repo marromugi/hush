@@ -1,10 +1,16 @@
-import { useEditor } from "@tiptap/react";
+import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
-import { entryExtensions, insertEntryImage } from "@/lib/diary/entryExtensions";
+import {
+  alignSelectedImage,
+  entryExtensions,
+  insertEntryImage,
+  selectedImageAlign,
+} from "@/lib/diary/entryExtensions";
 import { entryProse } from "@/lib/diary/entryProse";
+import type { ImageAlign } from "@/lib/diary/imageAlign";
 import { preparePicture } from "@/lib/diary/preparePicture";
 import { saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
@@ -18,8 +24,10 @@ const CURSOR_ROOM = 16;
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
  * scrolls so it stays in view. A pasted picture is prepared for saving
- * (`preparePicture`), saved as an encrypted image, and put where the cursor is once saved; `imageError`
- * says why the last one that failed did not appear.
+ * (`preparePicture`), saved as an encrypted image, and put where the cursor
+ * is once saved; `imageError` says why the last one that failed did not
+ * appear. `imageAlign` is where the selected image sits, and `alignImage`
+ * moves it.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -89,5 +97,15 @@ export function useDiaryEditor(
     editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
-  return { editor, imageError };
+  const imageAlign = useEditorState({
+    editor,
+    selector: ({ editor: current }) => selectedImageAlign(current),
+  });
+
+  return {
+    editor,
+    imageError,
+    imageAlign,
+    alignImage: (align: ImageAlign) => alignSelectedImage(editor, align),
+  };
 }

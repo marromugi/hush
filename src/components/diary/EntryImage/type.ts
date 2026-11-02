@@ -1,3 +1,5 @@
+import type { ImageAlign } from "@/lib/diary/imageAlign";
+
 export type EntryImageProps = {
   /** The id the image was saved under. */
   id: string;
@@ -5,6 +7,8 @@ export type EntryImageProps = {
   selected?: boolean;
   /** In percent of the entry's width; `null` shows the image at its own size, up to that width. */
   width?: number | null;
+  /** Where the image sits across the entry's width. */
+  align?: ImageAlign;
   /** Given only where the image can be resized; called with the new width once dragging ends. */
   onResize?: (width: number) => void;
 };

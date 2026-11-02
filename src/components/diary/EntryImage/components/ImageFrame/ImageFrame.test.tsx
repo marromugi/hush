@@ -1,16 +1,18 @@
 import { fireEvent, render } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
+import type { ImageAlign } from "@/lib/diary/imageAlign";
+
 import { ImageFrame } from "./ImageFrame";
 
 /**
  * An image at 60% of a 600px column whose box runs from x=100 to x=460, and
  * its grip. The page has no layout here, so the sizes are given by hand.
  */
-function framed(onResize: (width: number) => void) {
+function framed(onResize: (width: number) => void, align: ImageAlign = "left") {
   const { container } = render(
     <div>
-      <ImageFrame width={60} onResize={onResize}>
+      <ImageFrame width={60} align={align} onResize={onResize}>
         <img alt="" />
       </ImageFrame>
     </div>,
@@ -29,13 +31,30 @@ function framed(onResize: (width: number) => void) {
   return grip;
 }
 
-test("dragging the grip hands over the width where it is let go, measured from where it was caught", () => {
+test("dragging the grip hands over the width where it is let go", () => {
   const onResize = vi.fn<(width: number) => void>();
   const grip = framed(onResize);
   fireEvent.pointerDown(grip, { button: 0, clientX: 462, pointerId: 1 });
   fireEvent.pointerMove(grip, { clientX: 362, pointerId: 1 });
   fireEvent.pointerUp(grip, { clientX: 362, pointerId: 1 });
   expect(onResize.mock.calls).toEqual([[43]]);
+});
+
+test("the grip's edge follows the pointer, however the image is aligned", () => {
+  // 360px wide; the grip moves 60px. Centred, both sides move, so the width changes twice as much.
+  const cases: Array<[ImageAlign, number, number]> = [
+    ["left", -60, 50],
+    ["center", -60, 40],
+    ["right", 60, 50],
+  ];
+  for (const [align, move, width] of cases) {
+    const onResize = vi.fn<(width: number) => void>();
+    const grip = framed(onResize, align);
+    fireEvent.pointerDown(grip, { button: 0, clientX: 300, pointerId: 1 });
+    fireEvent.pointerMove(grip, { clientX: 300 + move, pointerId: 1 });
+    fireEvent.pointerUp(grip, { clientX: 300 + move, pointerId: 1 });
+    expect(onResize.mock.calls).toEqual([[width]]);
+  }
 });
 
 test("a click on the grip without moving changes nothing", () => {
