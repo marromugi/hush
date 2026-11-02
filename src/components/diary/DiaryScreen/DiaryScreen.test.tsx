@@ -398,7 +398,7 @@ test("the header shows Hush's mark, named for screen readers", async () => {
   expect(heading.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
 });
 
-test("the header shows the day that is open, as year | month | day", async () => {
+test("the header shows the day that is open, as year.month.day", async () => {
   mockIPC(
     (command, args) => {
       const date = String(args && "date" in args ? args.date : "");
@@ -421,5 +421,5 @@ test("the header shows the day that is open, as year | month | day", async () =>
   await openNewYear2020(within(document.body));
   const shown = document.querySelector("header time");
   expect(shown?.getAttribute("datetime")).toBe("2020-01-01");
-  expect(shown?.textContent).toBe("2020|1|1");
+  expect(shown?.textContent).toBe("2020.1.1");
 });

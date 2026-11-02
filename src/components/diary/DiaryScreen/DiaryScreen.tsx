@@ -74,13 +74,9 @@ export function DiaryScreen() {
         </div>
         <time
           dateTime={screen.selected}
-          className="flex h-6 items-center gap-2 text-sm tabular-nums opacity-60"
+          className="flex h-6 items-center text-sm tabular-nums opacity-60"
         >
-          <span>{screen.selectedParts.year}</span>
-          <span aria-hidden>|</span>
-          <span>{screen.selectedParts.month}</span>
-          <span aria-hidden>|</span>
-          <span>{screen.selectedParts.day}</span>
+          {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
         </time>
         {/* A long error wraps downward only, keeping its first line beside the date. */}
         <div className="flex justify-end pt-0.5 text-right">
