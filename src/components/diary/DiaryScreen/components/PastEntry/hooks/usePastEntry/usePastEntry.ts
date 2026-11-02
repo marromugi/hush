@@ -1,5 +1,6 @@
 import { usePromise } from "@/hooks/common/usePromise";
 import { useEntryFont } from "@/hooks/diary/useEntryFont";
+import { toastError } from "@/lib/ui/toast";
 import { readEntry } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
@@ -11,12 +12,17 @@ export type UsePastEntry = {
   fontFamily: string | undefined;
   /** True while the entry's own font loads. */
   fontLoading: boolean;
-  error: string | null;
+  /** True when the entry could not be read, which a toast says. */
+  failed: boolean;
 };
 
 /** The entry for `date`, read once. Give the component a `key` of the date. */
 export function usePastEntry(date: string): UsePastEntry {
-  const read = usePromise(() => readEntry(date), date);
+  const read = usePromise(
+    () => readEntry(date),
+    date,
+    (failure) => toastError(failureText(failure)),
+  );
   const entry = read.status === "done" ? read.value : null;
   const font = useEntryFont(entry?.font ?? null);
 
@@ -25,6 +31,6 @@ export function usePastEntry(date: string): UsePastEntry {
     body: entry?.body ?? null,
     fontFamily: font.fontFamily,
     fontLoading: font.loading,
-    error: read.status === "failed" ? failureText(read.error) : null,
+    failed: read.status === "failed",
   };
 }

@@ -6,12 +6,12 @@ import { fontDetails, fontStack, listFonts, loadFont, subsetFor } from "@/lib/di
 import type { FontChoice, SavedFont } from "@/lib/diary/fonts";
 import { readSettings, writeSettings } from "@/lib/settings/settings";
 import type { Language } from "@/lib/settings/settings";
+import { toastError } from "@/lib/ui/toast";
 
 export type UseFontSection = {
   language: Language;
-  /** The fonts to choose from; `null` while they load or when they cannot. */
+  /** The fonts to choose from; `null` while they load or when they cannot, which a toast says. */
   fonts: FontChoice[] | null;
-  listError: string | null;
   /** The default font for the language; `null` for the standard font. */
   chosen: SavedFont | null;
   /**
@@ -23,10 +23,10 @@ export type UseFontSection = {
   value: string | null;
   /** True while a chosen font is checked and loaded. */
   choosing: boolean;
-  chooseError: string | null;
   /**
    * Makes `id` the default font once it has loaded; `null` goes back to the
-   * standard font. Only the latest choice is kept.
+   * standard font. Only the latest choice is kept. Why a font cannot be
+   * chosen is said in a toast.
    */
   choose: (id: string | null) => Promise<void>;
   /** The CSS `font-family` of the chosen font, for the sample. */
@@ -37,9 +37,12 @@ export type UseFontSection = {
 export function useFontSection(): UseFontSection {
   const { language, defaultFonts } = useSettings();
   const subset = subsetFor(language);
-  const listed = usePromise(() => listFonts(subset), subset);
+  const listed = usePromise(
+    () => listFonts(subset),
+    subset,
+    () => toastError("フォントの一覧を読み込めませんでした。"),
+  );
   const [picking, setPicking] = useState<FontChoice | null>(null);
-  const [chooseError, setChooseError] = useState<string | null>(null);
   // Counts choices, so a slow earlier one cannot overwrite a later one.
   const latest = useRef(0);
 
@@ -59,16 +62,13 @@ export function useFontSection(): UseFontSection {
   return {
     language,
     fonts,
-    listError: listed.status === "failed" ? "フォントの一覧を読み込めませんでした。" : null,
     chosen,
     options: offered.map((font) => ({ value: font.id, label: font.family })),
     value: picking?.id ?? chosen?.id ?? null,
     choosing: picking !== null,
-    chooseError,
     choose: async (id) => {
       latest.current += 1;
       const turn = latest.current;
-      setChooseError(null);
       if (id === null) {
         setPicking(null);
         keep(null);
@@ -81,14 +81,14 @@ export function useFontSection(): UseFontSection {
         const details = await fontDetails(font.id, subset);
         if (turn !== latest.current) return;
         if (!details.complete) {
-          setChooseError("漢字を持たないフォントは選べません。");
+          toastError("漢字を持たないフォントは選べません。");
           return;
         }
         await loadFont(font, details.stylesheet);
         if (turn !== latest.current) return;
         keep({ ...font, stylesheet: details.stylesheet });
       } catch {
-        if (turn === latest.current) setChooseError("フォントを読み込めませんでした。");
+        if (turn === latest.current) toastError("フォントを読み込めませんでした。");
       } finally {
         if (turn === latest.current) setPicking(null);
       }

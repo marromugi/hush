@@ -90,3 +90,23 @@ test("a result that comes after the component is gone is dropped", async () => {
   await act(async () => pending.get("a")?.resolve("A"));
   expect(result.current).toEqual({ status: "loading" });
 });
+
+test("onFailure hears of a kept failure once, and not of one that was dropped", async () => {
+  const { pending, load } = controlled();
+  const heard: unknown[] = [];
+  const { rerender } = renderHook(
+    ({ key }) =>
+      usePromise(
+        () => load(key),
+        key,
+        (error) => heard.push(error),
+      ),
+    { initialProps: { key: "a" } },
+  );
+  rerender({ key: "b" });
+  const dropped = new Error("old");
+  const kept = new Error("new");
+  await act(async () => pending.get("a")?.reject(dropped));
+  await act(async () => pending.get("b")?.reject(kept));
+  expect(heard).toEqual([kept]);
+});

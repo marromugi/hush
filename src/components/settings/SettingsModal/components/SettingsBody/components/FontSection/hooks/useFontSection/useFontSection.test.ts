@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import * as fonts from "@/lib/diary/fonts";
 import { readSettings, writeSettings } from "@/lib/settings/settings";
+import * as toasts from "@/lib/ui/toast";
 
 import { useFontSection } from "./useFontSection";
 
@@ -50,11 +51,12 @@ test("a chosen font becomes the language's default once it has loaded", async ()
 
 test("a font without kanji cannot be chosen, and says why", async () => {
   const loaded = fakeFonts();
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = await renderSection();
   await act(() => result.current.choose("kana-only"));
   expect(loaded).toEqual([]);
   expect(readSettings().defaultFonts.ja).toBeNull();
-  expect(result.current.chooseError).toBe("漢字を持たないフォントは選べません。");
+  expect(told).toHaveBeenCalledWith("漢字を持たないフォントは選べません。");
 });
 
 test("choosing nothing goes back to the standard font", async () => {
@@ -68,28 +70,30 @@ test("choosing nothing goes back to the standard font", async () => {
 
 test("a list that cannot be fetched says so", async () => {
   vi.spyOn(fonts, "listFonts").mockRejectedValue(new Error("offline"));
-  const { result } = renderHook(() => useFontSection());
-  await waitFor(() =>
-    expect(result.current.listError).toBe("フォントの一覧を読み込めませんでした。"),
-  );
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  renderHook(() => useFontSection());
+  await waitFor(() => expect(told).toHaveBeenCalledWith("フォントの一覧を読み込めませんでした。"));
 });
 
 test("a font that cannot load is not kept, and says why", async () => {
   fakeFonts();
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   vi.spyOn(fonts, "loadFont").mockRejectedValue(new Error("offline"));
   const { result } = await renderSection();
   await act(() => result.current.choose("klee-one"));
   expect(readSettings().defaultFonts.ja).toBeNull();
-  expect(result.current.chooseError).toBe("フォントを読み込めませんでした。");
+  expect(told).toHaveBeenCalledWith("フォントを読み込めませんでした。");
 });
 
 test("the font being chosen shows at once, and a later choice wins over a slow one", async () => {
   fakeFonts();
-  let finish: (() => void) | undefined;
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  // The slow choice fails after a later one is made; that failure is not said.
+  let fail: (() => void) | undefined;
   vi.spyOn(fonts, "loadFont").mockImplementation(
     () =>
-      new Promise((resolve) => {
-        finish = resolve;
+      new Promise((_, reject) => {
+        fail = () => reject(new Error("offline"));
       }),
   );
   const { result } = await renderSection();
@@ -101,11 +105,12 @@ test("the font being chosen shows at once, and a later choice wins over a slow o
   expect(result.current.choosing).toBe(true);
   await act(() => result.current.choose(null));
   await act(async () => {
-    finish?.();
+    fail?.();
     await slow;
   });
   expect(readSettings().defaultFonts.ja).toBeNull();
   expect(result.current.value).toBeNull();
+  expect(told).not.toHaveBeenCalled();
 });
 
 test("the chosen font's name shows even when the list cannot be fetched", async () => {
@@ -113,8 +118,9 @@ test("the chosen font's name shows even when the list cannot be fetched", async 
     defaultFonts: { ja: { ...klee, stylesheet: "css/klee-one" }, en: null },
   });
   vi.spyOn(fonts, "listFonts").mockRejectedValue(new Error("offline"));
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = renderHook(() => useFontSection());
-  await waitFor(() => expect(result.current.listError).not.toBeNull());
+  await waitFor(() => expect(told).toHaveBeenCalled());
   expect(result.current.options).toEqual([{ value: "klee-one", label: "Klee One" }]);
   expect(result.current.value).toBe("klee-one");
 });

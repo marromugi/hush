@@ -6,7 +6,6 @@ import { useBeforeLock } from "@/hooks/vault/useBeforeLock";
 import { useSession } from "@/hooks/vault/useSession";
 import type { SavedFont } from "@/lib/diary/fonts";
 import { localDate } from "@/lib/diary/localDate";
-import { errorText } from "@/lib/vault/errorText";
 
 import { createAutoSaver } from "./lib/createAutoSaver";
 import { saveMessage } from "./lib/saveMessage";
@@ -19,7 +18,11 @@ export type UseTodayScreen = {
   /** Fixed when the screen appears. */
   date: string;
   loading: boolean;
-  loadError: string | null;
+  /**
+   * True when today's entry could not be read, which a toast says. No editor
+   * is shown then, so nothing typed can overwrite the entry.
+   */
+  loadFailed: boolean;
   /**
    * The body an editor starts with: what was last typed, else what was
    * saved. The editor can be closed and opened again while saves wait.
@@ -62,7 +65,7 @@ export function useTodayScreen(): UseTodayScreen {
   return {
     date,
     loading: today.loading,
-    loadError: today.loadError ? errorText(today.loadError.kind) : null,
+    loadFailed: today.loadError !== null,
     initialBody: typed ?? today.entry?.body ?? "",
     saveMessage: saveMessage({
       typed,

@@ -102,12 +102,7 @@ export function DiaryScreen() {
           "-mx-1 px-1 pt-18 pb-1",
         )}
       >
-        <Sidebar
-          dates={screen.dates}
-          selected={screen.selected}
-          onSelect={screen.select}
-          error={screen.datesError}
-        />
+        <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.select} />
       </div>
       {/*
         The entry is centred on the page, not beside the sidebar: from md it
@@ -128,11 +123,7 @@ export function DiaryScreen() {
       >
         <div className="mx-auto w-full max-w-(--entry-width)">
           {screen.showsToday ? (
-            today.loading ? null : today.loadError ? (
-              <p role="alert" className="text-sm text-error">
-                {today.loadError}
-              </p>
-            ) : (
+            today.loading || today.loadFailed ? null : (
               <DiaryEditor
                 initialBody={today.initialBody}
                 onChange={today.onChange}
@@ -189,11 +180,6 @@ export function DiaryScreen() {
         </div>
         {screen.showsToday ? (
           <div className="flex flex-col items-center gap-2">
-            {dice.error ? (
-              <p role="alert" className="text-sm text-error">
-                {dice.error}
-              </p>
-            ) : null}
             <IconButton
               icon={DiceIcon}
               label="フォントを変える"
@@ -213,7 +199,6 @@ export function DiaryScreen() {
             dates={screen.dates}
             selected={screen.selected}
             onSelect={screen.selectFromDates}
-            error={screen.datesError}
           />
         </Drawer>
         <SettingsModal

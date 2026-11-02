@@ -6,6 +6,7 @@ import { useDisclosure } from "@/hooks/common/useDisclosure";
 import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
 import { useSession } from "@/hooks/vault/useSession";
+import { toastError } from "@/lib/ui/toast";
 import { listEntryDates } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
@@ -31,9 +32,11 @@ export type UseDiaryScreen = {
   openSettings: () => void;
   /** Closes the config menu and locks, saving what is being written first. */
   lockFromConfig: () => void;
-  /** Days with an entry, and today even before anything is written. Oldest first. */
+  /**
+   * Days with an entry, and today even before anything is written. Oldest
+   * first. When the days cannot be listed, only today, and a toast says why.
+   */
   dates: string[];
-  datesError: string | null;
 };
 
 /** Wide enough for the sidebar beside the diary: Tailwind's `md`. */
@@ -43,7 +46,7 @@ const WIDE = "(min-width: 48rem)";
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
   const [selected, setSelected] = useState(today);
-  const listed = usePromise(listEntryDates);
+  const listed = usePromise(listEntryDates, null, (failure) => toastError(failureText(failure)));
   const datesDrawer = useDisclosure();
   const configMenu = useDisclosure();
   const secretKeyModal = useDisclosure();
@@ -94,6 +97,5 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
           today,
           ...written.filter((date) => date > today),
         ],
-    datesError: listed.status === "failed" ? failureText(listed.error) : null,
   };
 }

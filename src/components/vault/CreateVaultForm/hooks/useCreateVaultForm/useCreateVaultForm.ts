@@ -26,8 +26,6 @@ export type UseCreateVaultForm = {
   register: UseFormRegister<Fields>;
   /** A failure to create caused by the passphrase. */
   passphraseError: string | undefined;
-  /** A failure to create with any other cause. */
-  formError: string | undefined;
   /** Set after a submit where the two passphrases differed. */
   confirmError: string | undefined;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -54,7 +52,6 @@ export function useCreateVaultForm(
   return {
     register: form.register,
     passphraseError: shown && isAboutPassphrase(shown.kind) ? errorText(shown.kind) : undefined,
-    formError: shown && !isAboutPassphrase(shown.kind) ? errorText(shown.kind) : undefined,
     confirmError: mismatch,
     handleSubmit: (event) =>
       void form.handleSubmit(({ passphrase }) => onCreate(passphrase))(event),

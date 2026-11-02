@@ -3,6 +3,4 @@ export type SidebarProps = {
   dates: string[];
   selected: string;
   onSelect: (date: string) => void;
-  /** Why the days could not all be listed. */
-  error: string | null;
 };

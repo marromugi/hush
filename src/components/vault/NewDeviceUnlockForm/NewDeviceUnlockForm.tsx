@@ -39,7 +39,8 @@ export function NewDeviceUnlockForm({ busy, error, onUnlock }: NewDeviceUnlockFo
         autoComplete="current-password"
         error={error && isAboutPassphrase(error.kind) ? errorText(error.kind) : undefined}
       />
-      {error && error.kind !== "invalidSecretKey" && !isAboutPassphrase(error.kind) ? (
+      {/* Either field may be wrong, so it is said under both instead of under one. */}
+      {error?.kind === "wrongPassphraseOrSecretKey" ? (
         <p role="alert" className="text-sm text-error">
           {errorText(error.kind)}
         </p>

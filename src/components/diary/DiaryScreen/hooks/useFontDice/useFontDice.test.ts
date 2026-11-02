@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import * as fonts from "@/lib/diary/fonts";
 import type { SavedFont } from "@/lib/diary/fonts";
+import * as toasts from "@/lib/ui/toast";
 
 import { useFontDice } from "./useFontDice";
 
@@ -55,23 +56,25 @@ test("a roll shows another font once it has loaded, and the list is fetched once
 
 test("when the list cannot be fetched, the font stays and the next roll asks again", async () => {
   const { lists } = fakeFonts();
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   lists.mockRejectedValueOnce(new Error("offline"));
   const { result } = renderDice();
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
-  expect(result.current.error).toBe("フォントを読み込めませんでした。");
+  expect(told).toHaveBeenCalledWith("フォントを読み込めませんでした。");
   await act(() => result.current.roll());
   expect(result.current.font).not.toBeNull();
-  expect(result.current.error).toBeNull();
+  expect(told).toHaveBeenCalledTimes(1);
 });
 
 test("a font that cannot load is not shown", async () => {
   fakeFonts();
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   vi.spyOn(fonts, "loadFont").mockRejectedValue(new Error("stylesheet did not load"));
   const { result } = renderDice();
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
-  expect(result.current.error).toBe("フォントを読み込めませんでした。");
+  expect(told).toHaveBeenCalledWith("フォントを読み込めませんでした。");
 });
 
 test("a font shown before is shown again without asking for its details", async () => {

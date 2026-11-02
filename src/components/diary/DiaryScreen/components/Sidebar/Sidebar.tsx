@@ -13,16 +13,11 @@ const item = clsx(
 );
 
 /** Years and months that open and close; choosing a month lists its days. */
-export function Sidebar({ dates, selected, onSelect, error }: SidebarProps) {
+export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
   const sidebar = useSidebar(dates, selected);
 
   return (
     <nav aria-label="日記の日付" className="text-sm">
-      {error ? (
-        <p role="alert" className="mb-4 text-error">
-          {error}
-        </p>
-      ) : null}
       {sidebar.shownMonth ? (
         <div>
           <button
