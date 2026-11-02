@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 
 import { fontDetails, listFonts, loadFont, pickFont } from "../../../../../lib/diary/fonts";
-import type { FontChoice, FontDetails } from "../../../../../lib/diary/fonts";
+import type { FontChoice, FontDetails, SavedFont } from "../../../../../lib/diary/fonts";
 
 export type UseFontDice = {
-  /** The font today's entry is shown in; `null` for the standard font. */
-  font: FontChoice | null;
   /** True while a new font is being fetched; the dice cannot be pressed then. */
   rolling: boolean;
   /** Why the last roll could not change the font. */
@@ -14,12 +12,16 @@ export type UseFontDice = {
 };
 
 /**
- * Picks another font at random each roll, among fonts with every character
- * of `subset` (as `japanese`). Each subset's font list is fetched on its
- * first roll and kept; a font is shown only once it has loaded.
+ * Picks a font other than `current` at random each roll, among fonts with
+ * every character of `subset` (as `japanese`), and hands it to `onPick`
+ * once it has loaded. Each subset's font list is fetched on its first roll
+ * and kept.
  */
-export function useFontDice(subset: string): UseFontDice {
-  const [font, setFont] = useState<FontChoice | null>(null);
+export function useFontDice(
+  subset: string,
+  current: FontChoice | null,
+  onPick: (font: SavedFont) => void,
+): UseFontDice {
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const catalogs = useRef(new Map<string, Promise<FontChoice[]>>());
@@ -29,7 +31,6 @@ export function useFontDice(subset: string): UseFontDice {
   const lacking = useRef(new Set<string>());
 
   return {
-    font,
     rolling,
     error,
     roll: async () => {
@@ -50,7 +51,7 @@ export function useFontDice(subset: string): UseFontDice {
         for (;;) {
           const next = pickFont(
             fonts.filter((candidate) => !lacking.current.has(`${subset}/${candidate.id}`)),
-            font,
+            current,
           );
           if (next === null) return;
           const key = `${subset}/${next.id}`;
@@ -61,7 +62,7 @@ export function useFontDice(subset: string): UseFontDice {
             continue;
           }
           await loadFont(next, known.stylesheet);
-          setFont(next);
+          onPick({ ...next, stylesheet: known.stylesheet });
           return;
         }
       } catch {

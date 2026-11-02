@@ -7,7 +7,7 @@ use crate::file_version::read_version;
 
 /// Current entry file format. Bump when a field is added or changed, in the
 /// file or in the encrypted `Entry` inside it.
-pub const ENTRY_VERSION: u32 = 1;
+pub const ENTRY_VERSION: u32 = 2;
 
 /// One day's entry, as it is before encryption and after decryption.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,6 +17,40 @@ pub struct Entry {
     pub body: String,
     pub created_at_ms: u64,
     pub updated_at_ms: u64,
+    /// `None` shows the entry in the reader's default font.
+    pub font: Option<EntryFont>,
+}
+
+/// The font an entry is shown in, with the stylesheet that loads it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EntryFont {
+    pub id: String,
+    pub family: String,
+    pub category: String,
+    pub stylesheet: String,
+}
+
+/// An entry as version 1 wrote it, before entries had a font.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EntryV1 {
+    date: EntryDate,
+    body: String,
+    created_at_ms: u64,
+    updated_at_ms: u64,
+}
+
+impl From<EntryV1> for Entry {
+    fn from(old: EntryV1) -> Self {
+        Entry {
+            date: old.date,
+            body: old.body,
+            created_at_ms: old.created_at_ms,
+            updated_at_ms: old.updated_at_ms,
+            font: None,
+        }
+    }
 }
 
 /// A `YYYY-MM-DD` date. It names the entry's file, so only a well-formed
@@ -90,13 +124,14 @@ pub fn seal(key: &VaultKey, entry: &Entry) -> Result<String, AppError> {
 
 /// Decrypts the entry file `text` that was read from `date`'s path. The
 /// version is read first, so a file written by a newer app asks for an
-/// update instead of being reported as broken.
+/// update instead of being reported as broken. A version 1 file opens with
+/// no font.
 pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppError> {
     let version = read_version(text).map_err(AppError::BrokenEntry)?;
     if version > ENTRY_VERSION {
         return Err(AppError::NewerEntryVersion(version));
     }
-    if version < ENTRY_VERSION {
+    if version == 0 {
         return Err(AppError::BrokenEntry(de::Error::custom(format!(
             "unknown version {version}"
         ))));
@@ -112,7 +147,12 @@ pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppEr
     )?;
     // serde's message can quote the decrypted text, and errors reach the
     // frontend, so only that the format is wrong is reported.
-    let entry: Entry = serde_json::from_slice(&plaintext).map_err(|_| {
+    let entry = if version == 1 {
+        serde_json::from_slice::<EntryV1>(&plaintext).map(Entry::from)
+    } else {
+        serde_json::from_slice::<Entry>(&plaintext)
+    };
+    let entry = entry.map_err(|_| {
         AppError::BrokenEntry(de::Error::custom(
             "decrypted entry is not in the entry format",
         ))
@@ -155,6 +195,17 @@ mod tests {
             body: "今日は晴れ".to_string(),
             created_at_ms: 1_793_000_000_000,
             updated_at_ms: 1_793_000_100_000,
+            font: None,
+        }
+    }
+
+    fn klee() -> EntryFont {
+        EntryFont {
+            id: "klee-one".to_string(),
+            family: "Klee One".to_string(),
+            category: "handwriting".to_string(),
+            stylesheet: "https://cdn.jsdelivr.net/npm/@fontsource/klee-one@5.2.5/index.css"
+                .to_string(),
         }
     }
 
@@ -162,6 +213,17 @@ mod tests {
     fn opens_what_it_sealed() {
         let key = key("correct horse");
         let entry = entry("2026-10-29");
+        let text = seal(&key, &entry).unwrap();
+        assert_eq!(open(&key, &entry.date, &text).unwrap(), entry);
+    }
+
+    #[test]
+    fn opens_the_font_it_sealed() {
+        let key = key("correct horse");
+        let entry = Entry {
+            font: Some(klee()),
+            ..entry("2026-10-29")
+        };
         let text = seal(&key, &entry).unwrap();
         assert_eq!(open(&key, &entry.date, &text).unwrap(), entry);
     }
@@ -220,12 +282,12 @@ mod tests {
     #[test]
     fn newer_version_with_new_fields_asks_for_an_update() {
         let text = file_with(|v| {
-            v["version"] = 2.into();
+            v["version"] = 3.into();
             v["mood"] = "sunny".into();
         });
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::NewerEntryVersion(2))
+            Err(AppError::NewerEntryVersion(3))
         ));
     }
 
@@ -259,6 +321,15 @@ mod tests {
     /// Seals arbitrary JSON as if it were an `Entry`, the way a faulty writer
     /// in the other app might, and returns the entry file for `day`.
     fn file_containing(key: &VaultKey, day: &str, inner: serde_json::Value) -> String {
+        file_of_version(ENTRY_VERSION, key, day, inner)
+    }
+
+    fn file_of_version(
+        version: u32,
+        key: &VaultKey,
+        day: &str,
+        inner: serde_json::Value,
+    ) -> String {
         let Sealed { nonce, ciphertext } = crypto::encrypt(
             key,
             date(day).path().as_bytes(),
@@ -266,7 +337,7 @@ mod tests {
         )
         .unwrap();
         serde_json::to_string(&EntryFile {
-            version: ENTRY_VERSION,
+            version,
             nonce,
             ciphertext,
         })
@@ -324,9 +395,34 @@ mod tests {
         ));
     }
 
-    /// An entry file as this format writes it, sealed with `key("correct horse")`
-    /// for `entry("2026-10-29")`. The Mac and iPhone apps both read these
-    /// files, so field names and the Base64 form must not drift.
+    #[test]
+    fn a_version_1_entry_with_a_font_is_broken() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["font"] = serde_json::to_value(klee()).unwrap();
+        let text = file_of_version(1, &key, "2026-10-29", inner);
+        assert!(matches!(
+            open(&key, &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    #[test]
+    fn an_unknown_field_inside_the_font_is_broken() {
+        let key = key("correct horse");
+        let mut inner = inner_entry();
+        inner["font"] = serde_json::to_value(klee()).unwrap();
+        inner["font"]["weight"] = 400.into();
+        let text = file_containing(&key, "2026-10-29", inner);
+        assert!(matches!(
+            open(&key, &date("2026-10-29"), &text),
+            Err(AppError::BrokenEntry(_))
+        ));
+    }
+
+    /// A version 1 entry file, sealed with `key("correct horse")` for
+    /// `entry("2026-10-29")` before entries had a font. Files like it stay
+    /// on disk and must keep opening.
     const FIXTURE: &str = r#"{
   "version": 1,
   "nonce": "COxZRyFpl6erxrTaUJTEGAFMEoviBE7g",
@@ -334,10 +430,30 @@ mod tests {
 }"#;
 
     #[test]
-    fn the_fixed_entry_file_opens_to_the_known_entry() {
+    fn the_fixed_version_1_file_opens_with_no_font() {
         assert_eq!(
             open(&key("correct horse"), &date("2026-10-29"), FIXTURE).unwrap(),
             entry("2026-10-29")
+        );
+    }
+
+    /// An entry file as this format writes it, sealed with `key("correct horse")`
+    /// for `entry("2026-10-29")` in Klee One. The Mac and iPhone apps both
+    /// read these files, so field names and the Base64 form must not drift.
+    const FIXTURE_V2: &str = r#"{
+  "version": 2,
+  "nonce": "HdqFdfAliVEsUA3yN3nHKerho07+/GLh",
+  "ciphertext": "WI93kuDAdOzkbvCxpyRxaMDHyqUvJ/r7HNb5xBlxvBJcGMr6dLHK1oUXKoGm/wGmcBUxHZo9GExzJOlpYBCSUWtijCsxx1vcoCwxEMDsxx8aHqZdpqj0uMwp8140NhDndYdGV4+fgNtsoMWrjuTkv8eIRac1JAVCB0uB6C+F2bruRWDDQm+h0P7QM5lHM4uZTa88ClmLr5fQKIOPROl7C7A4puSQFm9wsxzTHSrVmJ3kWFUw55qk4i7nvdtbN1nWEese50n244HaPJEujhurb9KI6/HS0K4rMgnjOglAXfESlpctGzd/tjjWV9wVSzc/GnBaQiKsRCqMLO17NgWqJi1zWDF0MiCTO43pRHLefVN3"
+}"#;
+
+    #[test]
+    fn the_fixed_version_2_file_opens_to_the_known_entry() {
+        assert_eq!(
+            open(&key("correct horse"), &date("2026-10-29"), FIXTURE_V2).unwrap(),
+            Entry {
+                font: Some(klee()),
+                ..entry("2026-10-29")
+            }
         );
     }
 }

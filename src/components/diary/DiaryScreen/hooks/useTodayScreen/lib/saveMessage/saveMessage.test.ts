@@ -3,7 +3,13 @@ import { expect, test } from "vitest";
 import { HushError } from "../../../../../../../lib/vault/hushError";
 import { saveMessage } from "./saveMessage";
 
-const saved = { date: "2026-11-01", body: "<p>晴れ</p>", createdAtMs: 1, updatedAtMs: 2 };
+const saved = {
+  date: "2026-11-01",
+  body: "<p>晴れ</p>",
+  createdAtMs: 1,
+  updatedAtMs: 2,
+  font: null,
+};
 
 test("says nothing before anything is written", () => {
   expect(saveMessage({ typed: null, entry: null, saving: false, saveError: null })).toBeNull();

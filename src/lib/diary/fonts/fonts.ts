@@ -19,6 +19,12 @@ export type FontChoice = {
   category: string;
 };
 
+/** A font with the stylesheet that loads it, so it shows again without asking the API. */
+export type SavedFont = FontChoice & {
+  /** The font's stylesheet at a pinned version, so it loads from the cache when offline. */
+  stylesheet: string;
+};
+
 /** What the list answers, kept only as far as it is used. */
 const ListedFonts = v.array(
   v.object({ id: v.string(), family: v.string(), category: v.string(), type: v.string() }),

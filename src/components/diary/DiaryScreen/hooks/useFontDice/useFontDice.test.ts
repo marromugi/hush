@@ -1,7 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import * as fonts from "../../../../../lib/diary/fonts";
+import type { SavedFont } from "../../../../../lib/diary/fonts";
 import { useFontDice } from "./useFontDice";
 
 afterEach(() => {
@@ -26,15 +28,26 @@ function fakeFonts() {
   return { loaded, lists, details };
 }
 
+/** The dice, with the font it picks kept as the caller would keep it. */
+function renderDice(initialSubset = "japanese") {
+  return renderHook(
+    ({ subset }) => {
+      const [font, setFont] = useState<SavedFont | null>(null);
+      return { font, ...useFontDice(subset, font, setFont) };
+    },
+    { initialProps: { subset: initialSubset } },
+  );
+}
+
 test("a roll shows another font once it has loaded, and the list is fetched once", async () => {
   const { loaded, lists } = fakeFonts();
   vi.spyOn(Math, "random").mockReturnValue(0);
-  const { result } = renderHook(() => useFontDice("japanese"));
+  const { result } = renderDice();
   expect(result.current.font).toBeNull();
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(klee);
+  expect(result.current.font).toEqual({ ...klee, stylesheet: "css/klee-one" });
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(noto);
+  expect(result.current.font).toMatchObject(noto);
   expect(loaded).toEqual(["klee-one", "noto-sans-jp"]);
   expect(lists).toHaveBeenCalledTimes(1);
 });
@@ -42,7 +55,7 @@ test("a roll shows another font once it has loaded, and the list is fetched once
 test("when the list cannot be fetched, the font stays and the next roll asks again", async () => {
   const { lists } = fakeFonts();
   lists.mockRejectedValueOnce(new Error("offline"));
-  const { result } = renderHook(() => useFontDice("japanese"));
+  const { result } = renderDice();
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
   expect(result.current.error).toBe("フォントを読み込めませんでした。");
@@ -54,7 +67,7 @@ test("when the list cannot be fetched, the font stays and the next roll asks aga
 test("a font that cannot load is not shown", async () => {
   fakeFonts();
   vi.spyOn(fonts, "loadFont").mockRejectedValue(new Error("stylesheet did not load"));
-  const { result } = renderHook(() => useFontDice("japanese"));
+  const { result } = renderDice();
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
   expect(result.current.error).toBe("フォントを読み込めませんでした。");
@@ -63,11 +76,11 @@ test("a font that cannot load is not shown", async () => {
 test("a font shown before is shown again without asking for its details", async () => {
   const { details } = fakeFonts();
   vi.spyOn(Math, "random").mockReturnValue(0);
-  const { result } = renderHook(() => useFontDice("japanese"));
+  const { result } = renderDice();
   await act(() => result.current.roll());
   await act(() => result.current.roll());
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(klee);
+  expect(result.current.font).toMatchObject(klee);
   expect(details).toEqual(["klee-one", "noto-sans-jp"]);
 });
 
@@ -76,20 +89,18 @@ test("a font lacking characters is never shown, and is not picked again", async 
   const { loaded, details } = fakeFonts();
   vi.spyOn(fonts, "listFonts").mockResolvedValue([kana, klee]);
   vi.spyOn(Math, "random").mockReturnValue(0);
-  const { result } = renderHook(() => useFontDice("japanese"));
+  const { result } = renderDice();
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(klee);
+  expect(result.current.font).toMatchObject(klee);
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(klee);
+  expect(result.current.font).toMatchObject(klee);
   expect(loaded).toEqual(["klee-one"]);
   expect(details).toEqual(["kana-only", "klee-one"]);
 });
 
 test("each subset has its own font list", async () => {
   const { lists } = fakeFonts();
-  const { result, rerender } = renderHook(({ subset }) => useFontDice(subset), {
-    initialProps: { subset: "japanese" },
-  });
+  const { result, rerender } = renderDice();
   await act(() => result.current.roll());
   rerender({ subset: "latin" });
   await act(() => result.current.roll());
@@ -105,13 +116,11 @@ test("a font lacking one language's characters can still be picked for another",
     stylesheet: `css/${id}`,
     complete: subset !== "japanese",
   }));
-  const { result, rerender } = renderHook(({ subset }) => useFontDice(subset), {
-    initialProps: { subset: "japanese" },
-  });
+  const { result, rerender } = renderDice();
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
   rerender({ subset: "latin" });
   await act(() => result.current.roll());
-  expect(result.current.font).toEqual(kana);
+  expect(result.current.font).toMatchObject(kana);
   expect(loaded).toEqual(["kana-only"]);
 });

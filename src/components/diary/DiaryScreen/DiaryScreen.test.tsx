@@ -154,6 +154,50 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
   );
 });
 
+test("the dice's font is saved with today's entry", async () => {
+  const fontsSent: unknown[] = [];
+  mockIPC(
+    (command, args) => {
+      if (command === "read_entry") {
+        return {
+          date: "2026-11-02",
+          body: "<p>晴れ</p>",
+          createdAtMs: 1,
+          updatedAtMs: 2,
+          font: null,
+        };
+      }
+      if (command === "save_entry") {
+        const font = args && "font" in args ? args.font : null;
+        fontsSent.push(font);
+        return { date: "2026-11-02", body: "<p>晴れ</p>", createdAtMs: 1, updatedAtMs: 3, font };
+      }
+      if (command === "list_entry_dates") return [];
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "klee-one", family: "Klee One", category: "handwriting" },
+  ]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/klee-one", complete: true });
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+  });
+  await waitFor(() =>
+    expect(fontsSent).toEqual([
+      { id: "klee-one", family: "Klee One", category: "handwriting", stylesheet: "css/klee-one" },
+    ]),
+  );
+});
+
 test("choosing English in the settings makes the dice pick among Latin fonts", async () => {
   fakeVault();
   const lists = vi
@@ -222,7 +266,7 @@ test("past entries are in the default font too", async () => {
       if (command === "list_entry_dates") return ["2020-01-01"];
       if (command === "read_entry") {
         return date === "2020-01-01"
-          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2 }
+          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2, font: null }
           : null;
       }
       throw new Error(`unexpected command ${command}`);

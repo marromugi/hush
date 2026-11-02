@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { SavedFont } from "../../../lib/diary/fonts";
 import { readEntry, saveEntry } from "../../../lib/vault/commands";
 import type { EntryView } from "../../../lib/vault/commands";
 import { toHushError } from "../../../lib/vault/hushError";
@@ -15,9 +16,9 @@ export type UseTodayEntry = {
   loadError: HushError | null;
   /**
    * Saves run one after another, in the order they were asked for. Resolves
-   * true once this body is stored, false when storing it failed.
+   * true once this body and font are stored, false when storing them failed.
    */
-  save: (body: string) => Promise<boolean>;
+  save: (body: string, font: SavedFont | null) => Promise<boolean>;
   saving: boolean;
   saveError: HushError | null;
 };
@@ -48,14 +49,14 @@ export function useTodayEntry(date: string): UseTodayEntry {
     };
   }, [date]);
 
-  function save(body: string): Promise<boolean> {
+  function save(body: string, font: SavedFont | null): Promise<boolean> {
     // The date the person was writing for, even if the day changes before
     // this save runs.
     const savingDate = date;
     setPendingSaves((count) => count + 1);
     const run = async () => {
       try {
-        const entry = await saveEntry(savingDate, body);
+        const entry = await saveEntry(savingDate, body, font);
         setSaveFailure((failure) => (failure?.date === savingDate ? null : failure));
         // A reply for a day that is no longer shown must not replace what is.
         setLoaded((shown) =>
