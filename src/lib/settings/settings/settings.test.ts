@@ -2,7 +2,11 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { readSettings, subscribeSettings, writeSettings } from "./settings";
 
-const DEFAULTS = { language: "ja", defaultFonts: { ja: null, en: null } };
+const DEFAULTS = {
+  language: "ja",
+  defaultFonts: { ja: null, en: null },
+  text: { size: 18, lineHeight: 1.6, letterSpacing: 0 },
+};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -65,4 +69,19 @@ test("a default font is kept per language, and one stored broken reads as none",
   expect(readSettings().defaultFonts).toEqual({ ja: klee, en: null });
   localStorage.setItem("hush.settings", JSON.stringify({ defaultFonts: { ja: { id: 1 } } }));
   expect(readSettings().defaultFonts).toEqual({ ja: null, en: null });
+});
+
+test("the text settings are kept, and a value out of range or not a number reads as its default", () => {
+  writeSettings({ text: { size: 20, lineHeight: 1.8, letterSpacing: 0.05 } });
+  expect(readSettings().text).toEqual({ size: 20, lineHeight: 1.8, letterSpacing: 0.05 });
+  localStorage.setItem(
+    "hush.settings",
+    JSON.stringify({ text: { size: 99, lineHeight: "loose", letterSpacing: 0.1 } }),
+  );
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.6, letterSpacing: 0.1 });
+  localStorage.setItem(
+    "hush.settings",
+    JSON.stringify({ text: { size: 18.4, lineHeight: 1.66, letterSpacing: 0.123 } }),
+  );
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.7, letterSpacing: 0.12 });
 });

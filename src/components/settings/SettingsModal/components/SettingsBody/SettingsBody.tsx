@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 
 import { FontSection } from "./components/FontSection";
 import { LanguageSection } from "./components/LanguageSection";
+import { TextSection } from "./components/TextSection";
 import { SECTIONS, useSettingsModal } from "./hooks/useSettingsModal";
 
 /**
@@ -49,6 +50,7 @@ export function SettingsBody() {
       </nav>
       {settings.section === "language" ? <LanguageSection /> : null}
       {settings.section === "font" ? <FontSection /> : null}
+      {settings.section === "text" ? <TextSection /> : null}
     </div>
   );
 }

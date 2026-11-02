@@ -4,6 +4,7 @@ import { useState } from "react";
 export const SECTIONS = [
   { id: "language", label: "言語" },
   { id: "font", label: "フォント" },
+  { id: "text", label: "文字" },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
