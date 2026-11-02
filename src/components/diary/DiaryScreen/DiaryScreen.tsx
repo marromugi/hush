@@ -93,7 +93,7 @@ export function DiaryScreen() {
       <div
         className={clsx(
           // layout
-          "sticky top-21 hidden self-start md:block",
+          "sticky top-21 hidden self-start md:col-start-1 md:row-start-2 md:block",
           // size: between the header and the footer, scrolling only when a month is long
           "max-h-[calc(100dvh-var(--spacing)*47)] overflow-y-auto",
           // spacing: room for the focus outline, which the scroll area would clip
@@ -107,26 +107,33 @@ export function DiaryScreen() {
           error={screen.datesError}
         />
       </div>
-      {/* text-lg is the entry's own size, so 36em is 36 of its characters to a line. */}
-      <main className="mx-auto w-full max-w-[36em] pt-18 text-lg">
-        {screen.showsToday ? (
-          today.loading ? null : today.loadError ? (
-            <p role="alert" className="text-sm text-error">
-              {today.loadError}
-            </p>
+      {/*
+        The entry is centred on the page, not beside the sidebar: from md it
+        spans both columns, padded on both sides by the sidebar and its gap
+        (10rem + 1.5rem), so the two never meet. text-lg is the entry's own
+        size, so 36em is 36 of its characters to a line.
+      */}
+      <main className="pt-18 text-lg md:col-span-2 md:col-start-1 md:row-start-2 md:px-46">
+        <div className="mx-auto w-full max-w-[36em]">
+          {screen.showsToday ? (
+            today.loading ? null : today.loadError ? (
+              <p role="alert" className="text-sm text-error">
+                {today.loadError}
+              </p>
+            ) : (
+              <DiaryEditor
+                initialBody={today.initialBody}
+                onChange={today.onChange}
+                disabled={today.locking}
+                keepClear={BANDS}
+                fontFamily={today.fontFamily}
+                fontLoading={today.fontLoading || dice.rolling}
+              />
+            )
           ) : (
-            <DiaryEditor
-              initialBody={today.initialBody}
-              onChange={today.onChange}
-              disabled={today.locking}
-              keepClear={BANDS}
-              fontFamily={today.fontFamily}
-              fontLoading={today.fontLoading || dice.rolling}
-            />
-          )
-        ) : (
-          <PastEntry key={screen.selected} date={screen.selected} />
-        )}
+            <PastEntry key={screen.selected} date={screen.selected} />
+          )}
+        </div>
       </main>
       <footer
         className={clsx(
