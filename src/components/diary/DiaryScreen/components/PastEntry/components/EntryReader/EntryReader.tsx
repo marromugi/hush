@@ -5,7 +5,7 @@ import { entryProse } from "../../../../../../../lib/diary/entryProse";
 import type { EntryReaderProps } from "./type";
 
 /** An entry's body, shown as written and never editable. */
-export function EntryReader({ body }: EntryReaderProps) {
+export function EntryReader({ body, fontFamily }: EntryReaderProps) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: body,
@@ -13,5 +13,5 @@ export function EntryReader({ body }: EntryReaderProps) {
     editorProps: { attributes: { class: entryProse } },
   });
 
-  return <EditorContent editor={editor} />;
+  return <EditorContent editor={editor} style={{ fontFamily }} />;
 }

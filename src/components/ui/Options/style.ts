@@ -28,4 +28,9 @@ export const optionRow = tv({
     // focus and hover
     "outline-none hover:bg-edge focus-visible:bg-edge",
   ],
+  variants: {
+    /** The row the keyboard is on. */
+    active: { yes: "bg-edge", no: "" },
+  },
+  defaultVariants: { active: "no" },
 });

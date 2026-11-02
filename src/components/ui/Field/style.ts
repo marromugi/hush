@@ -1,5 +1,6 @@
 import { tv } from "../../../lib/ui/tv";
 
+/** The look shared by the controls a person types into. */
 export const control = tv({
   base: [
     // layout

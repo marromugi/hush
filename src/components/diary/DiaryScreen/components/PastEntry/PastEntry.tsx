@@ -3,7 +3,7 @@ import { usePastEntry } from "./hooks/usePastEntry";
 import type { PastEntryProps } from "./type";
 
 /** A day before today, to read only. */
-export function PastEntry({ date }: PastEntryProps) {
+export function PastEntry({ date, fontFamily }: PastEntryProps) {
   const entry = usePastEntry(date);
 
   if (entry.loading) return null;
@@ -15,5 +15,5 @@ export function PastEntry({ date }: PastEntryProps) {
     );
   }
   if (entry.body === null) return <p className="text-sm opacity-70">この日の日記はありません。</p>;
-  return <EntryReader body={entry.body} />;
+  return <EntryReader body={entry.body} fontFamily={fontFamily} />;
 }

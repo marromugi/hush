@@ -1,3 +1,3 @@
-export { CloseIcon, DiceIcon } from "./glyphs";
+export { CheckIcon, ChevronDownIcon, CloseIcon, DiceIcon } from "./glyphs";
 export { Icon } from "./Icon";
 export type { IconProps, IconSource } from "./type";

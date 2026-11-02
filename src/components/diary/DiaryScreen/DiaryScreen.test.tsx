@@ -6,6 +6,7 @@ import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import * as fonts from "../../../lib/diary/fonts";
+import { writeSettings } from "../../../lib/settings/settings";
 import { UnlockedSession } from "../../vault/UnlockedSession";
 import { DiaryScreen } from "./DiaryScreen";
 
@@ -178,4 +179,76 @@ test("choosing English in the settings makes the dice pick among Latin fonts", a
     fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
   });
   expect(lists).toHaveBeenCalledWith("latin");
+});
+
+test("today's entry is in the default font until the dice picks another", async () => {
+  fakeVault();
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  writeSettings({
+    defaultFonts: {
+      ja: { id: "klee-one", family: "Klee One", category: "handwriting", stylesheet: "css/klee" },
+      en: null,
+    },
+  });
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() =>
+    expect(
+      document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
+    ).toBe('"Klee One", cursive'),
+  );
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "zen-maru", family: "Zen Maru", category: "sans-serif" },
+  ]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/zen", complete: true });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+  });
+  await waitFor(() =>
+    expect(
+      document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
+    ).toBe('"Zen Maru", sans-serif'),
+  );
+  writeSettings({ defaultFonts: { ja: null, en: null } });
+});
+
+test("past entries are in the default font too", async () => {
+  mockIPC(
+    (command, args) => {
+      const date = String(args && "date" in args ? args.date : "");
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      if (command === "read_entry") {
+        return date === "2020-01-01"
+          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2 }
+          : null;
+      }
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  writeSettings({
+    defaultFonts: {
+      ja: { id: "klee-one", family: "Klee One", category: "handwriting", stylesheet: "css/klee" },
+      en: null,
+    },
+  });
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await screen.findByRole("button", { name: "フォントを変える" });
+  fireEvent.click(screen.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "2020" }));
+  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
+  expect(document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily).toBe(
+    '"Klee One", cursive',
+  );
+  writeSettings({ defaultFonts: { ja: null, en: null } });
 });

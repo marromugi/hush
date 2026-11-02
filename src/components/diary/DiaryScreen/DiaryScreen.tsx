@@ -12,6 +12,7 @@ import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
 import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
+import { useDefaultFont } from "./hooks/useDefaultFont";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useFontDice } from "./hooks/useFontDice";
 import { useTodayScreen } from "./hooks/useTodayScreen";
@@ -25,6 +26,7 @@ export function DiaryScreen() {
   const screen = useDiaryScreen(today.date);
   const settings = useSettings();
   const dice = useFontDice(subsetFor(settings.language));
+  const defaultFont = useDefaultFont();
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
 
@@ -93,11 +95,11 @@ export function DiaryScreen() {
               onChange={today.onChange}
               disabled={today.locking}
               keepClear={BANDS}
-              fontFamily={dice.font ? fontStack(dice.font) : undefined}
+              fontFamily={dice.font ? fontStack(dice.font) : defaultFont}
             />
           )
         ) : (
-          <PastEntry key={screen.selected} date={screen.selected} />
+          <PastEntry key={screen.selected} date={screen.selected} fontFamily={defaultFont} />
         )}
       </main>
       <footer
