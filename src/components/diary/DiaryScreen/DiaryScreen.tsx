@@ -49,14 +49,14 @@ export function DiaryScreen() {
       <header
         className={clsx(
           // layout
-          "sticky top-0 z-5 flex h-21 items-start justify-between gap-4 md:col-span-2",
+          "sticky top-0 z-5 grid h-21 grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2",
           // spacing
           "pt-10",
           // color
           "bg-page",
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex h-6 items-center gap-3">
           <span className="-my-2 md:hidden">
             <IconButton
               ref={datesButton}
@@ -67,17 +67,30 @@ export function DiaryScreen() {
             />
           </span>
           <h1>
-            <Logo aria-hidden className="block size-6" />
+            {/* Below md the header holds the button for the days, and the mark gives way. */}
+            <Logo aria-hidden className="hidden h-6 w-auto md:block" />
             <span className="sr-only">Hush</span>
           </h1>
         </div>
-        {today.saveMessage ? (
-          <output
-            className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
-          >
-            {today.saveMessage.text}
-          </output>
-        ) : null}
+        <time
+          dateTime={screen.selected}
+          className="flex h-6 items-center gap-2 text-sm tabular-nums opacity-60"
+        >
+          <span>{screen.selectedParts.year}</span>
+          <span aria-hidden>|</span>
+          <span>{screen.selectedParts.month}</span>
+          <span aria-hidden>|</span>
+          <span>{screen.selectedParts.day}</span>
+        </time>
+        <div className="flex h-6 items-center justify-end">
+          {today.saveMessage ? (
+            <output
+              className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
+            >
+              {today.saveMessage.text}
+            </output>
+          ) : null}
+        </div>
       </header>
       <div
         className={clsx(

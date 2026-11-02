@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 const meta = {
   title: "ui/Logo",
   component: Logo,
-  args: { className: "size-24" },
+  args: { className: "h-24 w-auto" },
 } satisfies Meta<typeof Logo>;
 
 export default meta;
@@ -15,4 +15,4 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 /** As small as the header shows it. */
-export const Small: Story = { args: { className: "size-6" } };
+export const Small: Story = { args: { className: "h-6 w-auto" } };

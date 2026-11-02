@@ -1,25 +1,15 @@
-import { useId } from "react";
-
 import type { LogoProps } from "./type";
 
-/**
- * Hush's mark, a crescent moon with a keyhole, in the current text color.
- * Its shapes are the app icon's (`app-icon.svg`); change both together.
- */
+/** Hush's mark, one thick winding stroke, in the current text color. */
 export function Logo(props: LogoProps) {
-  const mask = useId();
-
   return (
-    <svg viewBox="-100 -100 200 200" {...props}>
-      <defs>
-        <mask id={mask}>
-          <rect x="-100" y="-100" width="200" height="200" fill="#fff" />
-          <circle cx="45" cy="-5" r="55" fill="#000" />
-          <circle cx="45" cy="-8" r="16.5" fill="#fff" />
-          <polygon points="37.7,-5 52.3,-5 64.1,55 25.9,55" fill="#fff" />
-        </mask>
-      </defs>
-      <circle r="100" fill="currentColor" mask={`url(#${mask})`} />
+    <svg viewBox="0 0 34 54" fill="none" {...props}>
+      <path
+        d="M6.53085 6.00146C6.53085 6.00146 30.6374 17.5784 26.5437 26.463C22.4499 35.3476 10.8758 17.8476 6.53085 26.463C2.18588 35.0784 26.5437 48.0015 26.5437 48.0015"
+        stroke="currentColor"
+        strokeWidth="12"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
