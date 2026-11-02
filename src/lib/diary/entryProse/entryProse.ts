@@ -8,8 +8,8 @@ import { clsx } from "clsx";
 export const entryProse = clsx(
   // typography
   "prose prose-stone prose-lg max-w-none dark:prose-invert",
-  // spacing
-  "leading-[1.6] prose-p:my-[0.5em]",
+  // spacing: the first and last paragraphs keep prose's flush edges
+  "leading-[1.6] prose-p:my-[0.5em] [&>:first-child]:mt-0 [&>:last-child]:mb-0",
 );
 
 /**
