@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { CloseIcon, DiceIcon } from "./glyphs";
+import { CloseIcon, DiceIcon, LogoIcon } from "./glyphs";
 import { Icon } from "./Icon";
 
 const meta = {
@@ -18,3 +18,6 @@ export const Close: Story = {};
 export const Large: Story = { args: { size: "lg" } };
 
 export const Dice: Story = { args: { icon: DiceIcon } };
+
+/** Hush's mark, at the height the header shows it. */
+export const Logo: Story = { args: { icon: LogoIcon, size: "xl" } };

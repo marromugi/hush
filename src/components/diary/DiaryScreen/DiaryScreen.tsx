@@ -5,9 +5,8 @@ import { useSettings } from "../../../hooks/settings/useSettings";
 import { subsetFor } from "../../../lib/diary/fonts";
 import { SettingsModal } from "../../settings/SettingsModal";
 import { Drawer } from "../../ui/Drawer";
-import { DiceIcon, MenuIcon } from "../../ui/Icon";
+import { DiceIcon, Icon, LogoIcon, MenuIcon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
-import { Logo } from "../../ui/Logo";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
@@ -49,14 +48,14 @@ export function DiaryScreen() {
       <header
         className={clsx(
           // layout
-          "sticky top-0 z-5 flex h-21 items-start justify-between gap-4 md:col-span-2",
+          "sticky top-0 z-5 grid h-21 grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2",
           // spacing
           "pt-10",
           // color
           "bg-page",
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex h-6 items-center gap-3">
           <span className="-my-2 md:hidden">
             <IconButton
               ref={datesButton}
@@ -67,17 +66,29 @@ export function DiaryScreen() {
             />
           </span>
           <h1>
-            <Logo aria-hidden className="block size-6" />
+            {/* Below md the header holds the button for the days, and the mark gives way. */}
+            <span className="hidden md:block">
+              <Icon icon={LogoIcon} size="xl" />
+            </span>
             <span className="sr-only">Hush</span>
           </h1>
         </div>
-        {today.saveMessage ? (
-          <output
-            className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
-          >
-            {today.saveMessage.text}
-          </output>
-        ) : null}
+        <time
+          dateTime={screen.selected}
+          className="flex h-6 items-center text-sm tabular-nums opacity-60"
+        >
+          {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
+        </time>
+        {/* A long error wraps downward only, keeping its first line beside the date. */}
+        <div className="flex justify-end pt-0.5 text-right">
+          {today.saveMessage ? (
+            <output
+              className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
+            >
+              {today.saveMessage.text}
+            </output>
+          ) : null}
+        </div>
       </header>
       <div
         className={clsx(

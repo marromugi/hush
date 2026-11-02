@@ -397,3 +397,29 @@ test("the header shows Hush's mark, named for screen readers", async () => {
   const heading = await screen.findByRole("heading", { name: "Hush" });
   expect(heading.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
 });
+
+test("the header shows the day that is open, as year.month.day", async () => {
+  mockIPC(
+    (command, args) => {
+      const date = String(args && "date" in args ? args.date : "");
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      if (command === "read_entry") {
+        return date === "2020-01-01"
+          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2, font: null }
+          : null;
+      }
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await screen.findByRole("button", { name: "フォントを変える" });
+  await openNewYear2020(within(document.body));
+  const shown = document.querySelector("header time");
+  expect(shown?.getAttribute("datetime")).toBe("2020-01-01");
+  expect(shown?.textContent).toBe("2020.1.1");
+});
