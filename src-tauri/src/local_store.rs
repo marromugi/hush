@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -92,6 +93,36 @@ impl LocalStore {
         write_atomically(&self.entry_path(date), entry::seal(key, &entry)?.as_bytes())?;
         Ok(entry)
     }
+
+    /// Every date that has an entry file, oldest first. A file counts only
+    /// at the path `read_entry` reads for its date, so temporaries and
+    /// stray files are not dates. The files are not opened.
+    pub fn entry_dates(&self) -> Result<Vec<EntryDate>, AppError> {
+        let years = match fs::read_dir(self.dir.join("entries")) {
+            Ok(years) => years,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(e) => return Err(e.into()),
+        };
+        let mut dates = Vec::new();
+        for year in years {
+            let year = year?;
+            if !year.file_type()?.is_dir() {
+                continue;
+            }
+            for file in fs::read_dir(year.path())? {
+                dates.extend(entry_date_at(&year.file_name(), &file?.file_name()));
+            }
+        }
+        dates.sort();
+        Ok(dates)
+    }
+}
+
+/// The date whose entry lives at `entries/{year}/{file}`, if any.
+fn entry_date_at(year: &OsStr, file: &OsStr) -> Option<EntryDate> {
+    let (year, file) = (year.to_str()?, file.to_str()?);
+    let date = EntryDate::try_from(file.strip_suffix(".enc")?.to_string()).ok()?;
+    (date.path() == format!("entries/{year}/{file}")).then_some(date)
 }
 
 /// Writes to a temporary file next to `path` and renames it into place, so a
@@ -235,6 +266,40 @@ mod tests {
             .save_entry(&key, &date("2026-10-29"), "b".to_string(), 2_000)
             .unwrap();
         assert_eq!((entry.created_at_ms, entry.updated_at_ms), (1_000, 2_000));
+    }
+
+    #[test]
+    fn entry_dates_are_the_saved_days_oldest_first() {
+        let (_dir, store) = store();
+        let key = store.create_vault("correct horse").unwrap();
+        assert!(store.entry_dates().unwrap().is_empty());
+        for day in ["2026-10-29", "2025-12-31", "2026-01-02"] {
+            store
+                .save_entry(&key, &date(day), "diary".to_string(), 1_000)
+                .unwrap();
+        }
+        assert_eq!(
+            store.entry_dates().unwrap(),
+            [date("2025-12-31"), date("2026-01-02"), date("2026-10-29")]
+        );
+    }
+
+    #[test]
+    fn files_that_read_entry_would_not_read_are_not_dates() {
+        let (dir, store) = store();
+        let entries = dir.path().join("entries");
+        fs::create_dir_all(entries.join("2026")).unwrap();
+        for stray in [
+            "entries/2026/2026-10-29.0123456789abcdef.tmp",
+            "entries/2026/2025-10-29.enc",
+            "entries/2026/.DS_Store",
+            "entries/2026/notes.enc",
+            "entries/README.md",
+        ] {
+            fs::write(dir.path().join(stray), "x").unwrap();
+        }
+        fs::write(entries.join("2026/2026-10-30.enc"), "x").unwrap();
+        assert_eq!(store.entry_dates().unwrap(), [date("2026-10-30")]);
     }
 
     #[test]

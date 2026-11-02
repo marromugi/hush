@@ -2,7 +2,15 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 
 import { HushError } from "../hushError";
-import { createVault, lockVault, readEntry, saveEntry, unlockVault, vaultStatus } from "./commands";
+import {
+  createVault,
+  listEntryDates,
+  lockVault,
+  readEntry,
+  saveEntry,
+  unlockVault,
+  vaultStatus,
+} from "./commands";
 
 afterEach(() => {
   clearMocks();
@@ -20,6 +28,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
   await lockVault();
   await readEntry("2026-10-29");
   await saveEntry("2026-10-29", "晴れ");
+  await listEntryDates();
   expect(calls).toEqual([
     ["vault_status", {}],
     ["create_vault", { passphrase: "pass" }],
@@ -27,6 +36,7 @@ test("sends the command names and arguments the Rust side expects", async () => 
     ["lock_vault", {}],
     ["read_entry", { date: "2026-10-29" }],
     ["save_entry", { date: "2026-10-29", body: "晴れ" }],
+    ["list_entry_dates", {}],
   ]);
 });
 

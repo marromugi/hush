@@ -29,6 +29,7 @@ pub fn run() {
             commands::lock_vault,
             commands::read_entry,
             commands::save_entry,
+            commands::list_entry_dates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

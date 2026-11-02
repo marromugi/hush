@@ -60,3 +60,8 @@ pub async fn save_entry(
 ) -> Result<EntryView, AppError> {
     session::save_entry(&state, date, body, now_ms())
 }
+
+#[tauri::command]
+pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {
+    session::entry_dates(&state)
+}

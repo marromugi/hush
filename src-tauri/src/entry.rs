@@ -20,8 +20,8 @@ pub struct Entry {
 }
 
 /// A `YYYY-MM-DD` date. It names the entry's file, so only a well-formed
-/// date can be built.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// date can be built. Ordered oldest first, since the text sorts that way.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct EntryDate(String);
 
