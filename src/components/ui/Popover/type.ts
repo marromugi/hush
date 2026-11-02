@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, Ref } from "react";
 
 import type { Align, Direction } from "./lib/placement";
 
@@ -11,8 +11,8 @@ type OpenState =
   | { open?: undefined; onOpenChange?: (open: boolean) => void; defaultOpen?: boolean };
 
 export type PopoverProps = {
-  /** One element that passes the props it is given on to a button. */
-  trigger: ReactElement<Record<string, unknown>>;
+  /** One element that passes the props it is given on to a button. Its own `ref` is kept. */
+  trigger: ReactElement<{ ref?: Ref<Element> } & Record<string, unknown>>;
   direction?: Direction;
   align?: Align;
   offset?: number;

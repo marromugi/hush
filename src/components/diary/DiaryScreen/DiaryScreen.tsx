@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { useRef } from "react";
 
 import { Button } from "../../ui/Button";
 import { optionList, optionRow } from "../../ui/Options";
@@ -15,6 +16,8 @@ import type { DiaryScreenProps } from "./type";
 export function DiaryScreen({ onLock }: DiaryScreenProps) {
   const today = useTodayScreen(onLock);
   const screen = useDiaryScreen(today.date);
+  // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
+  const config = useRef<HTMLButtonElement>(null);
 
   return (
     <div
@@ -80,7 +83,11 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
           align="start"
           open={screen.configOpen}
           onOpenChange={screen.setConfigOpen}
-          trigger={<button className="cursor-pointer">config</button>}
+          trigger={
+            <button ref={config} className="cursor-pointer">
+              config
+            </button>
+          }
         >
           <div className={optionList({ className: "w-48" })}>
             <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
@@ -88,7 +95,11 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
             </button>
           </div>
         </Popover>
-        <SecretKeyModal open={screen.secretKeyOpen} onOpenChange={screen.setSecretKeyOpen} />
+        <SecretKeyModal
+          open={screen.secretKeyOpen}
+          onOpenChange={screen.setSecretKeyOpen}
+          returnFocus={config}
+        />
       </footer>
     </div>
   );

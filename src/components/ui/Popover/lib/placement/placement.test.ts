@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { originFor, placementFor } from "./placement";
+import type { Placement } from "./placement";
 
 describe("placementFor", () => {
   it("is the direction alone when centred", () => {
@@ -14,18 +15,34 @@ describe("placementFor", () => {
 });
 
 describe("originFor", () => {
-  it("is the middle of the edge facing the trigger when centred", () => {
-    expect(originFor("bottom")).toBe("top center");
-    expect(originFor("right")).toBe("left center");
-  });
-
-  it("is the corner nearest the trigger above or below it", () => {
-    expect(originFor("bottom-start")).toBe("top left");
-    expect(originFor("top-end")).toBe("bottom right");
-  });
-
-  it("is the corner nearest the trigger beside it", () => {
-    expect(originFor("right-start")).toBe("left top");
-    expect(originFor("left-end")).toBe("right bottom");
+  it("is the edge or corner of the popover that touches the trigger", () => {
+    const placements: Placement[] = [
+      "top",
+      "top-start",
+      "top-end",
+      "bottom",
+      "bottom-start",
+      "bottom-end",
+      "left",
+      "left-start",
+      "left-end",
+      "right",
+      "right-start",
+      "right-end",
+    ];
+    expect(placements.map((placement) => originFor(placement))).toEqual([
+      "bottom center",
+      "bottom left",
+      "bottom right",
+      "top center",
+      "top left",
+      "top right",
+      "right center",
+      "right top",
+      "right bottom",
+      "left center",
+      "left top",
+      "left bottom",
+    ]);
   });
 });

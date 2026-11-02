@@ -10,6 +10,7 @@ import {
   useFloating,
   useFloatingNodeId,
   useInteractions,
+  useMergeRefs,
   useRole,
 } from "@floating-ui/react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
@@ -56,7 +57,11 @@ function PopoverBody({
       shift({ padding: VIEWPORT_MARGIN }),
     ],
   });
-  const setReference = (node: Element | null) => refs.setReference(node);
+  // The trigger keeps a ref of its own, so others can point at it too.
+  const setReference = useMergeRefs([
+    (node: Element | null) => refs.setReference(node),
+    trigger.props.ref,
+  ]);
   const setFloating = (node: HTMLElement | null) => refs.setFloating(node);
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useClick(context),

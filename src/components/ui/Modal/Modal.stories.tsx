@@ -22,8 +22,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const WithoutTitle: Story = { args: { title: undefined, label: "Secret Key" } };
-
 function Opened() {
   const [open, setOpen] = useState(false);
   return (

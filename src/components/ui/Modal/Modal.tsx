@@ -23,7 +23,7 @@ import type { ModalProps } from "./type";
  * dialog itself, not to a control in it. A press outside it, Escape, or its
  * close button closes it.
  */
-function ModalBody({ title, label, open, onOpenChange, children }: ModalProps) {
+function ModalBody({ title, open, onOpenChange, returnFocus, children }: ModalProps) {
   const titleId = useId();
   const nodeId = useFloatingNodeId();
   const { refs, context } = useFloating({ nodeId, open, onOpenChange });
@@ -63,15 +63,14 @@ function ModalBody({ title, label, open, onOpenChange, children }: ModalProps) {
                 <FloatingFocusManager
                   context={context}
                   modal
-                  returnFocus
+                  returnFocus={returnFocus ?? true}
                   // oxlint-disable-next-line react/refs -- hands the ref over without reading it
                   initialFocus={refs.floating}
                 >
                   <motion.div
                     ref={setFloating}
                     aria-modal
-                    aria-labelledby={title === undefined ? undefined : titleId}
-                    aria-label={label}
+                    aria-labelledby={titleId}
                     className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-container border border-edge bg-surface-raised container-p-6 outline-none"
                     initial={{ opacity: 0, scale: 0.94 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -79,25 +78,13 @@ function ModalBody({ title, label, open, onOpenChange, children }: ModalProps) {
                     transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
                     {...getFloatingProps()}
                   >
-                    {title === undefined ? (
-                      <div className="absolute top-6 right-6 z-10">{close}</div>
-                    ) : (
-                      <div className="flex min-h-8 items-center justify-between gap-3">
-                        <h2 id={titleId} className="text-base font-semibold">
-                          {title}
-                        </h2>
-                        {close}
-                      </div>
-                    )}
-                    <div
-                      className={
-                        title === undefined
-                          ? "min-h-0 flex-1 overflow-y-auto"
-                          : "min-h-0 flex-1 overflow-y-auto pt-4"
-                      }
-                    >
-                      {children}
+                    <div className="flex min-h-8 items-center justify-between gap-3">
+                      <h2 id={titleId} className="text-base font-semibold">
+                        {title}
+                      </h2>
+                      {close}
                     </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto pt-4">{children}</div>
                   </motion.div>
                 </FloatingFocusManager>
               </FloatingOverlay>
