@@ -25,6 +25,8 @@ export function useFontDice(): UseFontDice {
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const catalog = useRef<Promise<FontChoice[]> | null>(null);
+  // A font's stylesheet address, once known, so a font shown before needs no network.
+  const stylesheets = useRef(new Map<string, string>());
 
   return {
     font,
@@ -42,7 +44,9 @@ export function useFontDice(): UseFontDice {
         });
         const next = pickFont(await catalog.current, font);
         if (next === null) return;
-        await loadFont(next, await stylesheetUrl(next.id));
+        const stylesheet = stylesheets.current.get(next.id) ?? (await stylesheetUrl(next.id));
+        stylesheets.current.set(next.id, stylesheet);
+        await loadFont(next, stylesheet);
         setFont(next);
       } catch {
         setError("フォントを読み込めませんでした。");

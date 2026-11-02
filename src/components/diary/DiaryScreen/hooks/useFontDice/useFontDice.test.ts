@@ -15,11 +15,15 @@ const noto = { id: "noto-sans-jp", family: "Noto Sans JP", category: "sans-serif
 function fakeFonts() {
   const loaded: string[] = [];
   const lists = vi.spyOn(fonts, "listFonts").mockResolvedValue([klee, noto]);
-  vi.spyOn(fonts, "stylesheetUrl").mockImplementation(async (id) => `css/${id}`);
+  const details: string[] = [];
+  vi.spyOn(fonts, "stylesheetUrl").mockImplementation(async (id) => {
+    details.push(id);
+    return `css/${id}`;
+  });
   vi.spyOn(fonts, "loadFont").mockImplementation(async (font) => {
     loaded.push(font.id);
   });
-  return { loaded, lists };
+  return { loaded, lists, details };
 }
 
 test("a roll shows another font once it has loaded, and the list is fetched once", async () => {
@@ -54,4 +58,15 @@ test("a font that cannot load is not shown", async () => {
   await act(() => result.current.roll());
   expect(result.current.font).toBeNull();
   expect(result.current.error).toBe("フォントを読み込めませんでした。");
+});
+
+test("a font shown before is shown again without asking for its details", async () => {
+  const { details } = fakeFonts();
+  vi.spyOn(Math, "random").mockReturnValue(0);
+  const { result } = renderHook(() => useFontDice());
+  await act(() => result.current.roll());
+  await act(() => result.current.roll());
+  await act(() => result.current.roll());
+  expect(result.current.font).toEqual(klee);
+  expect(details).toEqual(["klee-one", "noto-sans-jp"]);
 });

@@ -3,6 +3,9 @@ import * as v from "valibot";
 /** Fonts come from Fontsource, which repackages Google Fonts with a public API and no key. */
 const API = "https://api.fontsource.org/v1/fonts";
 
+/** How long a request may take before the font counts as not loaded. */
+const TIMEOUT_MS = 15_000;
+
 /** Font files are served from jsDelivr; a versioned URL never changes, so the WebView caches it for good. */
 const CDN = "https://cdn.jsdelivr.net/npm/@fontsource";
 
@@ -25,7 +28,9 @@ const FontDetails = v.object({ npmVersion: v.string() });
 
 /** Google Fonts that have the characters of `subset`, as in `japanese` or `latin`. */
 export async function listFonts(subset: string): Promise<FontChoice[]> {
-  const response = await fetch(`${API}?subsets=${encodeURIComponent(subset)}`);
+  const response = await fetch(`${API}?subsets=${encodeURIComponent(subset)}`, {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
   if (!response.ok) throw new Error(`font list: ${response.status}`);
   const fonts = v.parse(ListedFonts, await response.json());
   return fonts
@@ -35,7 +40,9 @@ export async function listFonts(subset: string): Promise<FontChoice[]> {
 
 /** The stylesheet of `id` at its current version. Japanese fonts are split by character range, so only the ranges a page uses are fetched. */
 export async function stylesheetUrl(id: string): Promise<string> {
-  const response = await fetch(`${API}/${encodeURIComponent(id)}`);
+  const response = await fetch(`${API}/${encodeURIComponent(id)}`, {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
   if (!response.ok) throw new Error(`font ${id}: ${response.status}`);
   const { npmVersion } = v.parse(FontDetails, await response.json());
   return `${CDN}/${id}@${npmVersion}/index.css`;
@@ -67,22 +74,42 @@ const SAMPLE = "今日は晴れ Aa";
 
 /**
  * Adds the stylesheet of `font` to the page once, then fetches the font
- * for the sample text. Resolves once it can be shown.
+ * for the sample text. Resolves once it can be shown. On any failure the
+ * stylesheet is taken out again, so a later call starts over.
  */
 export async function loadFont(font: FontChoice, stylesheet: string): Promise<void> {
-  if (document.querySelector(`link[data-font="${font.id}"]`) === null) {
-    await new Promise<void>((resolve, reject) => {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = stylesheet;
-      link.dataset.font = font.id;
-      link.addEventListener("load", () => resolve());
-      link.addEventListener("error", () => {
-        link.remove();
-        reject(new Error(`font ${font.id}: stylesheet did not load`));
-      });
-      document.head.append(link);
-    });
+  let link = document.querySelector<HTMLLinkElement>(`link[data-font="${font.id}"]`);
+  try {
+    if (link === null) {
+      const added = document.createElement("link");
+      link = added;
+      added.rel = "stylesheet";
+      added.href = stylesheet;
+      added.dataset.font = font.id;
+      await withTimeout(
+        new Promise<void>((resolve, reject) => {
+          added.addEventListener("load", () => resolve());
+          added.addEventListener("error", () =>
+            reject(new Error(`font ${font.id}: stylesheet did not load`)),
+          );
+          document.head.append(added);
+        }),
+        font.id,
+      );
+    }
+    const faces = await withTimeout(document.fonts.load(`1em "${font.family}"`, SAMPLE), font.id);
+    if (faces.length === 0) throw new Error(`font ${font.id}: no face loaded`);
+  } catch (failure) {
+    link?.remove();
+    throw failure;
   }
-  await document.fonts.load(`1em "${font.family}"`, SAMPLE);
+}
+
+function withTimeout<T>(promise: Promise<T>, id: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`font ${id}: timed out`)), TIMEOUT_MS),
+    ),
+  ]);
 }

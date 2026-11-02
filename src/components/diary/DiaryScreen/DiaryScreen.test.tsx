@@ -3,8 +3,9 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
+import * as fonts from "../../../lib/diary/fonts";
 import { UnlockedSession } from "../../vault/UnlockedSession";
 import { DiaryScreen } from "./DiaryScreen";
 
@@ -17,6 +18,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   clearMocks();
+  vi.restoreAllMocks();
 });
 
 const SECRET_KEY = "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
@@ -107,4 +109,45 @@ test("a lock the system asks for saves what was just typed first", async () => {
     await emit("lock-requested");
   });
   await waitFor(() => expect(log).toEqual(["save <p>晴れ</p>", "lock"]));
+});
+
+test("the dice shows today's entry in the font it picks, and is not there for past days", async () => {
+  mockIPC(
+    (command) => {
+      if (command === "read_entry") return null;
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "klee-one", family: "Klee One", category: "handwriting" },
+  ]);
+  vi.spyOn(fonts, "stylesheetUrl").mockResolvedValue("css/klee-one");
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  const dice = await screen.findByRole("button", { name: "フォントを変える" });
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  await act(async () => {
+    fireEvent.click(dice);
+  });
+  await waitFor(() =>
+    expect(
+      document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
+    ).toBe('"Klee One", cursive'),
+  );
+
+  // From this month's days back to the years, then 2020, January, the 1st.
+  fireEvent.click(screen.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "2020" }));
+  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  await screen.findByText("この日の日記はありません。");
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
+  );
 });

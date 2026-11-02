@@ -67,4 +67,10 @@ test("falls back to the font's kind while it loads", () => {
   expect(fontStack({ id: "b", family: "Dela Gothic One", category: "display" })).toBe(
     '"Dela Gothic One", sans-serif',
   );
+  expect(fontStack({ id: "c", family: "Shippori Mincho", category: "serif" })).toBe(
+    '"Shippori Mincho", serif',
+  );
+  expect(fontStack({ id: "d", family: "M PLUS 1 Code", category: "monospace" })).toBe(
+    '"M PLUS 1 Code", monospace',
+  );
 });
