@@ -21,7 +21,14 @@ function EntryImageView({ node, selected, editor, updateAttributes }: ReactNodeV
         id={String(node.attrs.id)}
         selected={selected}
         width={width}
-        onResize={editor.isEditable ? (next) => updateAttributes({ width: next }) : undefined}
+        onResize={
+          editor.isEditable
+            ? (next) => {
+                // Locking makes the editor read-only without drawing this again.
+                if (editor.isEditable) updateAttributes({ width: next });
+              }
+            : undefined
+        }
       />
     </NodeViewWrapper>
   );
