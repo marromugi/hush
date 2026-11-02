@@ -42,7 +42,10 @@ export function scanCamera(
           return;
         }
         video.srcObject = started;
-        void video.play();
+        // Stopping while it starts aborts the play; that is not a failure.
+        video.play().catch((failure: unknown) => {
+          if (!stopped) onError(cameraErrorText(failure));
+        });
         frame = requestAnimationFrame(scan);
       },
       (failure: unknown) => {
