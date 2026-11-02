@@ -43,6 +43,8 @@ export function useCreateVaultForm(
     defaultValues: { passphrase: "", confirm: "" },
     // A message stays until the next submit, not until the next keystroke.
     reValidateMode: "onSubmit",
+    // Focus stays where the person submitted from.
+    shouldFocusError: false,
   });
   const mismatch = form.formState.errors.confirm?.message;
 

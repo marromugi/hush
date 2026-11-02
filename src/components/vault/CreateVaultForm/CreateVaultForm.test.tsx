@@ -37,6 +37,24 @@ test("two different passphrases do not create and say why", async () => {
   expect(screen.getByRole("alert").textContent).toBe("パスフレーズが一致しません。");
 });
 
+test("the mismatch message stays while retyping, until the next submit", async () => {
+  renderForm();
+  await submit("correct horse", "correct hose");
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText("もう一度"), { target: { value: "correct horse" } });
+  });
+  expect(screen.getByRole("alert").textContent).toBe("パスフレーズが一致しません。");
+});
+
+test("a mismatch leaves focus where the submit came from", async () => {
+  renderForm();
+  const button = screen.getByRole("button", { name: "作る" });
+  button.focus();
+  await submit("correct horse", "correct hose");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(document.activeElement).toBe(button);
+});
+
 test("the same passphrase twice creates with it", async () => {
   const created = renderForm();
   await submit("correct horse", "correct hose");
