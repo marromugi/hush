@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Button } from "../../ui/Button";
 import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
+import { SecretKeyPanel } from "./components/SecretKeyPanel";
 import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
@@ -36,6 +37,9 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
               {today.saveMessage.text}
             </output>
           ) : null}
+          <Button type="button" tone="neutral" onClick={screen.openSecretKey}>
+            Secret Key
+          </Button>
           <Button
             type="button"
             tone="neutral"
@@ -55,7 +59,9 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
         />
       </div>
       <main className="mx-auto w-full max-w-2xl pt-24">
-        {screen.showsToday ? (
+        {screen.showsSecretKey ? (
+          <SecretKeyPanel onClose={screen.closeSecretKey} />
+        ) : screen.showsToday ? (
           today.loading ? null : today.loadError ? (
             <p role="alert" className="text-sm text-error">
               {today.loadError}

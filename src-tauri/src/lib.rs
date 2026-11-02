@@ -38,6 +38,7 @@ pub fn run() {
             commands::read_entry,
             commands::save_entry,
             commands::list_entry_dates,
+            commands::show_secret_key,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

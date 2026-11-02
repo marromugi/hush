@@ -52,3 +52,8 @@ export function saveEntry(date: string, body: string): Promise<EntryView> {
 export function listEntryDates(): Promise<string[]> {
   return call("list_entry_dates");
 }
+
+/** The vault's Secret Key as text, from this device's keychain. Only while unlocked. */
+export function showSecretKey(): Promise<string> {
+  return call("show_secret_key");
+}

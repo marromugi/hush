@@ -4,6 +4,7 @@ export {
   lockVault,
   readEntry,
   saveEntry,
+  showSecretKey,
   unlockVault,
   vaultStatus,
 } from "./commands";

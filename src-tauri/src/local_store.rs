@@ -70,8 +70,13 @@ impl LocalStore {
 
     /// Whether this device's keychain holds the vault's Secret Key.
     pub fn has_secret_key(&self) -> Result<bool, AppError> {
+        Ok(self.secret_key()?.is_some())
+    }
+
+    /// The vault's Secret Key from this device's keychain, if it is there.
+    pub fn secret_key(&self) -> Result<Option<SecretKey>, AppError> {
         let vault = self.read_vault()?;
-        Ok(self.secret_keys.get(&vault.id())?.is_some())
+        self.secret_keys.get(&vault.id())
     }
 
     /// Opens the vault with the Secret Key in this device's keychain, or with

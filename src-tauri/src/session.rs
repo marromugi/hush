@@ -110,6 +110,15 @@ pub fn save_entry(
     Ok(inner.store.save_entry(key, &date, body, now_ms)?.into())
 }
 
+/// The vault's Secret Key as text, for the person to keep again. Only while
+/// unlocked, from this device's keychain.
+pub fn secret_key_text(state: &AppState) -> Result<String, AppError> {
+    let inner = inner(state);
+    inner.key.as_ref().ok_or(AppError::Locked)?;
+    let secret_key = inner.store.secret_key()?.ok_or(AppError::NoSecretKey)?;
+    Ok(secret_key.to_text().to_string())
+}
+
 /// Every date that has an entry, oldest first, as `YYYY-MM-DD`.
 pub fn entry_dates(state: &AppState) -> Result<Vec<String>, AppError> {
     let inner = inner(state);
@@ -226,6 +235,17 @@ mod tests {
             save_entry(&state, "2026-10-29".to_string(), "b".to_string(), 1),
             Err(AppError::Locked)
         ));
+    }
+
+    #[test]
+    fn the_secret_key_shows_again_only_while_unlocked() {
+        let (_dir, state) = state();
+        let pending = begin_unlock(&state);
+        let (key, created) = pending.store.create_vault("correct horse").unwrap();
+        finish_unlock(&state, pending, key).unwrap();
+        assert_eq!(secret_key_text(&state).unwrap(), *created.to_text());
+        lock(&state);
+        assert!(matches!(secret_key_text(&state), Err(AppError::Locked)));
     }
 
     #[test]
