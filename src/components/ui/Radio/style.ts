@@ -1,4 +1,4 @@
-import { tv } from "../../../lib/ui/tv";
+import { tv } from "@/lib/ui/tv";
 
 /** The look of a radio: the circle, and the dot that grows in it once chosen. */
 export const radio = tv({
