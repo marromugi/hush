@@ -23,13 +23,18 @@ export type UseDiaryScreen = {
   setSecretKeyOpen: (open: boolean) => void;
   /** Closes the config menu and shows the Secret Key. */
   openSecretKey: () => void;
+  /** Closes the config menu and locks, saving what is being written first. */
+  lockFromConfig: () => void;
   /** Days with an entry, and today even before anything is written. Oldest first. */
   dates: string[];
   datesError: string | null;
 };
 
-/** Which day is shown, and the days to choose from. Mount it on unlock. */
-export function useDiaryScreen(today: string): UseDiaryScreen {
+/**
+ * Which day is shown, the days to choose from, and the config menu. `lock`
+ * saves what is being written, then locks. Mount it on unlock.
+ */
+export function useDiaryScreen(today: string, lock: () => Promise<void>): UseDiaryScreen {
   const [selected, setSelected] = useState(today);
   const [listed, setListed] = useState<Listed | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
@@ -63,6 +68,10 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     openSecretKey: () => {
       setConfigOpen(false);
       setSecretKeyOpen(true);
+    },
+    lockFromConfig: () => {
+      setConfigOpen(false);
+      void lock();
     },
     dates: written.includes(today)
       ? written

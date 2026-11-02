@@ -1,5 +1,6 @@
 export {
   createVault,
+  listenLockRequests,
   listEntryDates,
   lockVault,
   readEntry,
