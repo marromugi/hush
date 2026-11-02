@@ -107,7 +107,8 @@ export function DiaryScreen() {
           error={screen.datesError}
         />
       </div>
-      <main className="mx-auto w-full max-w-2xl pt-18">
+      {/* text-lg is the entry's own size, so 36em is 36 of its characters to a line. */}
+      <main className="mx-auto w-full max-w-[36em] pt-18 text-lg">
         {screen.showsToday ? (
           today.loading ? null : today.loadError ? (
             <p role="alert" className="text-sm text-error">

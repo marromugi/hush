@@ -1,7 +1,16 @@
 import { clsx } from "clsx";
 
-/** How an entry's body looks, whether it is being written or read. */
-export const entryProse = "prose prose-stone prose-lg dark:prose-invert";
+/**
+ * How an entry's body looks, whether it is being written or read. Its width
+ * is left to the page (36 characters of this size). Lines, and the
+ * paragraphs Enter starts, sit closer than prose's own.
+ */
+export const entryProse = clsx(
+  // typography
+  "prose prose-stone prose-lg max-w-none dark:prose-invert",
+  // spacing
+  "leading-[1.6] prose-p:my-[0.5em]",
+);
 
 /**
  * Blurs and fades an entry's text while the font it is shown in loads,
