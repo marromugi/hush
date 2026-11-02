@@ -14,8 +14,12 @@ export type LoadedFont = {
   loading: boolean;
 };
 
-/** The font that loaded last, and which font was tried last, loaded or not. */
-type Settled = { shown: SavedFont | null; tried: string };
+/**
+ * The font that loaded last, and which font finished its last try, loaded or
+ * not. `tried` is cleared when the font changes, so trying it again counts
+ * as loading.
+ */
+type Settled = { shown: SavedFont | null; tried: string | null };
 
 /** `font`, loaded into the page. */
 export function useLoadedFont(font: SavedFont | null): LoadedFont {
@@ -50,6 +54,7 @@ export function useLoadedFont(font: SavedFont | null): LoadedFont {
     );
     return () => {
       ignore = true;
+      setSettled((last) => last && { shown: last.shown, tried: null });
     };
   }, [id, family, category, stylesheet]);
 

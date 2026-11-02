@@ -74,3 +74,17 @@ test("the same font as a new object is not loaded again", async () => {
   expect(result.current.loading).toBe(false);
   expect(loads).toHaveBeenCalledTimes(1);
 });
+
+test("a font that failed is loading again when it comes back", async () => {
+  const waiting = slowFonts();
+  const start: { font: SavedFont | null } = { font: klee };
+  const { result, rerender } = renderHook(({ font }) => useLoadedFont(font), {
+    initialProps: start,
+  });
+  await act(async () => waiting.get("klee-one")?.reject());
+  rerender({ font: null });
+  rerender({ font: klee });
+  expect(result.current).toEqual({ fontFamily: undefined, loading: true });
+  await act(async () => waiting.get("klee-one")?.resolve());
+  expect(result.current).toEqual({ fontFamily: '"Klee One", cursive', loading: false });
+});

@@ -66,3 +66,18 @@ test("when its own font cannot load, it is in the default font", async () => {
     expect(result.current).toEqual({ fontFamily: '"Klee One", cursive', loading: false }),
   );
 });
+
+test("without its own font, it is loading while the default font loads", async () => {
+  let finish: (() => void) | undefined;
+  vi.spyOn(fonts, "loadFont").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  writeSettings({ defaultFonts: { ja: klee, en: null } });
+  const { result } = renderHook(() => useEntryFont(null));
+  expect(result.current).toEqual({ fontFamily: undefined, loading: true });
+  await act(async () => finish?.());
+  expect(result.current).toEqual({ fontFamily: '"Klee One", cursive', loading: false });
+});
