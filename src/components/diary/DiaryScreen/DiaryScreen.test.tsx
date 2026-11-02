@@ -395,5 +395,5 @@ test("the header shows Hush's mark, named for screen readers", async () => {
     </UnlockedSession>,
   );
   const heading = await screen.findByRole("heading", { name: "Hush" });
-  expect(heading.querySelector("svg")).not.toBeNull();
+  expect(heading.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
 });

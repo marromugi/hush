@@ -67,7 +67,7 @@ export function DiaryScreen() {
             />
           </span>
           <h1>
-            <Logo aria-hidden className="size-6" />
+            <Logo aria-hidden className="block size-6" />
             <span className="sr-only">Hush</span>
           </h1>
         </div>
