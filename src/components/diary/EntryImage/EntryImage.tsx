@@ -25,8 +25,8 @@ export function EntryImage({ id, selected = false }: EntryImageProps) {
         "my-0",
         // shape
         "rounded-lg",
-        // focus: faint, so the picture stays what is seen
-        selected && "outline-2 outline-offset-2 outline-current/25",
+        // focus
+        selected && "outline-2 outline-offset-2 outline-current/40",
       )}
     />
   ) : (
