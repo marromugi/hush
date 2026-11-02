@@ -34,7 +34,11 @@ export function App() {
           <CreateVaultForm busy={vault.busy} error={vault.error} onCreate={vault.create} />
         ) : null}
         {vault.status === "unlocked" && vault.newSecretKey !== null ? (
-          <SecretKeyNotice secretKey={vault.newSecretKey} onKept={vault.keptSecretKey} />
+          <SecretKeyNotice
+            secretKey={vault.newSecretKey}
+            onKept={vault.keptSecretKey}
+            onLock={vault.lock}
+          />
         ) : null}
         {vault.status === "needsSecretKey" ? (
           <NewDeviceUnlockForm busy={vault.busy} error={vault.error} onUnlock={vault.unlock} />

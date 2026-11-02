@@ -73,6 +73,21 @@ test("when the Secret Key is gone from the device, unlocking asks for it", async
   expect(result.current.status).toBe("needsSecretKey");
 });
 
+test("locking before the new Secret Key is kept stops showing it", async () => {
+  mockIPC((command) => {
+    if (command === "vault_status") return "missing";
+    if (command === "create_vault") return "H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123";
+    if (command === "lock_vault") return null;
+    throw new Error(`unexpected command ${command}`);
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("missing"));
+  await act(() => result.current.create("correct"));
+  await act(() => result.current.lock());
+  expect(result.current.status).toBe("locked");
+  expect(result.current.newSecretKey).toBeNull();
+});
+
 test("starts loading, then shows the status from the Rust side", async () => {
   fakeVault();
   const { result } = renderHook(() => useVault());
