@@ -23,11 +23,6 @@ export function FontSection() {
         placeholder={section.fonts === null ? "読み込み中…" : "入力して探す"}
         disabled={section.fonts === null}
       />
-      {(section.listError ?? section.chooseError) ? (
-        <p role="alert" className="text-sm text-error">
-          {section.listError ?? section.chooseError}
-        </p>
-      ) : null}
       {section.chosen ? (
         <div>
           <Button type="button" tone="neutral" onClick={() => void section.choose(null)}>

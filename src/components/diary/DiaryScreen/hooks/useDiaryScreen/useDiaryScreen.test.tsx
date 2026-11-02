@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import * as toasts from "@/lib/ui/toast";
 
 import { useDiaryScreen } from "./useDiaryScreen";
 
@@ -103,7 +104,8 @@ test("when the days cannot be listed, today is still there and the reason is sho
     },
     { shouldMockEvents: true },
   );
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = renderDiary("2022-12-18");
-  await waitFor(() => expect(result.current.datesError).toBe("ファイルの読み書きに失敗しました。"));
+  await waitFor(() => expect(told).toHaveBeenCalledWith("ファイルの読み書きに失敗しました。"));
   expect(result.current.dates).toEqual(["2022-12-18"]);
 });

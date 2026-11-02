@@ -7,7 +7,6 @@ import { SecretKeyNotice } from "./components/vault/SecretKeyNotice";
 import { UnlockedSession } from "./components/vault/UnlockedSession";
 import { UnlockForm } from "./components/vault/UnlockForm";
 import { useVault } from "./hooks/vault/useVault";
-import { errorText } from "./lib/vault/errorText";
 
 export function App() {
   return (
@@ -38,11 +37,6 @@ function Screen() {
 
   return (
     <NarrowPage>
-      {vault.status === "loading" && vault.error ? (
-        <p role="alert" className="text-error">
-          {errorText(vault.error.kind)}
-        </p>
-      ) : null}
       {vault.status === "missing" ? (
         <CreateVaultForm busy={vault.busy} error={vault.error} onCreate={vault.create} />
       ) : null}

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { SavedFont } from "@/lib/diary/fonts";
+import { toastError } from "@/lib/ui/toast";
 import { readEntry, saveEntry } from "@/lib/vault/commands";
 import type { EntryView } from "@/lib/vault/commands";
+import { failureText } from "@/lib/vault/errorText";
 import { toHushError } from "@/lib/vault/hushError";
 import type { HushError } from "@/lib/vault/hushError";
 
@@ -42,7 +44,9 @@ export function useTodayEntry(date: string): UseTodayEntry {
         if (!ignore) setLoaded({ date, entry });
       },
       (failure: unknown) => {
-        if (!ignore) setLoaded({ date, error: toHushError(failure) });
+        if (ignore) return;
+        setLoaded({ date, error: toHushError(failure) });
+        toastError(failureText(failure));
       },
     );
     return () => {
@@ -66,6 +70,8 @@ export function useTodayEntry(date: string): UseTodayEntry {
         return true;
       } catch (failure) {
         setSaveFailure({ date: savingDate, error: toHushError(failure) });
+        // The header keeps saying it failed; the toast makes sure it is seen.
+        toastError(failureText(failure));
         return false;
       } finally {
         setPendingSaves((count) => count - 1);

@@ -1,13 +1,15 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
+import * as toasts from "@/lib/ui/toast";
 import type { EntryView } from "@/lib/vault/commands";
 
 import { useTodayEntry } from "./useTodayEntry";
 
 afterEach(() => {
   clearMocks();
+  vi.restoreAllMocks();
 });
 
 function entry(date: string, body: string): EntryView {
@@ -77,9 +79,11 @@ test("an entry that cannot be opened is a load error", async () => {
   mockIPC(() => {
     throw { kind: "brokenEntry", message: "entry file is broken" };
   });
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = renderHook(() => useTodayEntry("2026-10-29"));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.loadError?.kind).toBe("brokenEntry");
+  expect(told).toHaveBeenCalledWith("この日の日記のファイルが壊れているため開けません。");
 });
 
 test("a failed save keeps the loaded entry and reports the error", async () => {
@@ -92,8 +96,12 @@ test("a failed save keeps the loaded entry and reports the error", async () => {
   const { result } = renderHook(() => useTodayEntry("2026-10-29"));
   await waitFor(() => expect(result.current.loading).toBe(false));
   failSave = true;
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   await act(() => result.current.save("<p>雨</p>", null));
   expect(result.current.saveError?.kind).toBe("newerEntryVersion");
+  expect(told).toHaveBeenCalledWith(
+    "新しい版のアプリで書かれた日記です。アプリを更新してください。",
+  );
   expect(result.current.entry?.body).toBe("<p>晴れ</p>");
 });
 

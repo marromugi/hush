@@ -63,3 +63,8 @@ export function toHushError(error: unknown): HushError {
 export function isAboutPassphrase(kind: HushErrorKind): boolean {
   return kind === "wrongPassphrase" || kind === "emptyPassphrase";
 }
+
+/** True for a failure that a form shows under the field it is about, not as a toast. */
+export function isAboutInput(kind: HushErrorKind): boolean {
+  return isAboutPassphrase(kind) || kind === "invalidSecretKey";
+}

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { HushError, toHushError } from "./hushError";
+import { HushError, isAboutInput, toHushError } from "./hushError";
 
 describe("toHushError", () => {
   test("keeps the kind and message a command sent", () => {
@@ -25,4 +25,12 @@ describe("toHushError", () => {
   test("an Error thrown on the JavaScript side becomes unknown", () => {
     expect(toHushError(new Error("boom")).kind).toBe("unknown");
   });
+});
+
+test("only passphrase and Secret Key shape failures are about what was typed", () => {
+  expect(isAboutInput("wrongPassphrase")).toBe(true);
+  expect(isAboutInput("emptyPassphrase")).toBe(true);
+  expect(isAboutInput("invalidSecretKey")).toBe(true);
+  expect(isAboutInput("wrongPassphraseOrSecretKey")).toBe(false);
+  expect(isAboutInput("keychain")).toBe(false);
 });

@@ -19,11 +19,6 @@ export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
         autoComplete="current-password"
         error={error && isAboutPassphrase(error.kind) ? errorText(error.kind) : undefined}
       />
-      {error && !isAboutPassphrase(error.kind) ? (
-        <p role="alert" className="text-sm text-error">
-          {errorText(error.kind)}
-        </p>
-      ) : null}
       <Button type="submit" disabled={busy}>
         開く
       </Button>

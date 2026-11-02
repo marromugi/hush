@@ -1,11 +1,14 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+
+import * as toasts from "@/lib/ui/toast";
 
 import { useVault } from "./useVault";
 
 afterEach(() => {
   clearMocks();
+  vi.restoreAllMocks();
 });
 
 /** A fake Rust side with one locked vault whose passphrase is "correct". */
@@ -185,4 +188,33 @@ test("a first status that arrives after an unlock does not undo it", async () =>
     await Promise.resolve();
   });
   expect(result.current.status).toBe("unlocked");
+});
+
+test("a wrong passphrase is left to the form, and anything else is a toast", async () => {
+  let failure = { kind: "wrongPassphrase", message: "wrong passphrase" };
+  mockIPC((command) => {
+    if (command === "vault_status") return "locked";
+    if (command === "unlock_vault") throw failure;
+    throw new Error(`unexpected command ${command}`);
+  });
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("locked"));
+  await act(() => result.current.unlock("wrong"));
+  expect(result.current.error?.kind).toBe("wrongPassphrase");
+  expect(told).not.toHaveBeenCalled();
+  failure = { kind: "keychain", message: "keychain failed" };
+  await act(() => result.current.unlock("correct"));
+  expect(result.current.error?.kind).toBe("keychain");
+  expect(told).toHaveBeenCalledWith("キーチェーンを読み書きできませんでした。");
+});
+
+test("a status that cannot be read is a toast", async () => {
+  mockIPC(() => {
+    throw { kind: "io", message: "file access failed" };
+  });
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(told).toHaveBeenCalledWith("ファイルの読み書きに失敗しました。"));
+  expect(result.current.status).toBe("loading");
 });

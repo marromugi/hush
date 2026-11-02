@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ToastRegion } from "@/components/ui/Toast";
+
 import { App } from "./App";
 
 import "./styles.css";
@@ -13,5 +15,6 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <App />
+    <ToastRegion />
   </StrictMode>,
 );

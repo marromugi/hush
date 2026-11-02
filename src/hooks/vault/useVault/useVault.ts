@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { useSingleFlight } from "@/hooks/common/useSingleFlight";
+import { toastError } from "@/lib/ui/toast";
 import { createVault, lockVault, unlockVault, vaultStatus } from "@/lib/vault/commands";
 import type { VaultStatus } from "@/lib/vault/commands";
-import { toHushError } from "@/lib/vault/hushError";
+import { errorText, failureText } from "@/lib/vault/errorText";
+import { isAboutInput, toHushError } from "@/lib/vault/hushError";
 import type { HushError } from "@/lib/vault/hushError";
 
 export type UseVault = {
@@ -35,7 +37,7 @@ export function useVault(): UseVault {
         if (!ignore) setStatus((shown) => (shown === "loading" ? current : shown));
       },
       (failure: unknown) => {
-        if (!ignore) setError(toHushError(failure));
+        if (!ignore) toastError(failureText(failure));
       },
     );
     return () => {
@@ -53,6 +55,8 @@ export function useVault(): UseVault {
       } catch (failure) {
         const failed = toHushError(failure);
         setError(failed);
+        // A form shows what is about its fields; anything else is a toast.
+        if (!isAboutInput(failed.kind)) toastError(errorText(failed.kind));
         // The device lost the vault's Secret Key, or never kept it: ask for it.
         if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
       }

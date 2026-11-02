@@ -1,11 +1,14 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+
+import * as toasts from "@/lib/ui/toast";
 
 import { usePastEntry } from "./usePastEntry";
 
 afterEach(() => {
   clearMocks();
+  vi.restoreAllMocks();
 });
 
 test("reads the entry for the date", async () => {
@@ -23,15 +26,17 @@ test("reads the entry for the date", async () => {
     body: "<p>雪</p>",
     fontFamily: undefined,
     fontLoading: false,
-    error: null,
+    failed: false,
   });
 });
 
-test("an entry that cannot be opened says why", async () => {
+test("an entry that cannot be opened says why in a toast", async () => {
   mockIPC(() => {
     throw { kind: "brokenEntry", message: "entry file is broken" };
   });
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = renderHook(() => usePastEntry("2022-12-18"));
   await waitFor(() => expect(result.current.loading).toBe(false));
-  expect(result.current.error).toBe("この日の日記のファイルが壊れているため開けません。");
+  expect(result.current.failed).toBe(true);
+  expect(told).toHaveBeenCalledWith("この日の日記のファイルが壊れているため開けません。");
 });
