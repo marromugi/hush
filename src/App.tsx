@@ -1,5 +1,6 @@
 import { DiaryScreen } from "./components/diary/DiaryScreen";
 import { NarrowPage } from "./components/ui/NarrowPage";
+import { WindowDragRegion } from "./components/ui/WindowDragRegion";
 import { CreateVaultForm } from "./components/vault/CreateVaultForm";
 import { NewDeviceUnlockForm } from "./components/vault/NewDeviceUnlockForm";
 import { SecretKeyNotice } from "./components/vault/SecretKeyNotice";
@@ -9,6 +10,16 @@ import { useVault } from "./hooks/vault/useVault";
 import { errorText } from "./lib/vault/errorText";
 
 export function App() {
+  return (
+    <>
+      <WindowDragRegion />
+      <Screen />
+    </>
+  );
+}
+
+/** The screen for where the vault stands: locked, unlocked, or not made yet. */
+function Screen() {
   const vault = useVault();
 
   if (vault.status === "unlocked") {
