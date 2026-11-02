@@ -40,6 +40,15 @@ test("choosing another day shows that day, read only", async () => {
   expect(result.current.showsToday).toBe(false);
 });
 
+test("choosing a day from the days shown over the diary shows it and puts them away", () => {
+  mockIPC(() => ["2022-12-01"], { shouldMockEvents: true });
+  const { result } = renderDiary("2022-12-18");
+  act(() => result.current.setDatesOpen(true));
+  act(() => result.current.selectFromDates("2022-12-01"));
+  expect(result.current.selected).toBe("2022-12-01");
+  expect(result.current.datesOpen).toBe(false);
+});
+
 test("choosing Secret Key in the config menu closes the menu and shows the Secret Key", () => {
   mockIPC(() => [], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");

@@ -1,6 +1,6 @@
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
@@ -348,4 +348,37 @@ test("today's entry is blurred while the dice loads a font, and clear once it ha
   });
   await waitFor(() => expect(content()?.classList.contains("blur-sm")).toBe(false));
   expect(content()?.style.fontFamily).toBe('"Klee One", cursive');
+});
+
+test("the header's button shows the days over the diary, and choosing one opens it", async () => {
+  mockIPC(
+    (command, args) => {
+      const date = String(args && "date" in args ? args.date : "");
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      if (command === "read_entry") {
+        return date === "2020-01-01"
+          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2, font: null }
+          : null;
+      }
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  const button = await screen.findByRole("button", { name: "日付を選ぶ" });
+  fireEvent.click(button);
+  const dates = within(await screen.findByRole("dialog", { name: "日記の日付" }));
+  fireEvent.click(dates.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
+  fireEvent.click(await dates.findByRole("button", { name: "2020" }));
+  fireEvent.click(await dates.findByRole("button", { name: "1" }));
+  await act(async () => {
+    fireEvent.click(await dates.findByRole("button", { name: "1" }));
+  });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
+  await waitFor(() => expect(document.activeElement).toBe(button));
 });

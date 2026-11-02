@@ -16,6 +16,11 @@ export type UseDiaryScreen = {
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
+  /** True while the days are shown over the diary, on a screen too narrow for the sidebar. */
+  datesOpen: boolean;
+  setDatesOpen: (open: boolean) => void;
+  /** Shows `date` and puts the days shown over the diary away. */
+  selectFromDates: (date: string) => void;
   /** True while the config menu is open. */
   configOpen: boolean;
   setConfigOpen: (open: boolean) => void;
@@ -36,11 +41,12 @@ export type UseDiaryScreen = {
   datesError: string | null;
 };
 
-/** Which day is shown, the days to choose from, and the config menu. */
+/** Which day is shown, the days to choose from, and the menus and panels over the diary. */
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
   const [selected, setSelected] = useState(today);
   const [listed, setListed] = useState<Listed | null>(null);
+  const [datesOpen, setDatesOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [secretKeyOpen, setSecretKeyOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -66,6 +72,12 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     selectedParts: dateParts(selected),
     showsToday: selected === today,
     select: setSelected,
+    datesOpen,
+    setDatesOpen,
+    selectFromDates: (date) => {
+      setSelected(date);
+      setDatesOpen(false);
+    },
     configOpen,
     setConfigOpen,
     secretKeyOpen,
