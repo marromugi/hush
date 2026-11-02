@@ -10,6 +10,8 @@ export type DiaryEditorProps = {
    * stay out of, as when bars stick over the page there.
    */
   keepClear?: KeepClear;
+  /** The CSS `font-family` to show the entry in; the page's font when left out. */
+  fontFamily?: string;
 };
 
 export type KeepClear = { top: number; bottom: number };

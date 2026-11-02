@@ -1,6 +1,9 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
+import { fontStack } from "../../../lib/diary/fonts";
+import { DiceIcon } from "../../ui/Icon";
+import { IconButton } from "../../ui/IconButton";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
@@ -8,6 +11,7 @@ import { PastEntry } from "./components/PastEntry";
 import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
+import { useFontDice } from "./hooks/useFontDice";
 import { useTodayScreen } from "./hooks/useTodayScreen";
 
 /** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of. */
@@ -17,6 +21,7 @@ const BANDS = { top: 84, bottom: 104 };
 export function DiaryScreen() {
   const today = useTodayScreen();
   const screen = useDiaryScreen(today.date);
+  const dice = useFontDice();
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
 
@@ -85,6 +90,7 @@ export function DiaryScreen() {
               onChange={today.onChange}
               disabled={today.locking}
               keepClear={BANDS}
+              fontFamily={dice.font ? fontStack(dice.font) : undefined}
             />
           )
         ) : (
@@ -94,38 +100,56 @@ export function DiaryScreen() {
       <footer
         className={clsx(
           // layout
-          "sticky bottom-0 z-5 col-span-2 flex h-26 items-end",
+          "sticky bottom-0 z-5 col-span-2 grid h-26 grid-cols-[1fr_auto_1fr] items-end",
           // spacing
           "pb-10",
           // color
           "bg-page",
         )}
       >
-        <Popover
-          direction="top"
-          align="start"
-          open={screen.configOpen}
-          onOpenChange={screen.setConfigOpen}
-          trigger={
-            <button ref={config} className="cursor-pointer">
-              config
-            </button>
-          }
-        >
-          <div className={optionList({ className: "w-48" })}>
-            <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
-              Secret Key
-            </button>
-            <button
+        <div>
+          <Popover
+            direction="top"
+            align="start"
+            open={screen.configOpen}
+            onOpenChange={screen.setConfigOpen}
+            trigger={
+              <button ref={config} className="cursor-pointer">
+                config
+              </button>
+            }
+          >
+            <div className={optionList({ className: "w-48" })}>
+              <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
+                Secret Key
+              </button>
+              <button
+                type="button"
+                className={optionRow()}
+                disabled={today.locking}
+                onClick={screen.lockFromConfig}
+              >
+                ロック
+              </button>
+            </div>
+          </Popover>
+        </div>
+        {screen.showsToday ? (
+          <div className="flex flex-col items-center gap-2">
+            {dice.error ? (
+              <p role="alert" className="text-sm text-error">
+                {dice.error}
+              </p>
+            ) : null}
+            <IconButton
+              icon={DiceIcon}
+              label="フォントを変える"
               type="button"
-              className={optionRow()}
-              disabled={today.locking}
-              onClick={screen.lockFromConfig}
-            >
-              ロック
-            </button>
+              disabled={dice.rolling || today.locking}
+              onClick={() => void dice.roll()}
+            />
           </div>
-        </Popover>
+        ) : null}
         <SecretKeyModal
           open={screen.secretKeyOpen}
           onOpenChange={screen.setSecretKeyOpen}

@@ -12,5 +12,7 @@ export const iconButton = tv({
     "transition duration-160 ease-out active:scale-97",
     // focus
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+    // state
+    "disabled:pointer-events-none disabled:opacity-50",
   ],
 });
