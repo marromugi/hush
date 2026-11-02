@@ -19,6 +19,7 @@ afterEach(() => {
   cleanup();
   clearMocks();
   vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 const SECRET_KEY = "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
@@ -150,4 +151,31 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
   );
+});
+
+test("choosing English in the settings makes the dice pick among Latin fonts", async () => {
+  fakeVault();
+  const lists = vi
+    .spyOn(fonts, "listFonts")
+    .mockResolvedValue([{ id: "lora", family: "Lora", category: "serif" }]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/lora", complete: true });
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "config" }));
+  fireEvent.click(await screen.findByRole("button", { name: "設定" }));
+  await screen.findByRole("dialog", { name: "設定" });
+  fireEvent.click(screen.getByRole("radio", { name: "English" }));
+  expect(screen.getByRole("radio", { name: "English" })).toHaveProperty("checked", true);
+  await act(async () => {
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+  });
+  expect(lists).toHaveBeenCalledWith("latin");
 });

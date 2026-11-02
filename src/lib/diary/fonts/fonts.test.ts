@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { fontDetails, fontStack, listFonts, pickFont } from "./fonts";
+import { fontDetails, fontStack, listFonts, pickFont, subsetFor } from "./fonts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -29,6 +29,26 @@ test("lists the Google fonts that have the subset's characters, leaving out icon
   expect(await listFonts("japanese")).toEqual([
     { id: "noto-sans-jp", family: "Noto Sans JP", category: "sans-serif" },
   ]);
+});
+
+/** A Google font as the list answers it. */
+function google(id: string, category: string) {
+  return { id, family: id, category, type: "google" };
+}
+
+test("leaves out fonts whose letters do not read as text, whatever their category", async () => {
+  fakeFetch({
+    "https://api.fontsource.org/v1/fonts?subsets=latin": [
+      google("lora", "serif"),
+      google("material-symbols", "monospace"),
+      google("flow-block", "display"),
+      google("redacted-script", "display"),
+      google("libre-barcode-39", "display"),
+      google("linefont", "display"),
+      google("wavefont", "display"),
+    ],
+  });
+  expect((await listFonts("latin")).map((font) => font.id)).toEqual(["lora"]);
 });
 
 /** Numbered Japanese slices, as Fontsource lists them, plus the Latin ones. */
@@ -98,4 +118,9 @@ test("falls back to the font's kind while it loads", () => {
   expect(fontStack({ id: "d", family: "M PLUS 1 Code", category: "monospace" })).toBe(
     '"M PLUS 1 Code", monospace',
   );
+});
+
+test("Japanese writing picks among fonts with Japanese characters, English among Latin ones", () => {
+  expect(subsetFor("ja")).toBe("japanese");
+  expect(subsetFor("en")).toBe("latin");
 });
