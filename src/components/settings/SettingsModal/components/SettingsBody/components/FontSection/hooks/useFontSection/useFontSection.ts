@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
+import { usePromise } from "@/hooks/common/usePromise";
 import { useSettings } from "@/hooks/settings/useSettings";
 import { fontDetails, fontStack, listFonts, loadFont, subsetFor } from "@/lib/diary/fonts";
 import type { FontChoice, SavedFont } from "@/lib/diary/fonts";
 import { readSettings, writeSettings } from "@/lib/settings/settings";
 import type { Language } from "@/lib/settings/settings";
-
-type Listed = { subset: string; fonts: FontChoice[] } | { subset: string; error: string };
 
 export type UseFontSection = {
   language: Language;
@@ -38,29 +37,13 @@ export type UseFontSection = {
 export function useFontSection(): UseFontSection {
   const { language, defaultFonts } = useSettings();
   const subset = subsetFor(language);
-  const [listed, setListed] = useState<Listed | null>(null);
+  const listed = usePromise(() => listFonts(subset), subset);
   const [picking, setPicking] = useState<FontChoice | null>(null);
   const [chooseError, setChooseError] = useState<string | null>(null);
   // Counts choices, so a slow earlier one cannot overwrite a later one.
   const latest = useRef(0);
 
-  useEffect(() => {
-    let ignore = false;
-    listFonts(subset).then(
-      (fonts) => {
-        if (!ignore) setListed({ subset, fonts });
-      },
-      () => {
-        if (!ignore) setListed({ subset, error: "フォントの一覧を読み込めませんでした。" });
-      },
-    );
-    return () => {
-      ignore = true;
-    };
-  }, [subset]);
-
-  const current = listed?.subset === subset ? listed : null;
-  const fonts = current && "fonts" in current ? current.fonts : null;
+  const fonts = listed.status === "done" ? listed.value : null;
   const chosen = defaultFonts[language];
 
   /** Stores `font` as the language's default, over what is stored now. */
@@ -76,7 +59,7 @@ export function useFontSection(): UseFontSection {
   return {
     language,
     fonts,
-    listError: current && "error" in current ? current.error : null,
+    listError: listed.status === "failed" ? "フォントの一覧を読み込めませんでした。" : null,
     chosen,
     options: offered.map((font) => ({ value: font.id, label: font.family })),
     value: picking?.id ?? chosen?.id ?? null,

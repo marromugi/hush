@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
-
+import { usePromise } from "@/hooks/common/usePromise";
 import { useEntryFont } from "@/hooks/diary/useEntryFont";
-import type { SavedFont } from "@/lib/diary/fonts";
 import { readEntry } from "@/lib/vault/commands";
 import { errorText } from "@/lib/vault/errorText";
 import { toHushError } from "@/lib/vault/hushError";
-
-type Read = { body: string | null; font: SavedFont | null } | { error: string };
 
 export type UsePastEntry = {
   loading: boolean;
@@ -21,30 +17,15 @@ export type UsePastEntry = {
 
 /** The entry for `date`, read once. Give the component a `key` of the date. */
 export function usePastEntry(date: string): UsePastEntry {
-  const [read, setRead] = useState<Read | null>(null);
-
-  const font = useEntryFont(read && "font" in read ? read.font : null);
-
-  useEffect(() => {
-    let ignore = false;
-    void readEntry(date).then(
-      (entry) => {
-        if (!ignore) setRead({ body: entry?.body ?? null, font: entry?.font ?? null });
-      },
-      (failure: unknown) => {
-        if (!ignore) setRead({ error: errorText(toHushError(failure).kind) });
-      },
-    );
-    return () => {
-      ignore = true;
-    };
-  }, [date]);
+  const read = usePromise(() => readEntry(date), date);
+  const entry = read.status === "done" ? read.value : null;
+  const font = useEntryFont(entry?.font ?? null);
 
   return {
-    loading: read === null,
-    body: read && "body" in read ? read.body : null,
+    loading: read.status === "loading",
+    body: entry?.body ?? null,
     fontFamily: font.fontFamily,
     fontLoading: font.loading,
-    error: read && "error" in read ? read.error : null,
+    error: read.status === "failed" ? errorText(toHushError(read.error).kind) : null,
   };
 }
