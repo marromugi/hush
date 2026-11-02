@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent } from "react";
 
-import { listenLockRequests } from "../../../lib/vault/commands";
+import { listenLockRequests } from "../../../../../lib/vault/commands";
 import { watchIdle } from "./lib/watchIdle";
 
 /** How long nothing may happen before the diary locks. */

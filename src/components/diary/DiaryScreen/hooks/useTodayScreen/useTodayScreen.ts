@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useTodayEntry } from "../../../../../hooks/diary/useTodayEntry";
+import { useBeforeLock } from "../../../../../hooks/vault/useBeforeLock";
+import { useSession } from "../../../../../hooks/vault/useSession";
 import { localDate } from "../../../../../lib/diary/localDate";
 import { errorText } from "../../../../../lib/vault/errorText";
 import { createAutoSaver } from "./lib/createAutoSaver";
@@ -24,22 +26,21 @@ export type UseTodayScreen = {
   onChange: (body: string) => void;
   /** True while locking; nothing can be typed then. */
   locking: boolean;
-  /**
-   * Saves what is waiting, then locks only if that save succeeded. A call
-   * while one runs joins it, as when sleep and screen lock come together.
-   */
-  lock: () => Promise<void>;
 };
 
-export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
+/**
+ * Today's entry, saved as it is written. The vault waits for what is still
+ * waiting to be saved before it locks, and stays unlocked if that save fails.
+ */
+export function useTodayScreen(): UseTodayScreen {
   const [date] = useState(() => localDate(new Date()));
   const today = useTodayEntry(date);
   const [typed, setTyped] = useState<string | null>(null);
-  const [locking, setLocking] = useState(false);
-  const runningLock = useRef<Promise<void> | null>(null);
+  const { locking } = useSession();
 
   const [saver] = useState(() => createAutoSaver(SAVE_DELAY_MS));
   useEffect(() => () => saver.cancel(), [saver]);
+  useBeforeLock(() => saver.flush());
 
   return {
     date,
@@ -57,17 +58,5 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
       saver.schedule(body, today.save);
     },
     locking,
-    lock: () => {
-      runningLock.current ??= (async () => {
-        setLocking(true);
-        try {
-          if (await saver.flush()) await onLock();
-        } finally {
-          setLocking(false);
-          runningLock.current = null;
-        }
-      })();
-      return runningLock.current;
-    },
   };
 }

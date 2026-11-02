@@ -1,8 +1,9 @@
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
+import { UnlockedSession } from "../UnlockedSession";
 import { SecretKeyNotice } from "./SecretKeyNotice";
 
 afterEach(() => {
@@ -10,34 +11,18 @@ afterEach(() => {
   clearMocks();
 });
 
-test("locks when the system asks, while the Secret Key is on screen", async () => {
+test("the diary cannot be opened while a lock runs", async () => {
   mockIPC(() => null, { shouldMockEvents: true });
-  let locks = 0;
   render(
-    <SecretKeyNotice
-      secretKey="H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A"
-      onKept={() => {}}
-      onLock={async () => {
-        locks += 1;
-      }}
-      busy={false}
-    />,
+    <UnlockedSession onLock={() => new Promise(() => {})}>
+      <SecretKeyNotice secretKey="H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A" onKept={() => {}} />
+    </UnlockedSession>,
   );
-  await waitFor(async () => {
+  const kept = screen.getByRole("button", { name: "控えました" });
+  expect(kept.hasAttribute("disabled")).toBe(false);
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
     await emit("lock-requested");
-    expect(locks).toBe(1);
   });
-});
-
-test("the diary cannot be opened while a lock runs", () => {
-  mockIPC(() => null, { shouldMockEvents: true });
-  render(
-    <SecretKeyNotice
-      secretKey="H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A"
-      onKept={() => {}}
-      onLock={async () => {}}
-      busy
-    />,
-  );
-  expect(screen.getByRole("button", { name: "控えました" }).hasAttribute("disabled")).toBe(true);
+  expect(kept.hasAttribute("disabled")).toBe(true);
 });

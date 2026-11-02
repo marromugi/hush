@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 
 import { localDate } from "../../../lib/diary/localDate";
+import { UnlockedSession } from "../../vault/UnlockedSession";
 import { DiaryScreen } from "./DiaryScreen";
 
 /**
@@ -41,7 +42,13 @@ function daysAgo(days: number) {
 const meta = {
   title: "diary/DiaryScreen",
   component: DiaryScreen,
-  args: { onLock: async () => {} },
+  decorators: [
+    (Story) => (
+      <UnlockedSession onLock={async () => {}}>
+        <Story />
+      </UnlockedSession>
+    ),
+  ],
 } satisfies Meta<typeof DiaryScreen>;
 
 export default meta;
