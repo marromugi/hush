@@ -22,19 +22,20 @@ test("fires once the time passes with nothing happening, and again after as long
   expect(fired).toBe(2);
 });
 
-test("activity starts the wait over", () => {
-  const target = new EventTarget();
-  let fired = 0;
-  watchIdle(target, 1000, () => (fired += 1));
-  vi.advanceTimersByTime(900);
-  target.dispatchEvent(new Event("keydown"));
-  vi.advanceTimersByTime(900);
-  target.dispatchEvent(new Event("pointermove"));
-  vi.advanceTimersByTime(900);
-  expect(fired).toBe(0);
-  vi.advanceTimersByTime(100);
-  expect(fired).toBe(1);
-});
+test.each(["keydown", "input", "pointerdown", "pointermove", "wheel"])(
+  "%s starts the wait over",
+  (type) => {
+    const target = new EventTarget();
+    let fired = 0;
+    watchIdle(target, 1000, () => (fired += 1));
+    vi.advanceTimersByTime(900);
+    target.dispatchEvent(new Event(type));
+    vi.advanceTimersByTime(900);
+    expect(fired).toBe(0);
+    vi.advanceTimersByTime(100);
+    expect(fired).toBe(1);
+  },
+);
 
 test("stopping ends the watch", () => {
   const target = new EventTarget();

@@ -1,5 +1,5 @@
-/** What counts as someone being there. */
-const ACTIVITY = ["keydown", "pointerdown", "pointermove", "wheel"] as const;
+/** What counts as someone being there. `input` covers dictation, which sends no keys. */
+const ACTIVITY = ["keydown", "input", "pointerdown", "pointermove", "wheel"] as const;
 
 /**
  * Calls `onIdle` each time `idleMs` passes with no activity on `target`.
