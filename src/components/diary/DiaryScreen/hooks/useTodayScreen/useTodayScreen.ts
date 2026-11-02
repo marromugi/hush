@@ -15,7 +15,10 @@ export type UseTodayScreen = {
   date: string;
   loading: boolean;
   loadError: string | null;
-  /** The body the editor starts with; later saves do not change the editor. */
+  /**
+   * The body an editor starts with: what was last typed, else what was
+   * saved. The editor can be closed and opened again while saves wait.
+   */
   initialBody: string;
   saveMessage: SaveMessage | null;
   onChange: (body: string) => void;
@@ -38,7 +41,7 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
     date,
     loading: today.loading,
     loadError: today.loadError ? errorText(today.loadError.kind) : null,
-    initialBody: today.entry?.body ?? "",
+    initialBody: typed ?? today.entry?.body ?? "",
     saveMessage: saveMessage({
       typed,
       entry: today.entry,

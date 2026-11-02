@@ -59,3 +59,12 @@ test("a failed save keeps it unlocked, and locking again tries the save again", 
   await act(() => result.current.lock());
   expect(log).toEqual(["save <p>晴れ</p>", "save <p>晴れ</p>", "lock"]);
 });
+
+test("an editor opened again starts from what was typed, before it is saved", async () => {
+  const log: string[] = [];
+  fakeEntries(log);
+  const { result } = await renderScreen(log);
+  act(() => result.current.onChange("<p>晴れ</p>"));
+  expect(log).toEqual([]);
+  expect(result.current.initialBody).toBe("<p>晴れ</p>");
+});
