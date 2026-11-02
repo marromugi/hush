@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
-import { entryExtensions, entryImage } from "@/lib/diary/entryExtensions";
+import { entryExtensions, insertEntryImage } from "@/lib/diary/entryExtensions";
 import { entryProse } from "@/lib/diary/entryProse";
 import { preparePicture } from "@/lib/diary/preparePicture";
 import { saveImage } from "@/lib/vault/commands";
@@ -79,7 +79,7 @@ export function useDiaryEditor(
       }
       // The editor is gone once the day changes or the vault locks; the image file stays unused.
       if (editor.isDestroyed) return;
-      editor.chain().focus().insertContent(entryImage(id)).run();
+      insertEntryImage(editor, id);
     }
   }
 

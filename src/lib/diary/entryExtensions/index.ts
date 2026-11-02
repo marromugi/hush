@@ -1,2 +1,2 @@
 export { entryExtensions } from "./entryExtensions";
-export { entryImage } from "./lib/entryImageNode";
+export { insertEntryImage } from "./lib/entryImageNode";

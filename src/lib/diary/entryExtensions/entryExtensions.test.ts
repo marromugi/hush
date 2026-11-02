@@ -2,6 +2,7 @@ import { Editor } from "@tiptap/react";
 import { expect, test } from "vitest";
 
 import { entryExtensions } from "./entryExtensions";
+import { insertEntryImage } from "./lib/entryImageNode";
 
 test("an image in an entry's HTML is read back and written as the same HTML", () => {
   const body =
@@ -14,5 +15,27 @@ test("an image in an entry's HTML is read back and written as the same HTML", ()
 test("an image with no id in the entry is not kept", () => {
   const editor = new Editor({ extensions: entryExtensions, content: '<p>a</p><img src="x.png">' });
   expect(editor.getHTML()).toBe("<p>a</p>");
+  editor.destroy();
+});
+
+test("images inserted one after another all stay, in order", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  editor.commands.setTextSelection(2);
+  insertEntryImage(editor, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  insertEntryImage(editor, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  expect(editor.getHTML()).toBe(
+    '<p>海</p><img data-image="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"><img data-image="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"><p></p>',
+  );
+  editor.destroy();
+});
+
+test("an image put inside a line splits it and leaves the cursor before the rest", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海へ</p>" });
+  editor.commands.setTextSelection(2);
+  insertEntryImage(editor, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  editor.commands.insertContent("x");
+  expect(editor.getHTML()).toBe(
+    '<p>海</p><img data-image="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"><p>xへ</p>',
+  );
   editor.destroy();
 });
