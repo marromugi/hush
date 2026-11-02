@@ -66,3 +66,17 @@ export const WithPastDays: Story = {
       [daysAgo(1)]: "<p>昨日は雨。</p>",
     }),
 };
+
+/** A long entry for today and a month of days: scroll to see what stays put. */
+export const LongEntry: Story = {
+  beforeEach: () =>
+    fakeEntries({
+      ...Object.fromEntries(
+        Array.from({ length: 30 }, (_, i) => [daysAgo(30 - i), `<p>${30 - i} 日前の日記。</p>`]),
+      ),
+      [daysAgo(0)]: Array.from(
+        { length: 40 },
+        (_, i) => `<p>${i + 1} 行目。今日は晴れで、午後から少し風が出てきました。</p>`,
+      ).join(""),
+    }),
+};

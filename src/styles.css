@@ -9,6 +9,7 @@
   --color-surface-raised: #ffffff;
   --color-error: #d33;
   --color-scrim: #0006;
+  --color-page: var(--color-stone-50);
 
   /* Tailwind writes a shadow's value into its class, so the color that changes with the scheme sits in a variable of its own. */
   --shadow-float: 0 1px 6px 0 var(--shadow-float-color);
@@ -47,11 +48,12 @@
       --color-surface-raised: #2c2c2f;
       --color-error: #f66;
       --color-scrim: #000a;
+      --color-page: var(--color-stone-950);
       --shadow-float-color: #0006;
     }
   }
 
   body {
-    @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+    @apply bg-page text-stone-900 dark:text-stone-100;
   }
 }
