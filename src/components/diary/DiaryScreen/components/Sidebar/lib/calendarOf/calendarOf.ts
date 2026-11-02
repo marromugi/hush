@@ -3,9 +3,9 @@ export type CalendarDay = { date: string; label: string };
 export type CalendarMonth = {
   /** `YYYY-MM`. */
   month: string;
-  /** The month alone, as in `12`. */
+  /** The month alone, in two digits, as in `04`. */
   label: string;
-  /** The year and month, as in `2022.12`. */
+  /** The year and month, as in `2022.04`. */
   title: string;
   days: CalendarDay[];
 };
@@ -25,7 +25,7 @@ export function calendarOf(dates: string[]): CalendarYear[] {
     if (years[0]?.year !== year) years.unshift({ year, months: [] });
     const months = years[0].months;
     if (months.at(-1)?.month !== month) {
-      const label = String(Number(date.slice(5, 7)));
+      const label = date.slice(5, 7);
       months.push({ month, label, title: `${year}.${label}`, days: [] });
     }
     months.at(-1)?.days.push({ date, label: String(Number(date.slice(8, 10))) });

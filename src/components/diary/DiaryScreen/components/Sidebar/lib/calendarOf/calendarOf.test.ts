@@ -9,8 +9,8 @@ test("groups dates by year and month, newest year first", () => {
       months: [
         {
           month: "2022-04",
-          label: "4",
-          title: "2022.4",
+          label: "04",
+          title: "2022.04",
           days: [{ date: "2022-04-13", label: "13" }],
         },
         {
@@ -29,8 +29,8 @@ test("groups dates by year and month, newest year first", () => {
       months: [
         {
           month: "2021-03",
-          label: "3",
-          title: "2021.3",
+          label: "03",
+          title: "2021.03",
           days: [{ date: "2021-03-05", label: "5" }],
         },
       ],
