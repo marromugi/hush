@@ -7,13 +7,15 @@ use std::sync::Arc;
 use crate::app_error::AppError;
 use crate::crypto::VaultKey;
 use crate::entry::{self, Entry, EntryDate, EntryFont};
+use crate::image::{self, ImageId, Jpeg};
 use crate::keychain::SecretKeyStore;
 use crate::secret_key::SecretKey;
 use crate::vault::Vault;
 
-/// The vault and entries on this device, and the device's Secret Keys. The
-/// file layout matches the GitHub repository (`vault.json`,
-/// `entries/YYYY/YYYY-MM-DD.enc`) so the same files can be pushed as they are.
+/// The vault, entries, and images on this device, and the device's Secret
+/// Keys. The file layout matches the GitHub repository (`vault.json`,
+/// `entries/YYYY/YYYY-MM-DD.enc`, `images/{id}.enc`) so the same files can
+/// be pushed as they are.
 #[derive(Debug, Clone)]
 pub struct LocalStore {
     dir: PathBuf,
@@ -31,6 +33,10 @@ impl LocalStore {
 
     fn entry_path(&self, date: &EntryDate) -> PathBuf {
         self.dir.join(date.path())
+    }
+
+    fn image_path(&self, id: &ImageId) -> PathBuf {
+        self.dir.join(id.path())
     }
 
     pub fn has_vault(&self) -> bool {
@@ -140,6 +146,27 @@ impl LocalStore {
         };
         write_atomically(&self.entry_path(date), entry::seal(key, &entry)?.as_bytes())?;
         Ok(entry)
+    }
+
+    /// Encrypts `jpeg` into a new image file and returns its id. Each call
+    /// makes a new file under a new id; no image file is ever replaced.
+    pub fn save_image(&self, key: &VaultKey, jpeg: &Jpeg) -> Result<ImageId, AppError> {
+        let id = ImageId::new()?;
+        write_new(
+            &self.image_path(&id),
+            image::seal(key, &id, jpeg)?.as_bytes(),
+        )?;
+        Ok(id)
+    }
+
+    /// The picture saved as `id`.
+    pub fn read_image(&self, key: &VaultKey, id: &ImageId) -> Result<Jpeg, AppError> {
+        let text = match fs::read_to_string(self.image_path(id)) {
+            Ok(text) => text,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(AppError::NoImage),
+            Err(e) => return Err(e.into()),
+        };
+        image::open(key, id, &text)
     }
 
     /// Every date that has an entry file, oldest first. A file counts only
@@ -294,6 +321,27 @@ mod tests {
         walk(dir, dir, &mut out);
         out.sort();
         out
+    }
+
+    #[test]
+    fn a_saved_image_reads_back_from_its_own_file() {
+        let (dir, store) = store();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        let jpeg = Jpeg::try_from(vec![0xFF, 0xD8, 0xFF, 0xE0, 7]).unwrap();
+        let id = store.save_image(&key, &jpeg).unwrap();
+        assert_eq!(files_in(dir.path()), [id.path(), "vault.json".to_string()]);
+        assert_eq!(store.read_image(&key, &id).unwrap(), jpeg);
+    }
+
+    #[test]
+    fn an_image_that_was_never_saved_is_missing() {
+        let (_dir, store) = store();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        let id = ImageId::new().unwrap();
+        assert!(matches!(
+            store.read_image(&key, &id),
+            Err(AppError::NoImage)
+        ));
     }
 
     #[test]
@@ -483,11 +531,11 @@ mod tests {
         let (key, _) = store.create_vault("correct horse").unwrap();
         let path = dir.path().join("entries/2026/2026-10-29.enc");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let newer = r#"{"version":3,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
+        let newer = r#"{"version":4,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
         fs::write(&path, newer).unwrap();
 
         let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000);
-        assert!(matches!(result, Err(AppError::NewerEntryVersion(3))));
+        assert!(matches!(result, Err(AppError::NewerEntryVersion(4))));
         assert_eq!(fs::read_to_string(&path).unwrap(), newer);
     }
 }

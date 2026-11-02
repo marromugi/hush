@@ -2,6 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::State;
 use tauri::async_runtime::spawn_blocking;
+use tauri::ipc::{InvokeBody, Request, Response};
 use zeroize::Zeroizing;
 
 use crate::app_error::AppError;
@@ -86,4 +87,22 @@ pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>,
 #[tauri::command]
 pub async fn show_secret_key(state: State<'_, AppState>) -> Result<String, AppError> {
     session::secret_key_text(&state)
+}
+
+/// The picture is the request's raw body, a JPEG. Returns the new image's id.
+#[tauri::command]
+pub async fn save_image(
+    request: Request<'_>,
+    state: State<'_, AppState>,
+) -> Result<String, AppError> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err(AppError::NotJpeg);
+    };
+    session::save_image(&state, bytes.clone())
+}
+
+/// The JPEG saved as `id`, as raw bytes.
+#[tauri::command]
+pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Response, AppError> {
+    Ok(Response::new(session::read_image(&state, id)?))
 }

@@ -5,6 +5,7 @@ pub mod commands;
 pub mod crypto;
 pub mod entry;
 pub mod file_version;
+pub mod image;
 pub mod keychain;
 pub mod local_store;
 pub mod lock_signals;
@@ -41,6 +42,8 @@ pub fn run() {
             commands::save_entry,
             commands::list_entry_dates,
             commands::show_secret_key,
+            commands::save_image,
+            commands::read_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { InvokeArgs } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
@@ -18,7 +19,7 @@ export type EntryView = {
 };
 
 /** Calls a Rust command; a failure is always rejected as a `HushError`. */
-async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+async function call<T>(command: string, args?: InvokeArgs): Promise<T> {
   try {
     return await invoke<T>(command, args);
   } catch (error) {
@@ -56,6 +57,16 @@ export function saveEntry(date: string, body: string, font: SavedFont | null): P
 /** Every date that has an entry, oldest first, as YYYY-MM-DD. */
 export function listEntryDates(): Promise<string[]> {
   return call("list_entry_dates");
+}
+
+/** Saves `jpeg` as a new encrypted image and resolves with its id. */
+export function saveImage(jpeg: Uint8Array): Promise<string> {
+  return call("save_image", jpeg);
+}
+
+/** The JPEG saved as `id`. */
+export function readImage(id: string): Promise<ArrayBuffer> {
+  return call("read_image", { id });
 }
 
 /** The vault's Secret Key as text, from this device's keychain. Only while unlocked. */

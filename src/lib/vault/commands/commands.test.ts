@@ -8,7 +8,9 @@ import {
   listEntryDates,
   lockVault,
   readEntry,
+  readImage,
   saveEntry,
+  saveImage,
   showSecretKey,
   unlockVault,
   vaultStatus,
@@ -39,6 +41,8 @@ test("sends the command names and arguments the Rust side expects", async () => 
   });
   await listEntryDates();
   await showSecretKey();
+  await saveImage(new Uint8Array([0xff, 0xd8, 0xff]));
+  await readImage("0123456789abcdef0123456789abcdef");
   expect(calls).toEqual([
     ["vault_status", {}],
     ["create_vault", { passphrase: "pass" }],
@@ -62,6 +66,8 @@ test("sends the command names and arguments the Rust side expects", async () => 
     ],
     ["list_entry_dates", {}],
     ["show_secret_key", {}],
+    ["save_image", new Uint8Array([0xff, 0xd8, 0xff])],
+    ["read_image", { id: "0123456789abcdef0123456789abcdef" }],
   ]);
 });
 

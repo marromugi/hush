@@ -53,6 +53,21 @@ pub enum AppError {
     #[error("{0}")]
     InvalidDate(String),
 
+    #[error("image file is version {0}, newer than this app")]
+    NewerImageVersion(u32),
+
+    #[error("image file is broken")]
+    BrokenImage(#[source] serde_json::Error),
+
+    #[error("{0}")]
+    InvalidImageId(String),
+
+    #[error("no image file with this id")]
+    NoImage,
+
+    #[error("picture is not a JPEG")]
+    NotJpeg,
+
     #[error("no vault yet")]
     NoVault,
 
@@ -89,6 +104,11 @@ impl AppError {
             Self::NewerEntryVersion(_) => "newerEntryVersion",
             Self::BrokenEntry(_) => "brokenEntry",
             Self::InvalidDate(_) => "invalidDate",
+            Self::NewerImageVersion(_) => "newerImageVersion",
+            Self::BrokenImage(_) => "brokenImage",
+            Self::InvalidImageId(_) => "invalidImageId",
+            Self::NoImage => "noImage",
+            Self::NotJpeg => "notJpeg",
             Self::NoVault => "noVault",
             Self::VaultExists => "vaultExists",
             Self::Locked => "locked",
@@ -153,6 +173,10 @@ mod tests {
             (AppError::InvalidSecretKey, "invalidSecretKey"),
             (AppError::NoSecretKey, "noSecretKey"),
             (AppError::OutdatedVault(1), "outdatedVault"),
+            (AppError::NewerImageVersion(2), "newerImageVersion"),
+            (AppError::InvalidImageId(String::new()), "invalidImageId"),
+            (AppError::NoImage, "noImage"),
+            (AppError::NotJpeg, "notJpeg"),
         ];
         for (error, kind) in cases {
             assert_eq!(serde_json::to_value(error).unwrap()["kind"], kind);
