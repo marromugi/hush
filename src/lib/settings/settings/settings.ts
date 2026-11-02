@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import type { SavedFont } from "../../diary/fonts";
+import type { SavedFont } from "@/lib/diary/fonts";
 
 /** Where this device keeps its settings, in the WebView's storage. */
 const KEY = "hush.settings";

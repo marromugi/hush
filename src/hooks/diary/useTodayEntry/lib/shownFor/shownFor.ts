@@ -1,5 +1,5 @@
-import type { EntryView } from "../../../../../lib/vault/commands";
-import type { HushError } from "../../../../../lib/vault/hushError";
+import type { EntryView } from "@/lib/vault/commands";
+import type { HushError } from "@/lib/vault/hushError";
 
 /** What was loaded, and for which date. */
 export type Loaded = { date: string; entry: EntryView | null } | { date: string; error: HushError };

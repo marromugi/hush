@@ -2,8 +2,9 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import * as fonts from "../../../../../lib/diary/fonts";
-import { writeSettings } from "../../../../../lib/settings/settings";
+import * as fonts from "@/lib/diary/fonts";
+import { writeSettings } from "@/lib/settings/settings";
+
 import { PastEntry } from "./PastEntry";
 
 afterEach(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
 
-import { scanCamera } from "../../lib/scanCamera";
+import { scanCamera } from "@/components/vault/NewDeviceUnlockForm/components/QrScanner/lib/scanCamera";
 
 export type UseQrScanner = {
   /** Give it as `ref` to the `<video>` that shows the camera. */

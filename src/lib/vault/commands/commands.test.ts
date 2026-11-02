@@ -1,7 +1,8 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, test } from "vitest";
 
-import { HushError } from "../hushError";
+import { HushError } from "@/lib/vault/hushError";
+
 import {
   createVault,
   listEntryDates,

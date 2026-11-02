@@ -1,7 +1,8 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
-import { writeSettings } from "../../../lib/settings/settings";
+import { writeSettings } from "@/lib/settings/settings";
+
 import { useSettings } from "./useSettings";
 
 afterEach(() => {

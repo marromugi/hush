@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { showSecretKey } from "../../../../../../../../../lib/vault/commands";
-import { errorText } from "../../../../../../../../../lib/vault/errorText";
-import { toHushError } from "../../../../../../../../../lib/vault/hushError";
+import { showSecretKey } from "@/lib/vault/commands";
+import { errorText } from "@/lib/vault/errorText";
+import { toHushError } from "@/lib/vault/hushError";
 
 type Read = { secretKey: string } | { error: string };
 

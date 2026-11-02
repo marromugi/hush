@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 
-import { QrCode } from "../../ui/QrCode";
+import { QrCode } from "@/components/ui/QrCode";
+
 import type { SecretKeyCardProps } from "./type";
 
 /** A Secret Key as another device takes it: a QR code to read, and text to type. */

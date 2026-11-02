@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 
-import { localDate } from "../../../lib/diary/localDate";
-import { UnlockedSession } from "../../vault/UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import { localDate } from "@/lib/diary/localDate";
+
 import { DiaryScreen } from "./DiaryScreen";
 
 /**

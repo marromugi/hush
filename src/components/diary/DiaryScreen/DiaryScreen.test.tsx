@@ -5,9 +5,10 @@ import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import * as fonts from "../../../lib/diary/fonts";
-import { writeSettings } from "../../../lib/settings/settings";
-import { UnlockedSession } from "../../vault/UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import * as fonts from "@/lib/diary/fonts";
+import { writeSettings } from "@/lib/settings/settings";
+
 import { DiaryScreen } from "./DiaryScreen";
 
 // The test DOM cancels animations by rejecting a promise nothing awaits; what

@@ -1,16 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useSettings } from "../../../../../../../../../hooks/settings/useSettings";
-import {
-  fontDetails,
-  fontStack,
-  listFonts,
-  loadFont,
-  subsetFor,
-} from "../../../../../../../../../lib/diary/fonts";
-import type { FontChoice, SavedFont } from "../../../../../../../../../lib/diary/fonts";
-import { readSettings, writeSettings } from "../../../../../../../../../lib/settings/settings";
-import type { Language } from "../../../../../../../../../lib/settings/settings";
+import { useSettings } from "@/hooks/settings/useSettings";
+import { fontDetails, fontStack, listFonts, loadFont, subsetFor } from "@/lib/diary/fonts";
+import type { FontChoice, SavedFont } from "@/lib/diary/fonts";
+import { readSettings, writeSettings } from "@/lib/settings/settings";
+import type { Language } from "@/lib/settings/settings";
 
 type Listed = { subset: string; fonts: FontChoice[] } | { subset: string; error: string };
 

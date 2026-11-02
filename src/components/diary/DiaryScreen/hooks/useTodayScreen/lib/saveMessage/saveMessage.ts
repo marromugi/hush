@@ -1,6 +1,6 @@
-import type { EntryView } from "../../../../../../../lib/vault/commands";
-import { errorText } from "../../../../../../../lib/vault/errorText";
-import type { HushError } from "../../../../../../../lib/vault/hushError";
+import type { EntryView } from "@/lib/vault/commands";
+import { errorText } from "@/lib/vault/errorText";
+import type { HushError } from "@/lib/vault/hushError";
 
 export type SaveMessage = { text: string; failed: boolean };
 

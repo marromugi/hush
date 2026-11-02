@@ -1,4 +1,5 @@
-import { Button } from "../../../../ui/Button";
+import { Button } from "@/components/ui/Button";
+
 import { useQrScanner } from "./hooks/useQrScanner";
 import type { QrScannerProps } from "./type";
 

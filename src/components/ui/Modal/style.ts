@@ -1,4 +1,4 @@
-import { tv } from "../../../lib/ui/tv";
+import { tv } from "@/lib/ui/tv";
 
 /** The look of the dialog's panel. */
 export const modal = tv({

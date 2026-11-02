@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
-import { fontDetails, listFonts, loadFont, pickFont } from "../../../../../lib/diary/fonts";
-import type { FontChoice, FontDetails, SavedFont } from "../../../../../lib/diary/fonts";
+import { fontDetails, listFonts, loadFont, pickFont } from "@/lib/diary/fonts";
+import type { FontChoice, FontDetails, SavedFont } from "@/lib/diary/fonts";
 
 export type UseFontDice = {
   /** True while a new font is being fetched; the dice cannot be pressed then. */

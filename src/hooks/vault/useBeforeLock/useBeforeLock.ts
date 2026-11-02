@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { useSession } from "../useSession";
-import type { BeforeLock } from "../useSession";
+import { useSession } from "@/hooks/vault/useSession";
+import type { BeforeLock } from "@/hooks/vault/useSession";
 
 /**
  * Makes the vault wait for `work` before it locks, for as long as the

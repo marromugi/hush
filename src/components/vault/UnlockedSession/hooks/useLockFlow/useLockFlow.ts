@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { BeforeLock, Session } from "../../../../../hooks/vault/useSession";
+import type { BeforeLock, Session } from "@/hooks/vault/useSession";
 
 /** The session's lock: registered work first, then `onLock` if all of it succeeded. */
 export function useLockFlow(onLock: () => Promise<void>): Session {

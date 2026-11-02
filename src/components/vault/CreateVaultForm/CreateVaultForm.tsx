@@ -1,5 +1,6 @@
-import { Button } from "../../ui/Button";
-import { TextField } from "../../ui/TextField";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+
 import { useCreateVaultForm } from "./hooks/useCreateVaultForm";
 import type { CreateVaultFormProps } from "./type";
 

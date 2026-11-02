@@ -1,5 +1,5 @@
-import { readQr } from "../../../../../../../lib/ui/qr";
-import { cameraErrorText } from "../cameraErrorText";
+import { cameraErrorText } from "@/components/vault/NewDeviceUnlockForm/components/QrScanner/lib/cameraErrorText";
+import { readQr } from "@/lib/ui/qr";
 
 /**
  * Shows the camera in `video` and reads each frame until a QR code is found,

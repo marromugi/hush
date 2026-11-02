@@ -1,16 +1,17 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
-import { useSettings } from "../../../hooks/settings/useSettings";
-import { entryTextStyle } from "../../../lib/diary/entryTextStyle";
-import { subsetFor } from "../../../lib/diary/fonts";
-import { SettingsModal } from "../../settings/SettingsModal";
-import { Drawer } from "../../ui/Drawer";
-import { DiceIcon, Icon, LogoIcon, MenuIcon } from "../../ui/Icon";
-import { IconButton } from "../../ui/IconButton";
-import { optionList, optionRow } from "../../ui/Options";
-import { Popover } from "../../ui/Popover";
-import { DiaryEditor } from "../DiaryEditor";
+import { DiaryEditor } from "@/components/diary/DiaryEditor";
+import { SettingsModal } from "@/components/settings/SettingsModal";
+import { Drawer } from "@/components/ui/Drawer";
+import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { optionList, optionRow } from "@/components/ui/Options";
+import { Popover } from "@/components/ui/Popover";
+import { useSettings } from "@/hooks/settings/useSettings";
+import { entryTextStyle } from "@/lib/diary/entryTextStyle";
+import { subsetFor } from "@/lib/diary/fonts";
+
 import { PastEntry } from "./components/PastEntry";
 import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";

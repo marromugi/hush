@@ -1,6 +1,7 @@
-import { useSession } from "../../../hooks/vault/useSession";
-import { Button } from "../../ui/Button";
-import { SecretKeyCard } from "../SecretKeyCard";
+import { Button } from "@/components/ui/Button";
+import { SecretKeyCard } from "@/components/vault/SecretKeyCard";
+import { useSession } from "@/hooks/vault/useSession";
+
 import type { SecretKeyNoticeProps } from "./type";
 
 /** Shown once, right after a vault is made, so its Secret Key can be kept. Mount it inside `UnlockedSession`. */

@@ -1,9 +1,10 @@
 import { clsx } from "clsx";
 
-import { entryProse } from "../../../../../../../lib/diary/entryProse";
-import { entryTextStyle } from "../../../../../../../lib/diary/entryTextStyle";
-import { TEXT_RANGES } from "../../../../../../../lib/settings/settings";
-import { Button } from "../../../../../../ui/Button";
+import { Button } from "@/components/ui/Button";
+import { entryProse } from "@/lib/diary/entryProse";
+import { entryTextStyle } from "@/lib/diary/entryTextStyle";
+import { TEXT_RANGES } from "@/lib/settings/settings";
+
 import { useTextSection } from "./hooks/useTextSection";
 
 const SLIDERS = [

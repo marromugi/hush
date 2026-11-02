@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form";
 import type { UseFormRegister } from "react-hook-form";
 import * as v from "valibot";
 
-import { errorText } from "../../../../../lib/vault/errorText";
-import { isAboutPassphrase } from "../../../../../lib/vault/hushError";
-import type { HushError } from "../../../../../lib/vault/hushError";
+import { errorText } from "@/lib/vault/errorText";
+import { isAboutPassphrase } from "@/lib/vault/hushError";
+import type { HushError } from "@/lib/vault/hushError";
 
 const schema = v.pipe(
   v.object({ passphrase: v.string(), confirm: v.string() }),

@@ -1,8 +1,9 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import * as fonts from "../../../lib/diary/fonts";
-import type { SavedFont } from "../../../lib/diary/fonts";
+import * as fonts from "@/lib/diary/fonts";
+import type { SavedFont } from "@/lib/diary/fonts";
+
 import { useLoadedFont } from "./useLoadedFont";
 
 afterEach(() => {

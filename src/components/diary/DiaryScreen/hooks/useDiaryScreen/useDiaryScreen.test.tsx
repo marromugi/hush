@@ -2,7 +2,8 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { UnlockedSession } from "../../../../vault/UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+
 import { useDiaryScreen } from "./useDiaryScreen";
 
 /** Renders the hook inside an unlocked session whose lock calls `onLock`. */

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { fontStack, loadFont } from "../../../lib/diary/fonts";
-import type { SavedFont } from "../../../lib/diary/fonts";
+import { fontStack, loadFont } from "@/lib/diary/fonts";
+import type { SavedFont } from "@/lib/diary/fonts";
 
 export type LoadedFont = {
   /**

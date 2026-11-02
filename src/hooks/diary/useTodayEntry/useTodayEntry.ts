@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { SavedFont } from "../../../lib/diary/fonts";
-import { readEntry, saveEntry } from "../../../lib/vault/commands";
-import type { EntryView } from "../../../lib/vault/commands";
-import { toHushError } from "../../../lib/vault/hushError";
-import type { HushError } from "../../../lib/vault/hushError";
+import type { SavedFont } from "@/lib/diary/fonts";
+import { readEntry, saveEntry } from "@/lib/vault/commands";
+import type { EntryView } from "@/lib/vault/commands";
+import { toHushError } from "@/lib/vault/hushError";
+import type { HushError } from "@/lib/vault/hushError";
+
 import { shownFor } from "./lib/shownFor";
 import type { Loaded, SaveFailure } from "./lib/shownFor";
 

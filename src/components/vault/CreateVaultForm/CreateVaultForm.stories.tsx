@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { HushError } from "../../../lib/vault/hushError";
+import { HushError } from "@/lib/vault/hushError";
+
 import { CreateVaultForm } from "./CreateVaultForm";
 
 const meta = {

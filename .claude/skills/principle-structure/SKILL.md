@@ -41,7 +41,7 @@ Why: everything about one unit is in one place. Opening the directory shows what
 Why: an index that collects units hides which unit a file actually depends on, and it is where import cycles start, since every unit behind it becomes reachable from every importer.
 
 **Import a unit through its directory from outside; inside the directory, import files directly.**
-`import { DiaryEditor } from "../DiaryEditor"`, but `DiaryEditor.tsx` imports `./type`.
+`import { DiaryEditor } from "@/components/diary/DiaryEditor"`, but `DiaryEditor.tsx` imports `./type`. A path that leaves the directory starts with `@/` (src), never `../`; lint enforces it.
 Why: the directory is the unit's boundary. What goes through `index.ts` is its public face; the files behind it can be reshaped without touching callers.
 
 **A unit nested inside another never imports from its parent.** The parent passes what the child needs as props or arguments.

@@ -3,9 +3,10 @@ import { act, cleanup, render } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, test } from "vitest";
 
-import { UnlockedSession } from "../../../components/vault/UnlockedSession";
-import { useSession } from "../useSession";
-import type { Session } from "../useSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import { useSession } from "@/hooks/vault/useSession";
+import type { Session } from "@/hooks/vault/useSession";
+
 import { useBeforeLock } from "./useBeforeLock";
 
 afterEach(() => {

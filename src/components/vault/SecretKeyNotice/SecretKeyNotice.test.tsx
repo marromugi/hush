@@ -3,7 +3,8 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
-import { UnlockedSession } from "../UnlockedSession";
+import { UnlockedSession } from "@/components/vault/UnlockedSession";
+
 import { SecretKeyNotice } from "./SecretKeyNotice";
 
 afterEach(() => {
