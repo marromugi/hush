@@ -7,8 +7,7 @@ import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
 import { useSession } from "@/hooks/vault/useSession";
 import { listEntryDates } from "@/lib/vault/commands";
-import { errorText } from "@/lib/vault/errorText";
-import { toHushError } from "@/lib/vault/hushError";
+import { failureText } from "@/lib/vault/errorText";
 
 export type UseDiaryScreen = {
   /** The day shown, as `YYYY-MM-DD`. Today at first. */
@@ -95,6 +94,6 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
           today,
           ...written.filter((date) => date > today),
         ],
-    datesError: listed.status === "failed" ? errorText(toHushError(listed.error).kind) : null,
+    datesError: listed.status === "failed" ? failureText(listed.error) : null,
   };
 }

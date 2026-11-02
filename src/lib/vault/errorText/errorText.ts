@@ -1,3 +1,4 @@
+import { toHushError } from "@/lib/vault/hushError";
 import type { HushErrorKind } from "@/lib/vault/hushError";
 
 /** What to tell the person for each kind. Every kind needs an entry. */
@@ -30,4 +31,9 @@ const TEXT: Record<HushErrorKind, string> = {
 
 export function errorText(kind: HushErrorKind): string {
   return TEXT[kind];
+}
+
+/** What to tell the person about `failure`, whatever was thrown. */
+export function failureText(failure: unknown): string {
+  return errorText(toHushError(failure).kind);
 }
