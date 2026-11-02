@@ -17,3 +17,13 @@ test("opens and closes, by name or by the next state", () => {
   act(() => result.current.setOpen(true));
   expect(result.current.isOpen).toBe(true);
 });
+
+test("setOpen is the same function on every render, and can close too", () => {
+  const { result, rerender } = renderHook(() => useDisclosure(true));
+  expect(result.current.isOpen).toBe(true);
+  const first = result.current.setOpen;
+  rerender();
+  expect(result.current.setOpen).toBe(first);
+  act(() => result.current.setOpen(false));
+  expect(result.current.isOpen).toBe(false);
+});
