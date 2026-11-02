@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import * as fonts from "../../../../../../../../../lib/diary/fonts";
@@ -6,6 +6,7 @@ import { readSettings, writeSettings } from "../../../../../../../../../lib/sett
 import { useFontSection } from "./useFontSection";
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
   localStorage.clear();
   writeSettings({ language: "ja", defaultFonts: { ja: null, en: null } });
@@ -70,4 +71,69 @@ test("a list that cannot be fetched says so", async () => {
   await waitFor(() =>
     expect(result.current.listError).toBe("フォントの一覧を読み込めませんでした。"),
   );
+});
+
+test("a font that cannot load is not kept, and says why", async () => {
+  fakeFonts();
+  vi.spyOn(fonts, "loadFont").mockRejectedValue(new Error("offline"));
+  const { result } = await renderSection();
+  await act(() => result.current.choose("klee-one"));
+  expect(readSettings().defaultFonts.ja).toBeNull();
+  expect(result.current.chooseError).toBe("フォントを読み込めませんでした。");
+});
+
+test("the font being chosen shows at once, and a later choice wins over a slow one", async () => {
+  fakeFonts();
+  let finish: (() => void) | undefined;
+  vi.spyOn(fonts, "loadFont").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const { result } = await renderSection();
+  let slow: Promise<void> | undefined;
+  act(() => {
+    slow = result.current.choose("klee-one");
+  });
+  await waitFor(() => expect(result.current.value).toBe("klee-one"));
+  expect(result.current.choosing).toBe(true);
+  await act(() => result.current.choose(null));
+  await act(async () => {
+    finish?.();
+    await slow;
+  });
+  expect(readSettings().defaultFonts.ja).toBeNull();
+  expect(result.current.value).toBeNull();
+});
+
+test("the chosen font's name shows even when the list cannot be fetched", async () => {
+  writeSettings({
+    defaultFonts: { ja: { ...klee, stylesheet: "css/klee-one" }, en: null },
+  });
+  vi.spyOn(fonts, "listFonts").mockRejectedValue(new Error("offline"));
+  const { result } = renderHook(() => useFontSection());
+  await waitFor(() => expect(result.current.listError).not.toBeNull());
+  expect(result.current.options).toEqual([{ value: "klee-one", label: "Klee One" }]);
+  expect(result.current.value).toBe("klee-one");
+});
+
+test("after switching language, the other language's list is not offered", async () => {
+  let latin: ((list: fonts.FontChoice[]) => void) | undefined;
+  vi.spyOn(fonts, "listFonts").mockImplementation((subset) =>
+    subset === "japanese"
+      ? Promise.resolve([klee])
+      : new Promise((resolve) => {
+          latin = resolve;
+        }),
+  );
+  const { result } = await renderSection();
+  act(() => {
+    writeSettings({ language: "en" });
+  });
+  expect(result.current.fonts).toBeNull();
+  await act(async () => {
+    latin?.([{ id: "lora", family: "Lora", category: "serif" }]);
+  });
+  expect(result.current.fonts).toEqual([{ id: "lora", family: "Lora", category: "serif" }]);
 });

@@ -16,11 +16,11 @@ export function FontSection() {
         label={
           section.language === "ja" ? "ふだんのフォント（日本語）" : "ふだんのフォント（English）"
         }
-        options={(section.fonts ?? []).map((font) => ({ value: font.id, label: font.family }))}
-        value={section.chosen?.id ?? null}
+        options={section.options}
+        value={section.value}
         onChange={(id) => void section.choose(id)}
         placeholder={section.fonts === null ? "読み込み中…" : "入力して探す"}
-        disabled={section.fonts === null || section.choosing}
+        disabled={section.fonts === null}
       />
       {(section.listError ?? section.chooseError) ? (
         <p role="alert" className="text-sm text-error">

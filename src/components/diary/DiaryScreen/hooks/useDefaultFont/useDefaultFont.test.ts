@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import * as fonts from "../../../../../lib/diary/fonts";
@@ -6,6 +6,7 @@ import { writeSettings } from "../../../../../lib/settings/settings";
 import { useDefaultFont } from "./useDefaultFont";
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
   localStorage.clear();
   writeSettings({ language: "ja", defaultFonts: { ja: null, en: null } });
@@ -46,4 +47,34 @@ test("a default font that cannot load leaves the standard font", async () => {
   const { result } = renderHook(() => useDefaultFont());
   await waitFor(() => expect(loads).toHaveBeenCalled());
   expect(result.current).toBeUndefined();
+});
+
+test("a newly chosen default font replaces the old one once it has loaded, with no standard font between", async () => {
+  // The first font loads at once; the second waits until `finish`.
+  let finish: (() => void) | undefined;
+  let calls = 0;
+  vi.spyOn(fonts, "loadFont").mockImplementation(() => {
+    calls += 1;
+    return calls === 1
+      ? Promise.resolve()
+      : new Promise((resolve) => {
+          finish = resolve;
+        });
+  });
+  writeSettings({ defaultFonts: { ja: klee, en: null } });
+  const { result } = renderHook(() => useDefaultFont());
+  await waitFor(() => expect(result.current).toBe('"Klee One", cursive'));
+  act(() => {
+    writeSettings({
+      defaultFonts: {
+        ja: { id: "zen-maru", family: "Zen Maru", category: "sans-serif", stylesheet: "css/zen" },
+        en: null,
+      },
+    });
+  });
+  expect(result.current).toBe('"Klee One", cursive');
+  await act(async () => {
+    finish?.();
+  });
+  expect(result.current).toBe('"Zen Maru", sans-serif');
 });

@@ -200,6 +200,18 @@ test("today's entry is in the default font until the dice picks another", async 
       document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
     ).toBe('"Klee One", cursive'),
   );
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "zen-maru", family: "Zen Maru", category: "sans-serif" },
+  ]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/zen", complete: true });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+  });
+  await waitFor(() =>
+    expect(
+      document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
+    ).toBe('"Zen Maru", sans-serif'),
+  );
   writeSettings({ defaultFonts: { ja: null, en: null } });
 });
 
