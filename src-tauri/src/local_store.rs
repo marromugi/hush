@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::app_error::AppError;
 use crate::crypto::VaultKey;
 use crate::entry::{self, Entry, EntryDate, EntryFont};
-use crate::image::{self, ImageId, Jpeg};
+use crate::image::{self, ImageId, Picture};
 use crate::keychain::SecretKeyStore;
 use crate::secret_key::SecretKey;
 use crate::vault::Vault;
@@ -148,19 +148,19 @@ impl LocalStore {
         Ok(entry)
     }
 
-    /// Encrypts `jpeg` into a new image file and returns its id. Each call
+    /// Encrypts `picture` into a new image file and returns its id. Each call
     /// makes a new file under a new id; no image file is ever replaced.
-    pub fn save_image(&self, key: &VaultKey, jpeg: &Jpeg) -> Result<ImageId, AppError> {
+    pub fn save_image(&self, key: &VaultKey, picture: &Picture) -> Result<ImageId, AppError> {
         let id = ImageId::new()?;
         write_new(
             &self.image_path(&id),
-            image::seal(key, &id, jpeg)?.as_bytes(),
+            image::seal(key, &id, picture)?.as_bytes(),
         )?;
         Ok(id)
     }
 
     /// The picture saved as `id`.
-    pub fn read_image(&self, key: &VaultKey, id: &ImageId) -> Result<Jpeg, AppError> {
+    pub fn read_image(&self, key: &VaultKey, id: &ImageId) -> Result<Picture, AppError> {
         let text = match fs::read_to_string(self.image_path(id)) {
             Ok(text) => text,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(AppError::NoImage),
@@ -327,7 +327,7 @@ mod tests {
     fn a_saved_image_reads_back_from_its_own_file() {
         let (dir, store) = store();
         let (key, _) = store.create_vault("correct horse").unwrap();
-        let jpeg = Jpeg::try_from(vec![0xFF, 0xD8, 0xFF, 0xE0, 7]).unwrap();
+        let jpeg = Picture::try_from(vec![0xFF, 0xD8, 0xFF, 0xE0, 7]).unwrap();
         let id = store.save_image(&key, &jpeg).unwrap();
         assert_eq!(files_in(dir.path()), [id.path(), "vault.json".to_string()]);
         assert_eq!(store.read_image(&key, &id).unwrap(), jpeg);

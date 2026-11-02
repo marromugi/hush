@@ -1,5 +1,6 @@
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { Node, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
-import type { ReactNodeViewProps } from "@tiptap/react";
+import type { Editor, ReactNodeViewProps } from "@tiptap/react";
 
 import { EntryImage } from "@/components/diary/EntryImage";
 
@@ -49,7 +50,25 @@ export const EntryImageNode = Node.create({
   },
 });
 
-/** Content that inserts the image saved as `id`. */
-export function entryImage(id: string) {
-  return { type: NAME, attrs: { id } };
+/**
+ * Puts the image saved as `id` where the cursor is, and leaves the cursor on
+ * the line after it, so a second image goes after the first instead of
+ * replacing it.
+ */
+export function insertEntryImage(editor: Editor, id: string): void {
+  editor
+    .chain()
+    .focus()
+    .insertContent({ type: NAME, attrs: { id } })
+    .command(({ tr }) => {
+      // At the end of the entry the image is left selected, with no line after it to type on.
+      if (!(tr.selection instanceof NodeSelection)) return true;
+      const after = tr.selection.to;
+      if (!tr.doc.resolve(after).nodeAfter?.isTextblock) {
+        tr.insert(after, editor.schema.nodes.paragraph.create());
+      }
+      tr.setSelection(TextSelection.create(tr.doc, after + 1));
+      return true;
+    })
+    .run();
 }

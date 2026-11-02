@@ -65,8 +65,8 @@ pub enum AppError {
     #[error("no image file with this id")]
     NoImage,
 
-    #[error("picture is not a JPEG")]
-    NotJpeg,
+    #[error("picture is not a JPEG, PNG, or GIF")]
+    UnsupportedPicture,
 
     #[error("no vault yet")]
     NoVault,
@@ -108,7 +108,7 @@ impl AppError {
             Self::BrokenImage(_) => "brokenImage",
             Self::InvalidImageId(_) => "invalidImageId",
             Self::NoImage => "noImage",
-            Self::NotJpeg => "notJpeg",
+            Self::UnsupportedPicture => "unsupportedPicture",
             Self::NoVault => "noVault",
             Self::VaultExists => "vaultExists",
             Self::Locked => "locked",
@@ -176,7 +176,7 @@ mod tests {
             (AppError::NewerImageVersion(2), "newerImageVersion"),
             (AppError::InvalidImageId(String::new()), "invalidImageId"),
             (AppError::NoImage, "noImage"),
-            (AppError::NotJpeg, "notJpeg"),
+            (AppError::UnsupportedPicture, "unsupportedPicture"),
         ];
         for (error, kind) in cases {
             assert_eq!(serde_json::to_value(error).unwrap()["kind"], kind);

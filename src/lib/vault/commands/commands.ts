@@ -59,12 +59,12 @@ export function listEntryDates(): Promise<string[]> {
   return call("list_entry_dates");
 }
 
-/** Saves `jpeg` as a new encrypted image and resolves with its id. */
-export function saveImage(jpeg: Uint8Array): Promise<string> {
-  return call("save_image", jpeg);
+/** Saves `picture`, a JPEG, PNG, or GIF, as a new encrypted image and resolves with its id. */
+export function saveImage(picture: Uint8Array): Promise<string> {
+  return call("save_image", picture);
 }
 
-/** The JPEG saved as `id`. */
+/** The picture saved as `id`: a JPEG, PNG, or GIF. */
 export function readImage(id: string): Promise<ArrayBuffer> {
   return call("read_image", { id });
 }

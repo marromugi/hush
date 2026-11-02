@@ -1,1 +1,1 @@
-export { EntryImageNode, entryImage } from "./entryImageNode";
+export { EntryImageNode, insertEntryImage } from "./entryImageNode";
