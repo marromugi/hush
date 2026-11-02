@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import { toHushError } from "../hushError";
 
@@ -56,4 +58,12 @@ export function listEntryDates(): Promise<string[]> {
 /** The vault's Secret Key as text, from this device's keychain. Only while unlocked. */
 export function showSecretKey(): Promise<string> {
   return call("show_secret_key");
+}
+
+/** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, or user switch. */
+const LOCK_REQUESTED = "lock-requested";
+
+/** Calls `onRequest` each time the system asks the vault to lock. */
+export function listenLockRequests(onRequest: () => void): Promise<UnlistenFn> {
+  return listen(LOCK_REQUESTED, () => onRequest());
 }

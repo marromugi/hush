@@ -1,13 +1,13 @@
 import { clsx } from "clsx";
 import { useRef } from "react";
 
-import { Button } from "../../ui/Button";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
 import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
+import { useAutoLock } from "./hooks/useAutoLock";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
 import type { DiaryScreenProps } from "./type";
@@ -15,7 +15,8 @@ import type { DiaryScreenProps } from "./type";
 /** Today's entry, saved as it is written, and the days before it to read. Mount it on unlock. */
 export function DiaryScreen({ onLock }: DiaryScreenProps) {
   const today = useTodayScreen(onLock);
-  const screen = useDiaryScreen(today.date);
+  const screen = useDiaryScreen(today.date, today.lock);
+  useAutoLock(today.lock);
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
 
@@ -34,23 +35,13 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
           <span>{screen.selectedParts.month}</span>
           <span>{screen.selectedParts.day}</span>
         </h1>
-        <div className="flex items-center gap-4">
-          {today.saveMessage ? (
-            <output
-              className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
-            >
-              {today.saveMessage.text}
-            </output>
-          ) : null}
-          <Button
-            type="button"
-            tone="neutral"
-            disabled={today.locking}
-            onClick={() => void today.lock()}
+        {today.saveMessage ? (
+          <output
+            className={clsx("text-sm", today.saveMessage.failed ? "text-error" : "opacity-70")}
           >
-            ロック
-          </Button>
-        </div>
+            {today.saveMessage.text}
+          </output>
+        ) : null}
       </header>
       <div className="pt-24">
         <Sidebar
@@ -92,6 +83,14 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
           <div className={optionList({ className: "w-48" })}>
             <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
               Secret Key
+            </button>
+            <button
+              type="button"
+              className={optionRow()}
+              disabled={today.locking}
+              onClick={screen.lockFromConfig}
+            >
+              ロック
             </button>
           </div>
         </Popover>

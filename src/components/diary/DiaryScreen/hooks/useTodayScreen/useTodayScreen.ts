@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useTodayEntry } from "../../../../../hooks/diary/useTodayEntry";
 import { localDate } from "../../../../../lib/diary/localDate";
@@ -24,7 +24,10 @@ export type UseTodayScreen = {
   onChange: (body: string) => void;
   /** True while locking; nothing can be typed then. */
   locking: boolean;
-  /** Saves what is waiting, then locks only if that save succeeded. */
+  /**
+   * Saves what is waiting, then locks only if that save succeeded. A call
+   * while one runs joins it, as when sleep and screen lock come together.
+   */
   lock: () => Promise<void>;
 };
 
@@ -33,6 +36,7 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
   const today = useTodayEntry(date);
   const [typed, setTyped] = useState<string | null>(null);
   const [locking, setLocking] = useState(false);
+  const runningLock = useRef<Promise<void> | null>(null);
 
   const [saver] = useState(() => createAutoSaver(SAVE_DELAY_MS));
   useEffect(() => () => saver.cancel(), [saver]);
@@ -53,13 +57,17 @@ export function useTodayScreen(onLock: () => Promise<void>): UseTodayScreen {
       saver.schedule(body, today.save);
     },
     locking,
-    lock: async () => {
-      setLocking(true);
-      try {
-        if (await saver.flush()) await onLock();
-      } finally {
-        setLocking(false);
-      }
+    lock: () => {
+      runningLock.current ??= (async () => {
+        setLocking(true);
+        try {
+          if (await saver.flush()) await onLock();
+        } finally {
+          setLocking(false);
+          runningLock.current = null;
+        }
+      })();
+      return runningLock.current;
     },
   };
 }

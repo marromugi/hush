@@ -1,5 +1,7 @@
+import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test } from "vitest";
 
@@ -18,13 +20,21 @@ afterEach(() => {
 
 const SECRET_KEY = "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
 
-function fakeVault() {
-  mockIPC((command) => {
-    if (command === "read_entry") return null;
-    if (command === "list_entry_dates") return [];
-    if (command === "show_secret_key") return SECRET_KEY;
-    throw new Error(`unexpected command ${command}`);
-  });
+function fakeVault(log: string[] = []) {
+  mockIPC(
+    (command, args) => {
+      if (command === "read_entry") return null;
+      if (command === "save_entry") {
+        const body = String(args && "body" in args ? args.body : "");
+        log.push(`save ${body}`);
+        return { date: "2026-11-02", body, createdAtMs: 1, updatedAtMs: 2 };
+      }
+      if (command === "list_entry_dates") return [];
+      if (command === "show_secret_key") return SECRET_KEY;
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
 }
 
 test("config opens a menu whose Secret Key item shows the key, and closing returns to config", async () => {
@@ -44,4 +54,48 @@ test("config opens a menu whose Secret Key item shows the key, and closing retur
   });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(config));
+});
+
+test("ロック in the config menu locks", async () => {
+  fakeVault();
+  let locks = 0;
+  render(
+    <DiaryScreen
+      onLock={async () => {
+        locks += 1;
+      }}
+    />,
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "config" }));
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "ロック" }));
+  });
+  await waitFor(() => expect(locks).toBe(1));
+});
+
+/** Types into the Tiptap editor on the page, as a person would. */
+function type(text: string) {
+  const dom = document.querySelector(".ProseMirror");
+  if (dom === null || !("editor" in dom) || !(dom.editor instanceof Editor)) {
+    throw new Error("no editor on the page");
+  }
+  dom.editor.commands.insertContent(text);
+}
+
+test("a lock the system asks for saves what was just typed first", async () => {
+  const log: string[] = [];
+  fakeVault(log);
+  render(
+    <DiaryScreen
+      onLock={async () => {
+        log.push("lock");
+      }}
+    />,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  act(() => type("晴れ"));
+  await act(async () => {
+    await emit("lock-requested");
+  });
+  await waitFor(() => expect(log).toEqual(["save <p>晴れ</p>", "lock"]));
 });

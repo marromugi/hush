@@ -45,5 +45,17 @@ opt-level = 3
 [profile.dev.package.blake2]
 opt-level = 3
 
+# System notifications that lock the vault: sleep and screen lock.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSWorkspace"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSDictionary",
+  "NSDistributedNotificationCenter",
+  "NSNotification",
+  "NSString",
+] }
+
 [dev-dependencies]
 tempfile = "3.27.0"

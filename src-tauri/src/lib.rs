@@ -7,6 +7,7 @@ pub mod entry;
 pub mod file_version;
 pub mod keychain;
 pub mod local_store;
+pub mod lock_signals;
 pub mod secret_key;
 pub mod session;
 pub mod vault;
@@ -28,6 +29,7 @@ pub fn run() {
                 dir,
                 Arc::new(Keychain),
             ))));
+            lock_signals::watch(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

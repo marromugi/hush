@@ -68,3 +68,33 @@ test("an editor opened again starts from what was typed, before it is saved", as
   expect(log).toEqual([]);
   expect(result.current.initialBody).toBe("<p>晴れ</p>");
 });
+
+test("a lock asked for while one runs joins it, and stays locking until it ends", async () => {
+  const log: string[] = [];
+  fakeEntries(log);
+  let finish: (() => void) | undefined;
+  const hook = renderHook(() =>
+    useTodayScreen(
+      () =>
+        new Promise<void>((resolve) => {
+          log.push("lock");
+          finish = resolve;
+        }),
+    ),
+  );
+  await waitFor(() => expect(hook.result.current.loading).toBe(false));
+  let first: Promise<void> | undefined;
+  let second: Promise<void> | undefined;
+  await act(async () => {
+    first = hook.result.current.lock();
+    second = hook.result.current.lock();
+    await Promise.resolve();
+  });
+  expect(log).toEqual(["lock"]);
+  expect(hook.result.current.locking).toBe(true);
+  await act(async () => {
+    finish?.();
+    await Promise.all([first, second]);
+  });
+  expect(hook.result.current.locking).toBe(false);
+});

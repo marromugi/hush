@@ -10,21 +10,24 @@ import { DiaryScreen } from "./DiaryScreen";
  */
 function fakeEntries(past: Record<string, string>) {
   const entries = new Map(Object.entries(past));
-  mockIPC((command, args) => {
-    const date = String(args && "date" in args ? args.date : "");
-    if (command === "list_entry_dates") return [...entries.keys()];
-    if (command === "show_secret_key") return "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
-    if (command === "read_entry") {
-      const body = entries.get(date);
-      return body === undefined ? null : { date, body, createdAtMs: 1, updatedAtMs: 2 };
-    }
-    if (command === "save_entry") {
-      const body = String(args && "body" in args ? args.body : "");
-      entries.set(date, body);
-      return { date, body, createdAtMs: 1, updatedAtMs: Date.now() };
-    }
-    throw new Error(`unexpected command ${command}`);
-  });
+  mockIPC(
+    (command, args) => {
+      const date = String(args && "date" in args ? args.date : "");
+      if (command === "list_entry_dates") return [...entries.keys()];
+      if (command === "show_secret_key") return "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
+      if (command === "read_entry") {
+        const body = entries.get(date);
+        return body === undefined ? null : { date, body, createdAtMs: 1, updatedAtMs: 2 };
+      }
+      if (command === "save_entry") {
+        const body = String(args && "body" in args ? args.body : "");
+        entries.set(date, body);
+        return { date, body, createdAtMs: 1, updatedAtMs: Date.now() };
+      }
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
   return clearMocks;
 }
 
