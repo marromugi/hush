@@ -1,9 +1,11 @@
 import { clsx } from "clsx";
 
 import { Button } from "../../ui/Button";
+import { optionList, optionRow } from "../../ui/Options";
+import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
 import { PastEntry } from "./components/PastEntry";
-import { SecretKeyPanel } from "./components/SecretKeyPanel";
+import { SecretKeyModal } from "./components/SecretKeyModal";
 import { Sidebar } from "./components/Sidebar";
 import { useDiaryScreen } from "./hooks/useDiaryScreen";
 import { useTodayScreen } from "./hooks/useTodayScreen";
@@ -18,7 +20,7 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
     <div
       className={clsx(
         // layout
-        "grid min-h-screen grid-cols-[10rem_1fr] grid-rows-[auto_1fr]",
+        "grid min-h-screen grid-cols-[10rem_1fr] grid-rows-[auto_1fr_auto]",
         // spacing
         "gap-x-6 px-10 py-10",
       )}
@@ -37,9 +39,6 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
               {today.saveMessage.text}
             </output>
           ) : null}
-          <Button type="button" tone="neutral" onClick={screen.openSecretKey}>
-            Secret Key
-          </Button>
           <Button
             type="button"
             tone="neutral"
@@ -59,9 +58,7 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
         />
       </div>
       <main className="mx-auto w-full max-w-2xl pt-24">
-        {screen.showsSecretKey ? (
-          <SecretKeyPanel onClose={screen.closeSecretKey} />
-        ) : screen.showsToday ? (
+        {screen.showsToday ? (
           today.loading ? null : today.loadError ? (
             <p role="alert" className="text-sm text-error">
               {today.loadError}
@@ -77,6 +74,22 @@ export function DiaryScreen({ onLock }: DiaryScreenProps) {
           <PastEntry key={screen.selected} date={screen.selected} />
         )}
       </main>
+      <footer className="col-span-2">
+        <Popover
+          direction="top"
+          align="start"
+          open={screen.configOpen}
+          onOpenChange={screen.setConfigOpen}
+          trigger={<button className="cursor-pointer">config</button>}
+        >
+          <div className={optionList({ className: "w-48" })}>
+            <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
+              Secret Key
+            </button>
+          </div>
+        </Popover>
+        <SecretKeyModal open={screen.secretKeyOpen} onOpenChange={screen.setSecretKeyOpen} />
+      </footer>
     </div>
   );
 }

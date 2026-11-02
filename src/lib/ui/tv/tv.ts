@@ -4,7 +4,8 @@ export const tv = createTV({
   twMergeConfig: {
     extend: {
       theme: {
-        radius: ["control"],
+        radius: ["control", "container"],
+        shadow: ["float"],
       },
     },
   },

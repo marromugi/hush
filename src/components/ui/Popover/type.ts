@@ -1,0 +1,20 @@
+import type { ReactElement, ReactNode } from "react";
+
+import type { Align, Direction } from "./lib/placement";
+
+/**
+ * Whoever passes `open` holds the state, so it must also take the changes.
+ * Without `open` the popover holds the state itself.
+ */
+type OpenState =
+  | { open: boolean; onOpenChange: (open: boolean) => void; defaultOpen?: undefined }
+  | { open?: undefined; onOpenChange?: (open: boolean) => void; defaultOpen?: boolean };
+
+export type PopoverProps = {
+  /** One element that passes the props it is given on to a button. */
+  trigger: ReactElement<Record<string, unknown>>;
+  direction?: Direction;
+  align?: Align;
+  offset?: number;
+  children: ReactNode;
+} & OpenState;

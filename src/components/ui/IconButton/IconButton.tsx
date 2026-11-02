@@ -1,0 +1,12 @@
+import { Icon } from "../Icon";
+import { iconButton } from "./style";
+import type { IconButtonProps } from "./type";
+
+/** A round button that shows only an icon. */
+export function IconButton({ icon, label, className, ...props }: IconButtonProps) {
+  return (
+    <button {...props} aria-label={label} className={iconButton({ className })}>
+      <Icon icon={icon} size="md" />
+    </button>
+  );
+}

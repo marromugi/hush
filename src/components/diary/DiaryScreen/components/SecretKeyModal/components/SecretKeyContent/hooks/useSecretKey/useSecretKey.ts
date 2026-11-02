@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 
-import { showSecretKey } from "../../../../../../../lib/vault/commands";
-import { errorText } from "../../../../../../../lib/vault/errorText";
-import { toHushError } from "../../../../../../../lib/vault/hushError";
+import { showSecretKey } from "../../../../../../../../../lib/vault/commands";
+import { errorText } from "../../../../../../../../../lib/vault/errorText";
+import { toHushError } from "../../../../../../../../../lib/vault/hushError";
 
 type Read = { secretKey: string } | { error: string };
 
-export type UseSecretKeyPanel = {
+export type UseSecretKey = {
   loading: boolean;
   secretKey: string | null;
   error: string | null;
 };
 
-/** The vault's Secret Key, read from the keychain each time the panel opens. */
-export function useSecretKeyPanel(): UseSecretKeyPanel {
+/** The vault's Secret Key, read from the keychain each time it is shown. */
+export function useSecretKey(): UseSecretKey {
   const [read, setRead] = useState<Read | null>(null);
 
   useEffect(() => {
