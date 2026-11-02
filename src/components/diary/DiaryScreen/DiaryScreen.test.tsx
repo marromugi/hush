@@ -314,3 +314,38 @@ test("past entries are in the default font too", async () => {
   );
   writeSettings({ defaultFonts: { ja: null, en: null } });
 });
+
+/** What holds the editor's text, where its font and blur are set. */
+function content() {
+  return document.querySelector(".ProseMirror")?.parentElement;
+}
+
+test("today's entry is blurred while the dice loads a font, and clear once it has", async () => {
+  fakeVault();
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "klee-one", family: "Klee One", category: "handwriting" },
+  ]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/klee-one", complete: true });
+  // Every load of the font waits until the font arrives.
+  let arrive: (() => void) | undefined;
+  const arrived = new Promise<void>((resolve) => {
+    arrive = resolve;
+  });
+  vi.spyOn(fonts, "loadFont").mockReturnValue(arrived);
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  expect(content()?.classList.contains("blur-sm")).toBe(false);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+  });
+  await waitFor(() => expect(content()?.classList.contains("blur-sm")).toBe(true));
+  await act(async () => {
+    arrive?.();
+  });
+  await waitFor(() => expect(content()?.classList.contains("blur-sm")).toBe(false));
+  expect(content()?.style.fontFamily).toBe('"Klee One", cursive');
+});

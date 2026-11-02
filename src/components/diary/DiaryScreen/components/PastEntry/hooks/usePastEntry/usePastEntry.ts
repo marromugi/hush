@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { useLoadedFont } from "../../../../../../../hooks/diary/useLoadedFont";
+import { useEntryFont } from "../../../../../../../hooks/diary/useEntryFont";
 import type { SavedFont } from "../../../../../../../lib/diary/fonts";
 import { readEntry } from "../../../../../../../lib/vault/commands";
 import { errorText } from "../../../../../../../lib/vault/errorText";
@@ -12,11 +12,10 @@ export type UsePastEntry = {
   loading: boolean;
   /** `null` when nothing was written that day. */
   body: string | null;
-  /**
-   * The CSS `font-family` of the font the entry was saved with, once it has
-   * loaded; `undefined` without one, before it loads, or if it cannot.
-   */
+  /** The CSS `font-family` to show the entry in: its own font once loaded, else the default font. */
   fontFamily: string | undefined;
+  /** True while the entry's own font loads. */
+  fontLoading: boolean;
   error: string | null;
 };
 
@@ -24,7 +23,7 @@ export type UsePastEntry = {
 export function usePastEntry(date: string): UsePastEntry {
   const [read, setRead] = useState<Read | null>(null);
 
-  const fontFamily = useLoadedFont(read && "font" in read ? read.font : null);
+  const font = useEntryFont(read && "font" in read ? read.font : null);
 
   useEffect(() => {
     let ignore = false;
@@ -44,7 +43,8 @@ export function usePastEntry(date: string): UsePastEntry {
   return {
     loading: read === null,
     body: read && "body" in read ? read.body : null,
-    fontFamily,
+    fontFamily: font.fontFamily,
+    fontLoading: font.loading,
     error: read && "error" in read ? read.error : null,
   };
 }

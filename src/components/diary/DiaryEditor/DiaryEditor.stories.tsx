@@ -15,3 +15,8 @@ type Story = StoryObj<typeof meta>;
 export const Empty: Story = {};
 
 export const Written: Story = { args: { initialBody: "<p>今日は晴れ。</p>" } };
+
+/** While the font it is shown in loads. */
+export const FontLoading: Story = {
+  args: { initialBody: "<p>今日は晴れ。</p>", fontLoading: true },
+};

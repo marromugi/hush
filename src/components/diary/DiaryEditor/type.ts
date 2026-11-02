@@ -12,6 +12,8 @@ export type DiaryEditorProps = {
   keepClear?: KeepClear;
   /** The CSS `font-family` to show the entry in; the page's font when left out. */
   fontFamily?: string;
+  /** True while that font loads; the text is blurred until then. */
+  fontLoading?: boolean;
 };
 
 export type KeepClear = { top: number; bottom: number };
