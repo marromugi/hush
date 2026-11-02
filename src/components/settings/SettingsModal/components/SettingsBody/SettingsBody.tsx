@@ -19,8 +19,8 @@ export function SettingsBody() {
           className={clsx(
             // layout
             "flex gap-5 overflow-x-auto md:flex-col md:gap-0 md:overflow-visible",
-            // scroll
-            "[scrollbar-width:none]",
+            // scroll; the room around the row keeps the focus outline from being cut off
+            "-m-1 p-1 [scrollbar-width:none]",
           )}
         >
           {SECTIONS.map((section) => (
@@ -30,12 +30,14 @@ export function SettingsBody() {
                 aria-current={settings.section === section.id ? "page" : undefined}
                 className={clsx(
                   // layout
-                  "cursor-pointer py-2 text-left whitespace-nowrap",
-                  // underline: the chosen section's is drawn, the rest only on hover or focus
+                  "cursor-pointer rounded-sm py-2 text-left whitespace-nowrap",
+                  // underline: the chosen section's is drawn, the rest only on hover
                   "underline decoration-transparent decoration-2 underline-offset-6",
-                  "hover:decoration-edge focus-visible:decoration-edge aria-[current=page]:decoration-current",
+                  "hover:decoration-edge aria-[current=page]:decoration-current",
+                  // focus
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                   // motion
-                  "transition duration-160 ease-out outline-none",
+                  "transition duration-160 ease-out",
                 )}
                 onClick={() => settings.showSection(section.id)}
               >
