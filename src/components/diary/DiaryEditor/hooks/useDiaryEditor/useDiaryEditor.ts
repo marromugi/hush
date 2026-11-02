@@ -70,12 +70,16 @@ export function useDiaryEditor(
         setImageError("この画像は読み込めませんでした。");
         continue;
       }
+      let id: string;
       try {
-        const id = await saveImage(jpeg);
-        editor.chain().focus().insertContent(entryImage(id)).run();
+        id = await saveImage(jpeg);
       } catch (failure) {
         setImageError(`画像を保存できませんでした。${failureText(failure)}`);
+        continue;
       }
+      // The editor is gone once the day changes or the vault locks; the image file stays unused.
+      if (editor.isDestroyed) return;
+      editor.chain().focus().insertContent(entryImage(id)).run();
     }
   }
 
