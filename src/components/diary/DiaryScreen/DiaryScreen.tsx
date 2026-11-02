@@ -7,6 +7,7 @@ import { SettingsModal } from "../../settings/SettingsModal";
 import { Drawer } from "../../ui/Drawer";
 import { DiceIcon, MenuIcon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
+import { Logo } from "../../ui/Logo";
 import { optionList, optionRow } from "../../ui/Options";
 import { Popover } from "../../ui/Popover";
 import { DiaryEditor } from "../DiaryEditor";
@@ -65,10 +66,9 @@ export function DiaryScreen() {
               onClick={() => screen.setDatesOpen(true)}
             />
           </span>
-          <h1 className="flex gap-4 text-sm tabular-nums opacity-60">
-            <span>{screen.selectedParts.year}</span>
-            <span>{screen.selectedParts.month}</span>
-            <span>{screen.selectedParts.day}</span>
+          <h1>
+            <Logo aria-hidden className="block size-6" />
+            <span className="sr-only">Hush</span>
           </h1>
         </div>
         {today.saveMessage ? (

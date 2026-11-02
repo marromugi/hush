@@ -4,15 +4,12 @@ import { useSession } from "../../../../../hooks/vault/useSession";
 import { listEntryDates } from "../../../../../lib/vault/commands";
 import { errorText } from "../../../../../lib/vault/errorText";
 import { toHushError } from "../../../../../lib/vault/hushError";
-import { dateParts } from "../../lib/dateParts";
-import type { DateParts } from "../../lib/dateParts";
 
 type Listed = { dates: string[] } | { error: string };
 
 export type UseDiaryScreen = {
   /** The day shown, as `YYYY-MM-DD`. Today at first. */
   selected: string;
-  selectedParts: DateParts;
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
@@ -82,7 +79,6 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
   const written = listed && "dates" in listed ? listed.dates : [];
   return {
     selected,
-    selectedParts: dateParts(selected),
     showsToday: selected === today,
     select: setSelected,
     datesOpen,
