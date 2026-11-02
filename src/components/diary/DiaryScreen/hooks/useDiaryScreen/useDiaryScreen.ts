@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { dateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
 import type { DateParts } from "@/components/diary/DiaryScreen/lib/dateParts";
+import { useDisclosure } from "@/hooks/common/useDisclosure";
+import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
 import { useSession } from "@/hooks/vault/useSession";
 import { listEntryDates } from "@/lib/vault/commands";
@@ -15,22 +17,17 @@ export type UseDiaryScreen = {
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
-  /** True while the days are shown over the diary, on a screen too narrow for the sidebar. */
-  datesOpen: boolean;
-  setDatesOpen: (open: boolean) => void;
+  /** The days shown over the diary, on a screen too narrow for the sidebar. */
+  datesDrawer: Disclosure;
   /** Shows `date` and puts the days shown over the diary away. */
   selectFromDates: (date: string) => void;
-  /** True while the config menu is open. */
-  configOpen: boolean;
-  setConfigOpen: (open: boolean) => void;
-  /** True while the Secret Key is shown over the diary. */
-  secretKeyOpen: boolean;
-  setSecretKeyOpen: (open: boolean) => void;
+  configMenu: Disclosure;
+  /** The Secret Key shown over the diary. */
+  secretKeyModal: Disclosure;
   /** Closes the config menu and shows the Secret Key. */
   openSecretKey: () => void;
-  /** True while the settings are shown over the diary. */
-  settingsOpen: boolean;
-  setSettingsOpen: (open: boolean) => void;
+  /** The settings shown over the diary. */
+  settingsModal: Disclosure;
   /** Closes the config menu and shows the settings. */
   openSettings: () => void;
   /** Closes the config menu and locks, saving what is being written first. */
@@ -48,10 +45,12 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
   const [selected, setSelected] = useState(today);
   const listed = usePromise(listEntryDates);
-  const [datesOpen, setDatesOpen] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [secretKeyOpen, setSecretKeyOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const datesDrawer = useDisclosure();
+  const configMenu = useDisclosure();
+  const secretKeyModal = useDisclosure();
+  const settingsModal = useDisclosure();
+  // The setter keeps its identity across renders, so the listener is added once.
+  const setDatesOpen = datesDrawer.setOpen;
 
   // The days shown over the diary have no place once the sidebar is back.
   useEffect(() => {
@@ -61,7 +60,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     };
     wide.addEventListener("change", putAway);
     return () => wide.removeEventListener("change", putAway);
-  }, []);
+  }, [setDatesOpen]);
 
   const written = listed.status === "done" ? listed.value : [];
   return {
@@ -69,28 +68,24 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     selectedParts: dateParts(selected),
     showsToday: selected === today,
     select: setSelected,
-    datesOpen,
-    setDatesOpen,
+    datesDrawer,
     selectFromDates: (date) => {
       setSelected(date);
-      setDatesOpen(false);
+      datesDrawer.close();
     },
-    configOpen,
-    setConfigOpen,
-    secretKeyOpen,
-    setSecretKeyOpen,
+    configMenu,
+    secretKeyModal,
     openSecretKey: () => {
-      setConfigOpen(false);
-      setSecretKeyOpen(true);
+      configMenu.close();
+      secretKeyModal.open();
     },
-    settingsOpen,
-    setSettingsOpen,
+    settingsModal,
     openSettings: () => {
-      setConfigOpen(false);
-      setSettingsOpen(true);
+      configMenu.close();
+      settingsModal.open();
     },
     lockFromConfig: () => {
-      setConfigOpen(false);
+      configMenu.close();
       void lock();
     },
     dates: written.includes(today)

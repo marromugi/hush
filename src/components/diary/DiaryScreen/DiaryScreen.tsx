@@ -64,7 +64,7 @@ export function DiaryScreen() {
               icon={MenuIcon}
               label="日付を選ぶ"
               type="button"
-              onClick={() => screen.setDatesOpen(true)}
+              onClick={() => screen.datesDrawer.open()}
             />
           </span>
           <h1>
@@ -161,8 +161,8 @@ export function DiaryScreen() {
           <Popover
             direction="top"
             align="start"
-            open={screen.configOpen}
-            onOpenChange={screen.setConfigOpen}
+            open={screen.configMenu.isOpen}
+            onOpenChange={screen.configMenu.setOpen}
             trigger={
               <button ref={config} className="cursor-pointer">
                 config
@@ -205,8 +205,8 @@ export function DiaryScreen() {
         ) : null}
         <Drawer
           label="日付の一覧"
-          open={screen.datesOpen}
-          onOpenChange={screen.setDatesOpen}
+          open={screen.datesDrawer.isOpen}
+          onOpenChange={screen.datesDrawer.setOpen}
           returnFocus={datesButton}
         >
           <Sidebar
@@ -217,13 +217,13 @@ export function DiaryScreen() {
           />
         </Drawer>
         <SettingsModal
-          open={screen.settingsOpen}
-          onOpenChange={screen.setSettingsOpen}
+          open={screen.settingsModal.isOpen}
+          onOpenChange={screen.settingsModal.setOpen}
           returnFocus={config}
         />
         <SecretKeyModal
-          open={screen.secretKeyOpen}
-          onOpenChange={screen.setSecretKeyOpen}
+          open={screen.secretKeyModal.isOpen}
+          onOpenChange={screen.secretKeyModal.setOpen}
           returnFocus={config}
         />
       </footer>
