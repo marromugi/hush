@@ -44,3 +44,8 @@ export function readEntry(date: string): Promise<EntryView | null> {
 export function saveEntry(date: string, body: string): Promise<EntryView> {
   return call("save_entry", { date, body });
 }
+
+/** Every date that has an entry, oldest first, as YYYY-MM-DD. */
+export function listEntryDates(): Promise<string[]> {
+  return call("list_entry_dates");
+}

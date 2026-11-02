@@ -104,6 +104,18 @@ pub fn save_entry(
     Ok(inner.store.save_entry(key, &date, body, now_ms)?.into())
 }
 
+/// Every date that has an entry, oldest first, as `YYYY-MM-DD`.
+pub fn entry_dates(state: &AppState) -> Result<Vec<String>, AppError> {
+    let inner = inner(state);
+    inner.key.as_ref().ok_or(AppError::Locked)?;
+    Ok(inner
+        .store
+        .entry_dates()?
+        .into_iter()
+        .map(String::from)
+        .collect())
+}
+
 fn parse_date(date: String) -> Result<EntryDate, AppError> {
     EntryDate::try_from(date).map_err(AppError::InvalidDate)
 }
@@ -171,6 +183,16 @@ mod tests {
             save_entry(&state, "2026-10-29".to_string(), "b".to_string(), 1),
             Err(AppError::Locked)
         ));
+    }
+
+    #[test]
+    fn listing_dates_needs_an_unlocked_vault() {
+        let (_dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        save_entry(&state, "2026-10-29".to_string(), "b".to_string(), 1).unwrap();
+        assert_eq!(entry_dates(&state).unwrap(), ["2026-10-29"]);
+        lock(&state);
+        assert!(matches!(entry_dates(&state), Err(AppError::Locked)));
     }
 
     #[test]
