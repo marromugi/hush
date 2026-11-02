@@ -1,6 +1,6 @@
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
@@ -40,6 +40,23 @@ function fakeVault(log: string[] = []) {
     },
     { shouldMockEvents: true },
   );
+}
+
+/**
+ * Opens 2020-01-01 from the days in `scope`: back to the years, then 2020,
+ * January, the 1st. January is looked for inside 2020, since today's year
+ * is open too and has a January of its own.
+ */
+async function openNewYear2020(scope: ReturnType<typeof within>) {
+  fireEvent.click(scope.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
+  const year = await scope.findByRole("button", { name: "2020" });
+  fireEvent.click(year);
+  const months = year.closest("li");
+  if (months === null) throw new Error("2020 is not in a list");
+  fireEvent.click(await within(months).findByRole("button", { name: "1" }));
+  await act(async () => {
+    fireEvent.click(await scope.findByRole("button", { name: "1" }));
+  });
 }
 
 test("config opens a menu whose Secret Key item shows the key, and closing returns to config", async () => {
@@ -143,11 +160,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
     ).toBe('"Klee One", cursive'),
   );
 
-  // From this month's days back to the years, then 2020, January, the 1st.
-  fireEvent.click(screen.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
-  fireEvent.click(await screen.findByRole("button", { name: "2020" }));
-  fireEvent.click(await screen.findByRole("button", { name: "1" }));
-  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  await openNewYear2020(within(document.body));
   await screen.findByText("この日の日記はありません。");
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
@@ -304,10 +317,7 @@ test("past entries are in the default font too", async () => {
     </UnlockedSession>,
   );
   await screen.findByRole("button", { name: "フォントを変える" });
-  fireEvent.click(screen.getByRole("button", { name: /^\d{4}\.\d{1,2}$/ }));
-  fireEvent.click(await screen.findByRole("button", { name: "2020" }));
-  fireEvent.click(await screen.findByRole("button", { name: "1" }));
-  fireEvent.click(await screen.findByRole("button", { name: "1" }));
+  await openNewYear2020(within(document.body));
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   expect(document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily).toBe(
     '"Klee One", cursive',
@@ -348,4 +358,31 @@ test("today's entry is blurred while the dice loads a font, and clear once it ha
   });
   await waitFor(() => expect(content()?.classList.contains("blur-sm")).toBe(false));
   expect(content()?.style.fontFamily).toBe('"Klee One", cursive');
+});
+
+test("the header's button shows the days over the diary, and choosing one opens it", async () => {
+  mockIPC(
+    (command, args) => {
+      const date = String(args && "date" in args ? args.date : "");
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      if (command === "read_entry") {
+        return date === "2020-01-01"
+          ? { date, body: "<p>雪</p>", createdAtMs: 1, updatedAtMs: 2, font: null }
+          : null;
+      }
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  const button = await screen.findByRole("button", { name: "日付を選ぶ" });
+  fireEvent.click(button);
+  await openNewYear2020(within(await screen.findByRole("dialog", { name: "日付の一覧" })));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
+  await waitFor(() => expect(document.activeElement).toBe(button));
 });
