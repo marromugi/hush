@@ -1,4 +1,5 @@
-import { Radio } from "../../../../../../ui/Radio";
+import { Radio } from "@/components/ui/Radio";
+
 import { useLanguageSection } from "./hooks/useLanguageSection";
 
 const LANGUAGES = [
