@@ -23,8 +23,10 @@ export function EntryImage({ id, selected = false }: EntryImageProps) {
         "max-w-full",
         // spacing
         "my-0",
-        // focus
-        selected && "outline-2 outline-offset-2 outline-current",
+        // shape
+        "rounded-lg",
+        // focus: faint, so the picture stays what is seen
+        selected && "outline-2 outline-offset-2 outline-current/25",
       )}
     />
   ) : (
