@@ -3,19 +3,30 @@ import { useEffect, useState } from "react";
 import { fontStack, loadFont } from "../../../lib/diary/fonts";
 import type { SavedFont } from "../../../lib/diary/fonts";
 
-/**
- * The CSS `font-family` of `font`, once it has loaded. While a new font
- * loads, the one shown before stays. `undefined` shows the standard font:
- * when `font` is `null`, before any has loaded, or when it cannot load.
- */
-export function useLoadedFont(font: SavedFont | null): string | undefined {
-  const [shown, setShown] = useState<SavedFont | null>(null);
+export type LoadedFont = {
+  /**
+   * The CSS `font-family` of the font, once it has loaded. While a new font
+   * loads, the one shown before stays. `undefined` shows the standard font:
+   * without a font, before any has loaded, or when it cannot load.
+   */
+  fontFamily: string | undefined;
+  /** True from when a font is given until it has loaded or failed to. */
+  loading: boolean;
+};
+
+/** The font that loaded last, and which font was tried last, loaded or not. */
+type Settled = { shown: SavedFont | null; tried: string };
+
+/** `font`, loaded into the page. */
+export function useLoadedFont(font: SavedFont | null): LoadedFont {
+  const [settled, setSettled] = useState<Settled | null>(null);
   // The same font comes back as a new object with each saved entry, so it is
   // loaded again only when what it names changes.
   const id = font?.id;
   const family = font?.family;
   const category = font?.category;
   const stylesheet = font?.stylesheet;
+  const wanted = font === null ? null : nameOf(font);
 
   useEffect(() => {
     if (
@@ -27,13 +38,14 @@ export function useLoadedFont(font: SavedFont | null): string | undefined {
       return undefined;
     }
     const next = { id, family, category, stylesheet };
+    const tried = nameOf(next);
     let ignore = false;
     loadFont(next, stylesheet).then(
       () => {
-        if (!ignore) setShown(next);
+        if (!ignore) setSettled({ shown: next, tried });
       },
       () => {
-        if (!ignore) setShown(null);
+        if (!ignore) setSettled({ shown: null, tried });
       },
     );
     return () => {
@@ -41,5 +53,13 @@ export function useLoadedFont(font: SavedFont | null): string | undefined {
     };
   }, [id, family, category, stylesheet]);
 
-  return font !== null && shown !== null ? fontStack(shown) : undefined;
+  const shown = font === null ? null : (settled?.shown ?? null);
+  return {
+    fontFamily: shown === null ? undefined : fontStack(shown),
+    loading: wanted !== null && settled?.tried !== wanted,
+  };
+}
+
+function nameOf(font: SavedFont): string {
+  return JSON.stringify([font.id, font.family, font.category, font.stylesheet]);
 }

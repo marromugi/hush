@@ -1,0 +1,1 @@
+export { useEntryFont } from "./useEntryFont";

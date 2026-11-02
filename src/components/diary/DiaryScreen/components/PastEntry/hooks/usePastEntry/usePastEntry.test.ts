@@ -18,7 +18,13 @@ test("reads the entry for the date", async () => {
   });
   const { result } = renderHook(() => usePastEntry("2022-12-18"));
   await waitFor(() => expect(result.current.loading).toBe(false));
-  expect(result.current).toEqual({ loading: false, body: "<p>雪</p>", error: null });
+  expect(result.current).toEqual({
+    loading: false,
+    body: "<p>雪</p>",
+    fontFamily: undefined,
+    fontLoading: false,
+    error: null,
+  });
 });
 
 test("an entry that cannot be opened says why", async () => {

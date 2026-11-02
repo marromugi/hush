@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useLoadedFont } from "../../../../../hooks/diary/useLoadedFont";
+import { useEntryFont } from "../../../../../hooks/diary/useEntryFont";
 import { useTodayEntry } from "../../../../../hooks/diary/useTodayEntry";
 import { useBeforeLock } from "../../../../../hooks/vault/useBeforeLock";
 import { useSession } from "../../../../../hooks/vault/useSession";
@@ -28,8 +28,10 @@ export type UseTodayScreen = {
   onChange: (body: string) => void;
   /** The font the entry is in: the one picked last, else the one saved; `null` for the default font. */
   font: SavedFont | null;
-  /** The CSS `font-family` of `font` once it has loaded; `undefined` until then, or without one. */
+  /** The CSS `font-family` to show the entry in: `font` once loaded, else the default font. */
   fontFamily: string | undefined;
+  /** True while `font` loads. */
+  fontLoading: boolean;
   /** Shows the entry in `font` and saves it with the newest body. Call it only once loaded. */
   pickFont: (font: SavedFont) => void;
   /** True while locking; nothing can be typed then. */
@@ -49,7 +51,7 @@ export function useTodayScreen(): UseTodayScreen {
   const newestTyped = useRef<string | null>(null);
   const [picked, setPicked] = useState<SavedFont | null>(null);
   const font = picked ?? today.entry?.font ?? null;
-  const fontFamily = useLoadedFont(font);
+  const shownFont = useEntryFont(font);
   const { locking } = useSession();
 
   const [saver] = useState(() => createAutoSaver(SAVE_DELAY_MS));
@@ -73,7 +75,8 @@ export function useTodayScreen(): UseTodayScreen {
       saver.schedule(body, (saving) => today.save(saving, font));
     },
     font,
-    fontFamily,
+    fontFamily: shownFont.fontFamily,
+    fontLoading: shownFont.loading,
     pickFont: (next) => {
       setPicked(next);
       // With nothing written yet, the font is saved with the first words.
