@@ -9,6 +9,7 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::app_error::AppError;
 use crate::b64;
+use crate::secret_key::SecretKey;
 
 pub const KEY_LEN: usize = 32;
 pub const NONCE_LEN: usize = 24;
@@ -29,7 +30,7 @@ pub const DEFAULT_KDF: KdfParams = KdfParams {
     parallelism: 1,
 };
 
-/// The key derived from the passphrase. Wiped from memory when dropped,
+/// The key derived from the passphrase and the Secret Key. Wiped from memory when dropped,
 /// never cloned, and never printed. The bytes live on the heap so moving a
 /// `VaultKey` moves a pointer and leaves no copy of the key behind.
 #[derive(ZeroizeOnDrop)]
@@ -71,8 +72,11 @@ fn argon2_params(params: &KdfParams) -> Result<Params, argon2::Error> {
     )
 }
 
+/// The vault key. The Secret Key is Argon2's secret input (RFC 9106 §3.1),
+/// so the passphrase alone gives nothing to check guesses against.
 pub fn derive_key(
     passphrase: &str,
+    secret_key: &SecretKey,
     salt: &[u8; SALT_LEN],
     params: &KdfParams,
 ) -> Result<VaultKey, AppError> {
@@ -81,9 +85,15 @@ pub fn derive_key(
     // allocated here and wiped on drop instead of being freed as is.
     let mut blocks = Zeroizing::new(vec![Block::default(); params.block_count()]);
     let mut key = VaultKey(Box::new([0; KEY_LEN]));
-    Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-        .hash_password_into_with_memory(passphrase.as_bytes(), salt, &mut key.0[..], &mut *blocks)
-        .map_err(AppError::KeyDerivation)?;
+    Argon2::new_with_secret(
+        secret_key.as_bytes(),
+        Algorithm::Argon2id,
+        Version::V0x13,
+        params,
+    )
+    .map_err(AppError::KeyDerivation)?
+    .hash_password_into_with_memory(passphrase.as_bytes(), salt, &mut key.0[..], &mut *blocks)
+    .map_err(AppError::KeyDerivation)?;
     Ok(key)
 }
 
@@ -137,8 +147,12 @@ mod tests {
         parallelism: 1,
     };
 
+    fn secret(byte: u8) -> SecretKey {
+        SecretKey::from_bytes(&[byte; crate::secret_key::SECRET_KEY_LEN]).unwrap()
+    }
+
     fn key(passphrase: &str) -> VaultKey {
-        derive_key(passphrase, &SALT, &TEST_KDF).unwrap()
+        derive_key(passphrase, &secret(9), &SALT, &TEST_KDF).unwrap()
     }
 
     #[test]
@@ -161,7 +175,15 @@ mod tests {
     #[test]
     fn same_passphrase_with_another_salt_fails() {
         let sealed = encrypt(&key("correct horse"), PATH, b"diary").unwrap();
-        let other = derive_key("correct horse", b"fedcba9876543210", &TEST_KDF).unwrap();
+        let other =
+            derive_key("correct horse", &secret(9), b"fedcba9876543210", &TEST_KDF).unwrap();
+        assert!(decrypt(&other, PATH, &sealed).is_err());
+    }
+
+    #[test]
+    fn same_passphrase_with_another_secret_key_fails() {
+        let sealed = encrypt(&key("correct horse"), PATH, b"diary").unwrap();
+        let other = derive_key("correct horse", &secret(8), &SALT, &TEST_KDF).unwrap();
         assert!(decrypt(&other, PATH, &sealed).is_err());
     }
 
@@ -209,6 +231,7 @@ mod tests {
     fn default_kdf_gives_the_known_key() {
         let key = derive_key(
             "correct horse battery staple",
+            &secret(9),
             b"hush-test-salt!!",
             &DEFAULT_KDF,
         )
@@ -216,7 +239,7 @@ mod tests {
         let hex: String = key.0.iter().map(|b| format!("{b:02x}")).collect();
         assert_eq!(
             hex,
-            "355ff41745b7e2e6220616e72f25657a4b451a372bae074de5f0a880933b8873"
+            "a3ca7a12f09c723dc9bf32b68e3ce0547aa9b196757d8fce5906873864ab255f"
         );
     }
 

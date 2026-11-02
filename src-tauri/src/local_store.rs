@@ -2,23 +2,27 @@ use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::app_error::AppError;
 use crate::crypto::VaultKey;
 use crate::entry::{self, Entry, EntryDate};
+use crate::keychain::SecretKeyStore;
+use crate::secret_key::SecretKey;
 use crate::vault::Vault;
 
-/// The vault and entries on this device. The layout matches the GitHub
-/// repository (`vault.json`, `entries/YYYY/YYYY-MM-DD.enc`) so the same
-/// files can be pushed as they are.
+/// The vault and entries on this device, and the device's Secret Keys. The
+/// file layout matches the GitHub repository (`vault.json`,
+/// `entries/YYYY/YYYY-MM-DD.enc`) so the same files can be pushed as they are.
 #[derive(Debug, Clone)]
 pub struct LocalStore {
     dir: PathBuf,
+    secret_keys: Arc<dyn SecretKeyStore>,
 }
 
 impl LocalStore {
-    pub fn new(dir: PathBuf) -> Self {
-        LocalStore { dir }
+    pub fn new(dir: PathBuf, secret_keys: Arc<dyn SecretKeyStore>) -> Self {
+        LocalStore { dir, secret_keys }
     }
 
     fn vault_path(&self) -> PathBuf {
@@ -33,32 +37,67 @@ impl LocalStore {
         self.vault_path().exists()
     }
 
-    /// Makes a new vault and writes `vault.json`. Refuses to replace an
-    /// existing vault, since that would make every entry unreadable. The
-    /// file system decides who wins when two calls race, so only the key of
-    /// the vault actually on disk is ever returned.
-    pub fn create_vault(&self, passphrase: &str) -> Result<VaultKey, AppError> {
+    /// Makes a new vault, keeps its Secret Key in this device's keychain, and
+    /// writes `vault.json`. Refuses to replace an existing vault, since that
+    /// would make every entry unreadable. The file system decides who wins
+    /// when two calls race, so only the keys of the vault actually on disk
+    /// are ever returned. The Secret Key is stored first: a vault this device
+    /// cannot open is never written.
+    pub fn create_vault(&self, passphrase: &str) -> Result<(VaultKey, SecretKey), AppError> {
         if passphrase.is_empty() {
             return Err(AppError::EmptyPassphrase);
         }
         if self.has_vault() {
             return Err(AppError::VaultExists);
         }
-        let (vault, key) = Vault::create(passphrase)?;
+        let (vault, key, secret_key) = Vault::create(passphrase)?;
+        self.secret_keys.set(&vault.id(), &secret_key)?;
         match write_new(&self.vault_path(), vault.to_json().as_bytes()) {
-            Ok(()) => Ok(key),
+            Ok(()) => Ok((key, secret_key)),
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Err(AppError::VaultExists),
             Err(e) => Err(e.into()),
         }
     }
 
-    pub fn unlock(&self, passphrase: &str) -> Result<VaultKey, AppError> {
+    fn read_vault(&self) -> Result<Vault, AppError> {
         let text = match fs::read_to_string(self.vault_path()) {
             Ok(text) => text,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(AppError::NoVault),
             Err(e) => return Err(e.into()),
         };
-        Vault::parse(&text)?.unlock(passphrase)
+        Vault::parse(&text)
+    }
+
+    /// Whether this device's keychain holds the vault's Secret Key.
+    pub fn has_secret_key(&self) -> Result<bool, AppError> {
+        let vault = self.read_vault()?;
+        Ok(self.secret_keys.get(&vault.id())?.is_some())
+    }
+
+    /// Opens the vault with the Secret Key in this device's keychain, or with
+    /// `typed_secret_key` when given. A typed key that opens the vault is
+    /// kept in the keychain, so the device needs only the passphrase after.
+    pub fn unlock(
+        &self,
+        passphrase: &str,
+        typed_secret_key: Option<&str>,
+    ) -> Result<VaultKey, AppError> {
+        let vault = self.read_vault()?;
+        let Some(typed) = typed_secret_key else {
+            let secret_key = self
+                .secret_keys
+                .get(&vault.id())?
+                .ok_or(AppError::NoSecretKey)?;
+            // The keychain's key is this vault's, so only the passphrase can be wrong.
+            return vault.unlock(passphrase, &secret_key).map_err(|e| match e {
+                AppError::WrongPassphraseOrSecretKey => AppError::WrongPassphrase,
+                other => other,
+            });
+        };
+        let secret_key = SecretKey::parse(typed)?;
+        let key = vault.unlock(passphrase, &secret_key)?;
+        self.secret_keys.set(&vault.id(), &secret_key)?;
+        Ok(key)
     }
 
     /// The entry for `date`, or `None` if nothing has been written that day.
@@ -168,6 +207,7 @@ fn write_temporary(path: &Path, contents: &[u8]) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::keychain::MemoryKeychain;
 
     fn date(text: &str) -> EntryDate {
         EntryDate::try_from(text.to_string()).unwrap()
@@ -175,20 +215,31 @@ mod tests {
 
     fn store() -> (tempfile::TempDir, LocalStore) {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalStore::new(dir.path().to_path_buf());
+        let store = LocalStore::new(
+            dir.path().to_path_buf(),
+            Arc::new(MemoryKeychain::default()),
+        );
         (dir, store)
+    }
+
+    /// The same files as `store` sees, on a device whose keychain is empty.
+    fn another_device(dir: &tempfile::TempDir) -> LocalStore {
+        LocalStore::new(
+            dir.path().to_path_buf(),
+            Arc::new(MemoryKeychain::default()),
+        )
     }
 
     #[test]
     fn a_saved_entry_reads_back_after_unlocking_again() {
         let (_dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         store
             .save_entry(&key, &date("2026-10-29"), "今日は晴れ".to_string(), 1_000)
             .unwrap();
         drop(key);
 
-        let key = store.unlock("correct horse").unwrap();
+        let key = store.unlock("correct horse", None).unwrap();
         let entry = store
             .read_entry(&key, &date("2026-10-29"))
             .unwrap()
@@ -199,7 +250,7 @@ mod tests {
     #[test]
     fn files_use_the_repository_layout() {
         let (dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         store
             .save_entry(&key, &date("2026-10-29"), "diary".to_string(), 1_000)
             .unwrap();
@@ -243,7 +294,7 @@ mod tests {
             assert_eq!(winners.len(), 1, "both or neither created a vault");
             let (winner, _) = winners[0];
             assert!(
-                store.unlock(winner).is_ok(),
+                store.unlock(winner, None).is_ok(),
                 "the returned key is not the vault on disk"
             );
             for (passphrase, result) in &results {
@@ -258,7 +309,7 @@ mod tests {
     #[test]
     fn saving_again_keeps_the_creation_time() {
         let (_dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         store
             .save_entry(&key, &date("2026-10-29"), "a".to_string(), 1_000)
             .unwrap();
@@ -271,7 +322,7 @@ mod tests {
     #[test]
     fn entry_dates_are_the_saved_days_oldest_first() {
         let (_dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         assert!(store.entry_dates().unwrap().is_empty());
         for day in ["2026-10-29", "2025-12-31", "2026-01-02"] {
             store
@@ -305,13 +356,57 @@ mod tests {
     #[test]
     fn a_day_with_nothing_written_is_none() {
         let (_dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         assert!(
             store
                 .read_entry(&key, &date("2026-10-29"))
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn a_device_without_the_secret_key_opens_with_it_typed_and_keeps_it() {
+        let (dir, store) = store();
+        let (_, secret_key) = store.create_vault("correct horse").unwrap();
+        let device = another_device(&dir);
+        assert!(!device.has_secret_key().unwrap());
+        assert!(matches!(
+            device.unlock("correct horse", None),
+            Err(AppError::NoSecretKey)
+        ));
+        device
+            .unlock("correct horse", Some(&secret_key.to_text()))
+            .unwrap();
+        assert!(device.has_secret_key().unwrap());
+        assert!(device.unlock("correct horse", None).is_ok());
+    }
+
+    #[test]
+    fn a_wrong_typed_secret_key_is_not_kept() {
+        let (dir, store) = store();
+        store.create_vault("correct horse").unwrap();
+        let device = another_device(&dir);
+        let wrong = SecretKey::generate().unwrap();
+        assert!(matches!(
+            device.unlock("correct horse", Some(&wrong.to_text())),
+            Err(AppError::WrongPassphraseOrSecretKey)
+        ));
+        assert!(matches!(
+            device.unlock("correct horse", Some("not a key")),
+            Err(AppError::InvalidSecretKey)
+        ));
+        assert!(!device.has_secret_key().unwrap());
+    }
+
+    #[test]
+    fn with_the_secret_key_in_the_keychain_only_the_passphrase_can_be_wrong() {
+        let (_dir, store) = store();
+        store.create_vault("correct horse").unwrap();
+        assert!(matches!(
+            store.unlock("wrong horse", None),
+            Err(AppError::WrongPassphrase)
+        ));
     }
 
     #[test]
@@ -322,7 +417,7 @@ mod tests {
             store.create_vault("another"),
             Err(AppError::VaultExists)
         ));
-        assert!(store.unlock("correct horse").is_ok());
+        assert!(store.unlock("correct horse", None).is_ok());
     }
 
     #[test]
@@ -339,7 +434,7 @@ mod tests {
     fn unlocking_without_a_vault_says_so() {
         let (_dir, store) = store();
         assert!(matches!(
-            store.unlock("correct horse"),
+            store.unlock("correct horse", None),
             Err(AppError::NoVault)
         ));
     }
@@ -347,7 +442,7 @@ mod tests {
     #[test]
     fn an_entry_from_a_newer_app_is_not_overwritten() {
         let (dir, store) = store();
-        let key = store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
         let path = dir.path().join("entries/2026/2026-10-29.enc");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         let newer = r#"{"version":2,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;

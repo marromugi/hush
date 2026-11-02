@@ -12,6 +12,8 @@ use crate::local_store::LocalStore;
 #[serde(rename_all = "camelCase")]
 pub enum VaultStatus {
     Missing,
+    /// Locked, and this device has no Secret Key for the vault yet.
+    NeedsSecretKey,
     Locked,
     Unlocked,
 }
@@ -50,15 +52,17 @@ fn inner(state: &AppState) -> MutexGuard<'_, AppStateInner> {
         .expect("state lock is only poisoned by an earlier panic")
 }
 
-pub fn status(state: &AppState) -> VaultStatus {
+pub fn status(state: &AppState) -> Result<VaultStatus, AppError> {
     let inner = inner(state);
-    if inner.key.is_some() {
+    Ok(if inner.key.is_some() {
         VaultStatus::Unlocked
-    } else if inner.store.has_vault() {
+    } else if !inner.store.has_vault() {
+        VaultStatus::Missing
+    } else if inner.store.has_secret_key()? {
         VaultStatus::Locked
     } else {
-        VaultStatus::Missing
-    }
+        VaultStatus::NeedsSecretKey
+    })
 }
 
 pub fn begin_unlock(state: &AppState) -> Pending {
@@ -126,24 +130,39 @@ mod tests {
 
     fn state() -> (tempfile::TempDir, AppState) {
         let dir = tempfile::tempdir().unwrap();
-        let store = LocalStore::new(dir.path().to_path_buf());
+        let store = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
+        );
         (dir, AppState::new(AppStateInner::new(store)))
     }
 
     fn create_and_unlock(state: &AppState, passphrase: &str) {
         let pending = begin_unlock(state);
-        let key = pending.store.create_vault(passphrase).unwrap();
+        let (key, _) = pending.store.create_vault(passphrase).unwrap();
         finish_unlock(state, pending, key).unwrap();
+    }
+
+    #[test]
+    fn a_device_without_the_secret_key_says_it_needs_one() {
+        let (dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        let device = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
+        );
+        let device = AppState::new(AppStateInner::new(device));
+        assert_eq!(status(&device).unwrap(), VaultStatus::NeedsSecretKey);
     }
 
     #[test]
     fn status_follows_create_lock_and_unlock() {
         let (_dir, state) = state();
-        assert_eq!(status(&state), VaultStatus::Missing);
+        assert_eq!(status(&state).unwrap(), VaultStatus::Missing);
         create_and_unlock(&state, "correct horse");
-        assert_eq!(status(&state), VaultStatus::Unlocked);
+        assert_eq!(status(&state).unwrap(), VaultStatus::Unlocked);
         lock(&state);
-        assert_eq!(status(&state), VaultStatus::Locked);
+        assert_eq!(status(&state).unwrap(), VaultStatus::Locked);
     }
 
     #[test]
@@ -165,13 +184,13 @@ mod tests {
         lock(&state);
 
         let pending = begin_unlock(&state);
-        let key = pending.store.unlock("correct horse").unwrap();
+        let key = pending.store.unlock("correct horse", None).unwrap();
         lock(&state); // the user locks while the key is being derived
         assert!(matches!(
             finish_unlock(&state, pending, key),
             Err(AppError::Locked)
         ));
-        assert_eq!(status(&state), VaultStatus::Locked);
+        assert_eq!(status(&state).unwrap(), VaultStatus::Locked);
     }
 
     #[test]

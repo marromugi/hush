@@ -30,6 +30,21 @@ function fakeVault() {
   });
 }
 
+test("creating shows the new Secret Key until it is kept", async () => {
+  mockIPC((command) => {
+    if (command === "vault_status") return "missing";
+    if (command === "create_vault") return "H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123";
+    throw new Error(`unexpected command ${command}`);
+  });
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("missing"));
+  await act(() => result.current.create("correct"));
+  expect(result.current.status).toBe("unlocked");
+  expect(result.current.newSecretKey).toBe("H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123");
+  act(() => result.current.keptSecretKey());
+  expect(result.current.newSecretKey).toBeNull();
+});
+
 test("starts loading, then shows the status from the Rust side", async () => {
   fakeVault();
   const { result } = renderHook(() => useVault());

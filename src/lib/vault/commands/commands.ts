@@ -2,7 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { toHushError } from "../hushError";
 
-export type VaultStatus = "missing" | "locked" | "unlocked";
+/** `needsSecretKey`: locked, on a device that has no Secret Key for the vault yet. */
+export type VaultStatus = "missing" | "needsSecretKey" | "locked" | "unlocked";
 
 export type EntryView = {
   date: string;
@@ -24,12 +25,14 @@ export function vaultStatus(): Promise<VaultStatus> {
   return call("vault_status");
 }
 
-export function createVault(passphrase: string): Promise<void> {
+/** Resolves with the new vault's Secret Key, for the person to keep. */
+export function createVault(passphrase: string): Promise<string> {
   return call("create_vault", { passphrase });
 }
 
-export function unlockVault(passphrase: string): Promise<void> {
-  return call("unlock_vault", { passphrase });
+/** `secretKey` is given only on a device that does not have it yet. */
+export function unlockVault(passphrase: string, secretKey?: string): Promise<void> {
+  return call("unlock_vault", { passphrase, secretKey });
 }
 
 export function lockVault(): Promise<void> {

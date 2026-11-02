@@ -1,12 +1,17 @@
 /** Every `kind` the Rust side sends, plus `unknown` for anything else. */
 export const HUSH_ERROR_KINDS = [
   "wrongPassphrase",
+  "wrongPassphraseOrSecretKey",
+  "invalidSecretKey",
+  "noSecretKey",
+  "keychain",
   "emptyPassphrase",
   "noVault",
   "vaultExists",
   "locked",
   "invalidDate",
   "newerVaultVersion",
+  "outdatedVault",
   "brokenVault",
   "newerEntryVersion",
   "brokenEntry",
