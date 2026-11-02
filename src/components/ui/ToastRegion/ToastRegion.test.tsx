@@ -1,11 +1,17 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MotionGlobalConfig } from "motion/react";
 import { toast } from "react-hot-toast";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test } from "vitest";
 
 import { Modal } from "@/components/ui/Modal";
 import { toastError, toastNotice } from "@/lib/ui/toast";
 
 import { ToastRegion } from "./ToastRegion";
+
+// The test DOM cancels the modal's animations by rejecting a promise nothing awaits.
+beforeAll(() => {
+  MotionGlobalConfig.skipAnimations = true;
+});
 
 afterEach(() => {
   act(() => toast.remove());
