@@ -15,6 +15,7 @@ import { useId } from "react";
 import { CloseIcon } from "../Icon";
 import { IconButton } from "../IconButton";
 import { Nested } from "../Nested";
+import { modal } from "./style";
 import type { ModalProps } from "./type";
 
 /**
@@ -23,7 +24,7 @@ import type { ModalProps } from "./type";
  * dialog itself, not to a control in it. A press outside it, Escape, or its
  * close button closes it.
  */
-function ModalBody({ title, open, onOpenChange, returnFocus, children }: ModalProps) {
+function ModalBody({ title, open, onOpenChange, returnFocus, height, children }: ModalProps) {
   const titleId = useId();
   const nodeId = useFloatingNodeId();
   const { refs, context } = useFloating({ nodeId, open, onOpenChange });
@@ -71,7 +72,7 @@ function ModalBody({ title, open, onOpenChange, returnFocus, children }: ModalPr
                     ref={setFloating}
                     aria-modal
                     aria-labelledby={titleId}
-                    className="relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-container border border-edge bg-surface-raised container-p-6 outline-none"
+                    className={modal({ height })}
                     initial={{ opacity: 0, scale: 0.94 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.94 }}

@@ -22,6 +22,9 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+/** As tall as the screen allows, however little it holds. */
+export const FullHeight: Story = { args: { height: "full" } };
+
 function Opened() {
   const [open, setOpen] = useState(false);
   return (
