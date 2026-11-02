@@ -116,7 +116,8 @@ test("a picked font is shown and saved at once with what was written", async () 
   vi.spyOn(fonts, "loadFont").mockResolvedValue();
   const { result } = await renderScreen(log);
   act(() => result.current.pickFont(klee));
-  await waitFor(() => expect(log).toEqual(["save <p>雪</p> in klee-one"]));
+  // Well within the typing delay, so this save is the roll's own.
+  await waitFor(() => expect(log).toEqual(["save <p>雪</p> in klee-one"]), { timeout: 300 });
   expect(result.current.font).toEqual(klee);
   await waitFor(() => expect(result.current.fontFamily).toBe('"Klee One", cursive'));
 });
@@ -142,4 +143,16 @@ test("the font an entry was saved with comes back when it is opened again", asyn
   act(() => result.current.onChange("<p>雪の日</p>"));
   await act(() => result.current.lock());
   expect(log).toEqual(["save <p>雪の日</p> in klee-one", "lock"]);
+});
+
+test("a font picked after a slow load is saved with what was typed while it loaded", async () => {
+  const log: string[] = [];
+  fakeEntryWithFont(log, { body: "<p>雪</p>", font: null });
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  const { result } = await renderScreen(log);
+  // The dice keeps the handler of the render it was pressed in.
+  const pickFromThen = result.current.pickFont;
+  act(() => result.current.onChange("<p>雪のあと晴れ</p>"));
+  act(() => pickFromThen(klee));
+  await waitFor(() => expect(log).toEqual(["save <p>雪のあと晴れ</p> in klee-one"]));
 });

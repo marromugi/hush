@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLoadedFont } from "../../../../../hooks/diary/useLoadedFont";
 import { useTodayEntry } from "../../../../../hooks/diary/useTodayEntry";
@@ -30,7 +30,7 @@ export type UseTodayScreen = {
   font: SavedFont | null;
   /** The CSS `font-family` of `font` once it has loaded; `undefined` until then, or without one. */
   fontFamily: string | undefined;
-  /** Shows the entry in `font` and saves it with the entry. */
+  /** Shows the entry in `font` and saves it with the newest body. Call it only once loaded. */
   pickFont: (font: SavedFont) => void;
   /** True while locking; nothing can be typed then. */
   locking: boolean;
@@ -44,6 +44,9 @@ export function useTodayScreen(): UseTodayScreen {
   const [date] = useState(() => localDate(new Date()));
   const today = useTodayEntry(date);
   const [typed, setTyped] = useState<string | null>(null);
+  // The dice hands over its font after loading it, from the render it was
+  // pressed in, so the body typed meanwhile is read from here.
+  const newestTyped = useRef<string | null>(null);
   const [picked, setPicked] = useState<SavedFont | null>(null);
   const font = picked ?? today.entry?.font ?? null;
   const fontFamily = useLoadedFont(font);
@@ -65,6 +68,7 @@ export function useTodayScreen(): UseTodayScreen {
       saveError: today.saveError,
     }),
     onChange: (body) => {
+      newestTyped.current = body;
       setTyped(body);
       saver.schedule(body, (saving) => today.save(saving, font));
     },
@@ -73,7 +77,7 @@ export function useTodayScreen(): UseTodayScreen {
     pickFont: (next) => {
       setPicked(next);
       // With nothing written yet, the font is saved with the first words.
-      const body = typed ?? today.entry?.body;
+      const body = newestTyped.current ?? today.entry?.body;
       if (body === undefined) return;
       // A roll is one change, not typing, so it is saved at once.
       saver.schedule(body, (saving) => today.save(saving, next));

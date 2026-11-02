@@ -153,7 +153,7 @@ export function DiaryScreen() {
               icon={DiceIcon}
               label="フォントを変える"
               type="button"
-              disabled={dice.rolling || today.locking}
+              disabled={dice.rolling || today.locking || today.loading}
               onClick={() => void dice.roll()}
             />
           </div>

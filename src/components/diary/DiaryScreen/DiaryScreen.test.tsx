@@ -154,6 +154,24 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
   );
 });
 
+test("the dice cannot be pressed until today's entry has been read", async () => {
+  mockIPC(
+    (command) => {
+      if (command === "read_entry") return new Promise(() => {});
+      if (command === "list_entry_dates") return [];
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  const dice = await screen.findByRole("button", { name: "フォントを変える" });
+  expect(dice).toHaveProperty("disabled", true);
+});
+
 test("the dice's font is saved with today's entry", async () => {
   const fontsSent: unknown[] = [];
   mockIPC(
