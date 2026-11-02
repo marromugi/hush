@@ -47,3 +47,46 @@ test("a result for a key no longer asked for is dropped", async () => {
   await act(async () => pending.get("b")?.resolve("B"));
   expect(result.current).toEqual({ status: "done", value: "B" });
 });
+
+test("a new load function each render, with the same key, does not load again", () => {
+  let loads = 0;
+  const { rerender } = renderHook(() =>
+    usePromise(() => {
+      loads += 1;
+      return new Promise<string>(() => {});
+    }, "a"),
+  );
+  rerender();
+  rerender();
+  expect(loads).toBe(1);
+});
+
+test("a late result for a key asked for again is dropped until the new load settles", async () => {
+  const results: { resolve: (value: string) => void }[] = [];
+  const { result, rerender } = renderHook(
+    ({ key }) =>
+      usePromise(
+        () =>
+          new Promise<string>((resolve) => {
+            results.push({ resolve });
+          }),
+        key,
+      ),
+    { initialProps: { key: "a" } },
+  );
+  rerender({ key: "b" });
+  rerender({ key: "a" });
+  // The first load for "a" ends after "a" was asked for again.
+  await act(async () => results[0]?.resolve("old A"));
+  expect(result.current).toEqual({ status: "loading" });
+  await act(async () => results[2]?.resolve("new A"));
+  expect(result.current).toEqual({ status: "done", value: "new A" });
+});
+
+test("a result that comes after the component is gone is dropped", async () => {
+  const { pending, load } = controlled();
+  const { result, unmount } = renderHook(() => usePromise(() => load("a"), "a"));
+  unmount();
+  await act(async () => pending.get("a")?.resolve("A"));
+  expect(result.current).toEqual({ status: "loading" });
+});
