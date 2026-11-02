@@ -18,15 +18,28 @@ export function DiaryScreen() {
   const config = useRef<HTMLButtonElement>(null);
 
   return (
+    // The page scrolls as a whole and only the entry moves: the header,
+    // sidebar, and footer stick, on the page's color, so the entry passes
+    // under them. The header is h-21 and the footer h-26; the sidebar fits
+    // between them.
     <div
       className={clsx(
         // layout
         "grid min-h-screen grid-cols-[10rem_1fr] grid-rows-[auto_1fr_auto]",
         // spacing
-        "gap-x-6 px-10 py-10",
+        "gap-x-6 px-10",
       )}
     >
-      <header className="col-span-2 flex items-center justify-between gap-4">
+      <header
+        className={clsx(
+          // layout
+          "sticky top-0 z-5 col-span-2 flex h-21 items-start justify-between gap-4",
+          // spacing
+          "pt-10",
+          // color
+          "bg-page",
+        )}
+      >
         <h1 className="flex gap-4 text-sm tabular-nums opacity-60">
           <span>{screen.selectedParts.year}</span>
           <span>{screen.selectedParts.month}</span>
@@ -40,7 +53,16 @@ export function DiaryScreen() {
           </output>
         ) : null}
       </header>
-      <div className="pt-24">
+      <div
+        className={clsx(
+          // layout
+          "sticky top-21 self-start",
+          // size: between the header and the footer, scrolling only when a month is long
+          "max-h-[calc(100dvh-var(--spacing)*47)] overflow-y-auto",
+          // spacing
+          "pt-18",
+        )}
+      >
         <Sidebar
           dates={screen.dates}
           selected={screen.selected}
@@ -48,7 +70,7 @@ export function DiaryScreen() {
           error={screen.datesError}
         />
       </div>
-      <main className="mx-auto w-full max-w-2xl pt-24">
+      <main className="mx-auto w-full max-w-2xl pt-18">
         {screen.showsToday ? (
           today.loading ? null : today.loadError ? (
             <p role="alert" className="text-sm text-error">
@@ -65,7 +87,16 @@ export function DiaryScreen() {
           <PastEntry key={screen.selected} date={screen.selected} />
         )}
       </main>
-      <footer className="col-span-2">
+      <footer
+        className={clsx(
+          // layout
+          "sticky bottom-0 z-5 col-span-2 flex h-26 items-end",
+          // spacing
+          "pb-10",
+          // color
+          "bg-page",
+        )}
+      >
         <Popover
           direction="top"
           align="start"
