@@ -1,1 +1,1 @@
-export { toastError, toastNotice } from "./toast";
+export { isOutsideToasts, toastError, toasterElements, toastNotice } from "./toast";

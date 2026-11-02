@@ -87,11 +87,13 @@ test("a font that cannot load is not kept, and says why", async () => {
 
 test("the font being chosen shows at once, and a later choice wins over a slow one", async () => {
   fakeFonts();
-  let finish: (() => void) | undefined;
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  // The slow choice fails after a later one is made; that failure is not said.
+  let fail: (() => void) | undefined;
   vi.spyOn(fonts, "loadFont").mockImplementation(
     () =>
-      new Promise((resolve) => {
-        finish = resolve;
+      new Promise((_, reject) => {
+        fail = () => reject(new Error("offline"));
       }),
   );
   const { result } = await renderSection();
@@ -103,11 +105,12 @@ test("the font being chosen shows at once, and a later choice wins over a slow o
   expect(result.current.choosing).toBe(true);
   await act(() => result.current.choose(null));
   await act(async () => {
-    finish?.();
+    fail?.();
     await slow;
   });
   expect(readSettings().defaultFonts.ja).toBeNull();
   expect(result.current.value).toBeNull();
+  expect(told).not.toHaveBeenCalled();
 });
 
 test("the chosen font's name shows even when the list cannot be fetched", async () => {

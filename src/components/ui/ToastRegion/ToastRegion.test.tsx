@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { toast } from "react-hot-toast";
 import { afterEach, expect, test } from "vitest";
 
+import { Modal } from "@/components/ui/Modal";
 import { toastError, toastNotice } from "@/lib/ui/toast";
 
 import { ToastRegion } from "./ToastRegion";
@@ -32,4 +33,32 @@ test("a notice is announced politely", async () => {
   render(<ToastRegion />);
   act(() => toastNotice("新しい版があります。"));
   expect((await screen.findByText("新しい版があります。")).getAttribute("role")).toBe("status");
+});
+
+test("a toast raised while a modal is open is read out, and putting it away leaves the modal open", async () => {
+  let open = true;
+  render(
+    <>
+      <Modal
+        title="設定"
+        open
+        onOpenChange={(next) => {
+          open = next;
+        }}
+      >
+        <p>中身</p>
+      </Modal>
+      <ToastRegion />
+    </>,
+  );
+  await screen.findByRole("dialog", { name: "設定" });
+  act(() => toastError("フォントを読み込めませんでした。"));
+  const shown = await screen.findByText("フォントを読み込めませんでした。");
+  await waitFor(() => expect(shown.closest('[aria-hidden="true"]')).toBeNull());
+  const close = shown.parentElement?.querySelector("button");
+  if (!close) throw new Error("the toast has no close button");
+  fireEvent.pointerDown(close);
+  fireEvent.mouseDown(close);
+  fireEvent.click(close);
+  expect(open).toBe(true);
 });

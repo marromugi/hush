@@ -209,12 +209,13 @@ test("a wrong passphrase is left to the form, and anything else is a toast", asy
   expect(told).toHaveBeenCalledWith("キーチェーンを読み書きできませんでした。");
 });
 
-test("a status that cannot be read is a toast", async () => {
+test("a status that cannot be read stays as the error, not a toast, since nothing else is shown", async () => {
   mockIPC(() => {
     throw { kind: "io", message: "file access failed" };
   });
   const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
   const { result } = renderHook(() => useVault());
-  await waitFor(() => expect(told).toHaveBeenCalledWith("ファイルの読み書きに失敗しました。"));
+  await waitFor(() => expect(result.current.error?.kind).toBe("io"));
   expect(result.current.status).toBe("loading");
+  expect(told).not.toHaveBeenCalled();
 });

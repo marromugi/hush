@@ -15,6 +15,7 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { CloseIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { Nested } from "@/components/ui/Nested";
+import { isOutsideToasts, toasterElements } from "@/lib/ui/toast";
 
 import type { DrawerProps } from "./type";
 
@@ -28,7 +29,7 @@ function DrawerBody({ label, open, onOpenChange, returnFocus, children }: Drawer
   const { refs, context } = useFloating({ nodeId, open, onOpenChange });
   const setFloating = (node: HTMLElement | null) => refs.setFloating(node);
   const { getFloatingProps } = useInteractions([
-    useDismiss(context, { capture: { escapeKey: true } }),
+    useDismiss(context, { capture: { escapeKey: true }, outsidePress: isOutsideToasts }),
     useRole(context, { role: "dialog" }),
   ]);
 
@@ -50,6 +51,8 @@ function DrawerBody({ label, open, onOpenChange, returnFocus, children }: Drawer
                 <FloatingFocusManager
                   context={context}
                   modal
+                  // A toast raised while this is open stays readable and reachable.
+                  getInsideElements={toasterElements}
                   returnFocus={returnFocus ?? true}
                   // oxlint-disable-next-line react/refs -- hands the ref over without reading it
                   initialFocus={refs.floating}

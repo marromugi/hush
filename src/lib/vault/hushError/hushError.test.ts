@@ -27,10 +27,10 @@ describe("toHushError", () => {
   });
 });
 
-test("only passphrase and Secret Key shape failures are about what was typed", () => {
+test("passphrase and Secret Key mistakes are about what was typed, and nothing else is", () => {
   expect(isAboutInput("wrongPassphrase")).toBe(true);
   expect(isAboutInput("emptyPassphrase")).toBe(true);
   expect(isAboutInput("invalidSecretKey")).toBe(true);
-  expect(isAboutInput("wrongPassphraseOrSecretKey")).toBe(false);
+  expect(isAboutInput("wrongPassphraseOrSecretKey")).toBe(true);
   expect(isAboutInput("keychain")).toBe(false);
 });

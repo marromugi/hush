@@ -4,7 +4,7 @@ import { useSingleFlight } from "@/hooks/common/useSingleFlight";
 import { toastError } from "@/lib/ui/toast";
 import { createVault, lockVault, unlockVault, vaultStatus } from "@/lib/vault/commands";
 import type { VaultStatus } from "@/lib/vault/commands";
-import { errorText, failureText } from "@/lib/vault/errorText";
+import { errorText } from "@/lib/vault/errorText";
 import { isAboutInput, toHushError } from "@/lib/vault/hushError";
 import type { HushError } from "@/lib/vault/hushError";
 
@@ -36,8 +36,9 @@ export function useVault(): UseVault {
         // An action that finished first knows better than this first reply.
         if (!ignore) setStatus((shown) => (shown === "loading" ? current : shown));
       },
+      // Nothing else is on screen yet, so this one stays in place instead of a toast.
       (failure: unknown) => {
-        if (!ignore) toastError(failureText(failure));
+        if (!ignore) setError(toHushError(failure));
       },
     );
     return () => {

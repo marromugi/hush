@@ -15,6 +15,7 @@ import { useId } from "react";
 import { CloseIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { Nested } from "@/components/ui/Nested";
+import { isOutsideToasts, toasterElements } from "@/lib/ui/toast";
 
 import { modal } from "./style";
 import type { ModalProps } from "./type";
@@ -31,7 +32,7 @@ function ModalBody({ title, open, onOpenChange, returnFocus, height, children }:
   const { refs, context } = useFloating({ nodeId, open, onOpenChange });
   const setFloating = (node: HTMLElement | null) => refs.setFloating(node);
   const { getFloatingProps } = useInteractions([
-    useDismiss(context, { capture: { escapeKey: true } }),
+    useDismiss(context, { capture: { escapeKey: true }, outsidePress: isOutsideToasts }),
     useRole(context, { role: "dialog" }),
   ]);
 
@@ -65,6 +66,8 @@ function ModalBody({ title, open, onOpenChange, returnFocus, height, children }:
                 <FloatingFocusManager
                   context={context}
                   modal
+                  // A toast raised while this is open stays readable and reachable.
+                  getInsideElements={toasterElements}
                   returnFocus={returnFocus ?? true}
                   // oxlint-disable-next-line react/refs -- hands the ref over without reading it
                   initialFocus={refs.floating}

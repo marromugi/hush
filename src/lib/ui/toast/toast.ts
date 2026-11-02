@@ -13,3 +13,20 @@ export function toastError(text: string): void {
 export function toastNotice(text: string): void {
   toast(text, { id: text });
 }
+
+/** react-hot-toast marks its container with this attribute. */
+const TOASTER = "[data-rht-toaster]";
+
+/**
+ * The toast containers on the page, for a dialog that shuts out the rest of
+ * the page to let in: so a toast raised while it is open is read out and can
+ * be reached.
+ */
+export function toasterElements(): Element[] {
+  return Array.from(document.querySelectorAll(TOASTER));
+}
+
+/** False for a press on a toast, so a dialog does not close when a toast is put away. */
+export function isOutsideToasts(event: Event): boolean {
+  return !(event.target instanceof Element && event.target.closest(TOASTER) !== null);
+}

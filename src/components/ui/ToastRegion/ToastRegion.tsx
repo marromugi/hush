@@ -1,6 +1,6 @@
 import { resolveValue, toast, Toaster } from "react-hot-toast";
 
-import { Toast } from "./Toast";
+import { Toast } from "@/components/ui/Toast";
 
 /**
  * Where toasts appear, above the footer at the bottom center. Mount it once,

@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "@/components/ui/Button";
+import { ToastRegion } from "@/components/ui/ToastRegion";
 import { toastError, toastNotice } from "@/lib/ui/toast";
 
 import { Toast } from "./Toast";
-import { ToastRegion } from "./ToastRegion";
 
 const meta = {
   title: "ui/Toast",

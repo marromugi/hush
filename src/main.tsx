@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { ToastRegion } from "@/components/ui/Toast";
+import { ToastRegion } from "@/components/ui/ToastRegion";
 
 import { App } from "./App";
 
