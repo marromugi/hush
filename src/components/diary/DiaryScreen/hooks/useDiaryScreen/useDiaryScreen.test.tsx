@@ -37,7 +37,7 @@ test("choosing another day shows that day, read only", async () => {
   mockIPC(() => ["2022-12-01"], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");
   act(() => result.current.select("2022-12-01"));
-  expect(result.current.selectedParts).toEqual({ year: "2022", month: "12", day: "1" });
+  expect(result.current.selected).toBe("2022-12-01");
   expect(result.current.showsToday).toBe(false);
 });
 

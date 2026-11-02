@@ -386,3 +386,14 @@ test("the header's button shows the days over the diary, and choosing one opens 
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   await waitFor(() => expect(document.activeElement).toBe(button));
 });
+
+test("the header shows Hush's mark, named for screen readers", async () => {
+  fakeVault();
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  const heading = await screen.findByRole("heading", { name: "Hush" });
+  expect(heading.querySelector("svg")).not.toBeNull();
+});
