@@ -29,6 +29,23 @@ jobs:
       - run: pnpm build
       - run: pnpm build-storybook
 
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: worker/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+      - run: pnpm typecheck
+      - run: pnpm test
+
   rust:
     runs-on: ubuntu-latest
     defaults:
