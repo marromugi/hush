@@ -87,10 +87,9 @@ pub fn watch(app: &AppHandle) {
 #[cfg(not(target_os = "macos"))]
 pub fn watch(_app: &AppHandle) {}
 
-/// Emits `LOCK_REQUESTED` when the app stops being in front: on iOS as soon
-/// as it becomes inactive, Control Center and the app switcher included, so
-/// the switcher's snapshot shows the locked screen.
-#[cfg(mobile)]
+/// Emits `LOCK_REQUESTED` on iOS as soon as the app becomes inactive,
+/// Control Center and the app switcher included.
+#[cfg(target_os = "ios")]
 pub fn on_window_event(window: &Window, event: &WindowEvent) {
     use tauri::Emitter;
 
@@ -100,6 +99,6 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
     }
 }
 
-/// Desktop windows send nothing here; `watch` covers sleep and screen lock.
-#[cfg(not(mobile))]
+/// Other platforms send nothing here; `watch` covers sleep and screen lock.
+#[cfg(not(target_os = "ios"))]
 pub fn on_window_event(_window: &Window, _event: &WindowEvent) {}
