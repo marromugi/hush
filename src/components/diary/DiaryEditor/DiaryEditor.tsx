@@ -1,5 +1,6 @@
 import { EditorContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
+import { clsx } from "clsx";
 
 import { fontLoadingStyle } from "@/lib/diary/entryProse";
 
@@ -15,12 +16,8 @@ export function DiaryEditor({
   fontFamily,
   fontLoading = false,
 }: DiaryEditorProps) {
-  const { editor, imageError, imageAlign, alignImage, imageMenu } = useDiaryEditor(
-    initialBody,
-    onChange,
-    disabled,
-    keepClear,
-  );
+  const { editor, imageError, imageAlign, alignImage, imageMenu, imageMenuRef, imageMenuShows } =
+    useDiaryEditor(initialBody, onChange, disabled, keepClear);
 
   return (
     <>
@@ -30,8 +27,19 @@ export function DiaryEditor({
         </p>
       ) : null}
       {/* Over the sticky header and footer; shown and moved without the default delay. */}
-      <BubbleMenu editor={editor} updateDelay={0} className="z-10" {...imageMenu}>
-        <ImageMenu align={imageAlign} onAlign={alignImage} />
+      <BubbleMenu
+        ref={imageMenuRef}
+        editor={editor}
+        updateDelay={0}
+        className={clsx(
+          // layout
+          "z-10",
+          // motion: the same pace as the image it follows
+          "transition-[left,top] duration-300 ease-out motion-reduce:transition-none",
+        )}
+        {...imageMenu}
+      >
+        <ImageMenu key={imageMenuShows} align={imageAlign} onAlign={alignImage} />
       </BubbleMenu>
       <EditorContent
         editor={editor}

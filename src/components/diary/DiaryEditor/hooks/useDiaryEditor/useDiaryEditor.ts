@@ -1,6 +1,6 @@
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
 import {
@@ -29,7 +29,8 @@ const CURSOR_ROOM = 16;
  * (`preparePicture`), saved as an encrypted image, and put where the cursor
  * is once saved; `imageError` says why the last one that failed did not
  * appear. `imageAlign` is where the selected image sits, and `alignImage`
- * moves it; `imageMenu` is what the bubble menu over a selected image needs.
+ * moves it; `imageMenu`, `imageMenuRef`, and `imageMenuShows` are what the
+ * bubble menu over a selected image needs.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -104,6 +105,10 @@ export function useDiaryEditor(
     selector: ({ editor: current }) => selectedImageAlign(current),
   });
 
+  // Counts each time the image menu appears, so its content can play its entrance again.
+  const [imageMenuShows, setImageMenuShows] = useState(0);
+  const imageMenuRef = useRef<HTMLDivElement>(null);
+
   // Built once per editor and edges: the bubble menu updates itself each time these change.
   const { top, bottom } = keepClear;
   const imageMenu = useMemo(() => {
@@ -112,7 +117,22 @@ export function useDiaryEditor(
     return {
       shouldShow: ({ editor: shown }: { editor: typeof editor }) => isImageSelected(shown),
       getReferencedVirtualElement: () => selectedImageBox(editor),
-      options: { flip: { padding }, shift: { padding } },
+      options: {
+        flip: { padding },
+        shift: { padding },
+        // The menu slides when it moves, but not from wherever it was last shown.
+        onShow: () => {
+          setImageMenuShows((shows) => shows + 1);
+          imageMenuRef.current?.style.setProperty("transition", "none");
+        },
+        onUpdate: () => {
+          const menu = imageMenuRef.current;
+          if (!menu?.style.getPropertyValue("transition")) return;
+          // Draw the first place before sliding is allowed again.
+          void menu.offsetLeft;
+          menu.style.removeProperty("transition");
+        },
+      },
     };
   }, [editor, top, bottom]);
 
@@ -121,6 +141,8 @@ export function useDiaryEditor(
     imageError,
     imageAlign,
     imageMenu,
+    imageMenuRef,
+    imageMenuShows,
     alignImage: (align: ImageAlign) => alignSelectedImage(editor, align),
   };
 }
