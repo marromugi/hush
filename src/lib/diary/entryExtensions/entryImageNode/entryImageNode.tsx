@@ -1,4 +1,3 @@
-import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { Node, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import type { Editor, ReactNodeViewProps } from "@tiptap/react";
 
@@ -6,6 +5,7 @@ import { EntryImage } from "@/components/diary/EntryImage";
 import { parseAlign } from "@/lib/diary/imageAlign";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
 import { parseWidth } from "@/lib/diary/imageWidth";
+import { insertAtomBlock } from "@/lib/diary/insertAtomBlock";
 
 const NAME = "entryImage";
 
@@ -88,27 +88,9 @@ export const EntryImageNode = Node.create({
   },
 });
 
-/**
- * Puts the image saved as `id` where the cursor is, and leaves the cursor on
- * the line after it, so a second image goes after the first instead of
- * replacing it.
- */
+/** Puts the image saved as `id` where the cursor is, with the cursor on the line after it. */
 export function insertEntryImage(editor: Editor, id: string): void {
-  editor
-    .chain()
-    .focus()
-    .insertContent({ type: NAME, attrs: { id } })
-    .command(({ tr }) => {
-      // At the end of the entry the image is left selected, with no line after it to type on.
-      if (!(tr.selection instanceof NodeSelection)) return true;
-      const after = tr.selection.to;
-      if (!tr.doc.resolve(after).nodeAfter?.isTextblock) {
-        tr.insert(after, editor.schema.nodes.paragraph.create());
-      }
-      tr.setSelection(TextSelection.create(tr.doc, after + 1));
-      return true;
-    })
-    .run();
+  insertAtomBlock(editor, { type: NAME, attrs: { id } });
 }
 
 /** Whether the selection is an image that can be changed. */

@@ -9,8 +9,9 @@ use crate::file_version::read_version;
 /// file or in the encrypted `Entry` inside it, and when the body starts
 /// holding something an older app would drop on saving. From 3 the body may
 /// hold images (`<img data-image="…">`), from 4 their widths
-/// (`data-width="…"`), and from 5 their alignment (`data-align="…"`).
-pub const ENTRY_VERSION: u32 = 5;
+/// (`data-width="…"`), from 5 their alignment (`data-align="…"`), and from 6
+/// embeds of YouTube and X (`<div data-embed="…" data-id="…">`).
+pub const ENTRY_VERSION: u32 = 6;
 
 /// One day's entry, as it is before encryption and after decryption.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -285,12 +286,12 @@ mod tests {
     #[test]
     fn newer_version_with_new_fields_asks_for_an_update() {
         let text = file_with(|v| {
-            v["version"] = 6.into();
+            v["version"] = 7.into();
             v["mood"] = "sunny".into();
         });
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::NewerEntryVersion(6))
+            Err(AppError::NewerEntryVersion(7))
         ));
     }
 

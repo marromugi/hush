@@ -531,11 +531,11 @@ mod tests {
         let (key, _) = store.create_vault("correct horse").unwrap();
         let path = dir.path().join("entries/2026/2026-10-29.enc");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let newer = r#"{"version":6,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
+        let newer = r#"{"version":7,"nonce":"x","ciphertext":"y","mood":"sunny"}"#;
         fs::write(&path, newer).unwrap();
 
         let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000);
-        assert!(matches!(result, Err(AppError::NewerEntryVersion(6))));
+        assert!(matches!(result, Err(AppError::NewerEntryVersion(7))));
         assert_eq!(fs::read_to_string(&path).unwrap(), newer);
     }
 }

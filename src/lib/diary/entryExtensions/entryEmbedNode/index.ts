@@ -1,0 +1,1 @@
+export { EntryEmbedNode } from "./entryEmbedNode";
