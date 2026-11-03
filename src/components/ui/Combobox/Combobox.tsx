@@ -1,7 +1,7 @@
 import { FloatingNode, FloatingPortal } from "@floating-ui/react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useId, useState } from "react";
-import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
+import type { ChangeEvent, FocusEvent, KeyboardEvent, MouseEvent } from "react";
 
 import { control } from "@/components/ui/Field";
 import { CheckIcon, ChevronDownIcon, Icon } from "@/components/ui/Icon";
@@ -32,13 +32,14 @@ function ComboboxBody({
   placeholder = "入力して探す",
   empty = "見つかりません",
   disabled,
+  focusOnMount = false,
 }: ComboboxProps) {
   const id = useId();
   const chosen = options.find((option) => option.value === value);
 
   // What is being typed, or null while the control shows the choice.
   const [typed, setTyped] = useState<string | null>(null);
-  const panel = useDisclosure();
+  const panel = useDisclosure(focusOnMount);
   const [active, setActive] = useState<number | null>(null);
   const matches = matchOptions(options, typed ?? "");
   const shown = matches.slice(0, MAX_ROWS);
@@ -80,6 +81,8 @@ function ComboboxBody({
           value={typed ?? chosen?.label ?? ""}
           placeholder={placeholder}
           disabled={disabled}
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- only where the caller has just opened it
+          autoFocus={focusOnMount}
           autoComplete="off"
           aria-autocomplete="list"
           className={control({ className: "pr-10" })}
@@ -91,6 +94,10 @@ function ComboboxBody({
               if (event.target.value === "") onChange(null);
             },
             onClick: () => panel.open(),
+            // Typing then replaces the choice instead of adding to its name.
+            onFocus: (event: FocusEvent<HTMLInputElement>) => {
+              if (focusOnMount) event.currentTarget.select();
+            },
             onKeyDown: (event: KeyboardEvent) => {
               const option = active === null ? undefined : shown[active];
               if (event.key === "Enter" && panel.isOpen && option !== undefined) {

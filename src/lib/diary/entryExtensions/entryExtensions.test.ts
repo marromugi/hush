@@ -105,3 +105,54 @@ test("text that is selected is not an image", () => {
   expect(isImageSelected(editor)).toBe(false);
   editor.destroy();
 });
+
+/** Presses Enter in the editor, as the keyboard would. */
+function pressEnter(editor: Editor): void {
+  editor.view.someProp("handleKeyDown", (handle) =>
+    handle(editor.view, new KeyboardEvent("keydown", { key: "Enter" })),
+  );
+}
+
+test("a code block in an entry's HTML is read back and written as the same HTML", () => {
+  const body = '<pre><code class="language-typescript">const a = 1;</code></pre><p>海</p>';
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  expect(editor.getHTML()).toBe(body);
+  editor.destroy();
+});
+
+test("a fence and Enter turn the line into a code block of that language", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  editor.commands.insertContent("x");
+  expect(editor.getHTML()).toBe('<pre><code class="language-typescript">x</code></pre><p></p>');
+  editor.destroy();
+});
+
+test("a fence alone and Enter make a code block with no language", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe("<pre><code></code></pre><p></p>");
+  editor.destroy();
+});
+
+test("Enter on a line with more than a fence splits the line as usual", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts は</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe("<p>```ts は</p><p></p>");
+  editor.destroy();
+});
+
+test("a fence and a space also start a code block, with the language under shiki's id", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.focus("end");
+  editor.commands.insertContent("```py");
+  const { from } = editor.state.selection;
+  editor.view.someProp("handleTextInput", (handle) =>
+    handle(editor.view, from, from, " ", () => editor.state.tr.insertText(" ", from, from)),
+  );
+  expect(editor.getHTML()).toBe('<pre><code class="language-python"></code></pre><p></p>');
+  editor.destroy();
+});

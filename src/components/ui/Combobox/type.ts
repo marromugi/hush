@@ -10,4 +10,10 @@ export type ComboboxProps = {
   /** Shown in the list when nothing matches. */
   empty?: string;
   disabled?: boolean;
+  /**
+   * Takes the focus when shown, with the chosen name selected, and opens the
+   * list. For a combobox that appears because the person asked for it, as in
+   * a popover.
+   */
+  focusOnMount?: boolean;
 };

@@ -1,0 +1,1 @@
+export { shikiParser } from "./shikiParser";
