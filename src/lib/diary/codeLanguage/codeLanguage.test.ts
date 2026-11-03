@@ -10,6 +10,8 @@ test("an alias written after ``` becomes shiki's id", () => {
 test("nothing, or plain text, means no language", () => {
   expect(resolveCodeLanguage("")).toBeNull();
   expect(resolveCodeLanguage("text")).toBeNull();
+  expect(resolveCodeLanguage("txt")).toBeNull();
+  expect(resolveCodeLanguage("plaintext")).toBeNull();
 });
 
 test("a name shiki does not know is kept, lowercased", () => {
