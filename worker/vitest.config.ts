@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   // "@/" is src, as in tsconfig.json.
-  resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
+  resolve: { alias: { "@": "/src" } },
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },
