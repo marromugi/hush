@@ -34,6 +34,7 @@ pub fn run() {
             lock_signals::watch(app.handle());
             Ok(())
         })
+        .on_window_event(lock_signals::on_window_event)
         .invoke_handler(tauri::generate_handler![
             commands::vault_status,
             commands::create_vault,

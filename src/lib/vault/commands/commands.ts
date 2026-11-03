@@ -86,7 +86,7 @@ export function embedPagesOrigin(): Promise<string> {
   return embedPages;
 }
 
-/** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, or user switch. */
+/** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, user switch, or leaving the app on iOS. */
 const LOCK_REQUESTED = "lock-requested";
 
 /** Calls `onRequest` each time the system asks the vault to lock. */
