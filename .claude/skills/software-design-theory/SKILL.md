@@ -22,6 +22,8 @@ before any code exists.
   settled that way. A claim about a source (a library's types, a document,
   another project's rules) holds only for the part that was read: read the
   rest before relying on it, or word the claim to cover only what was read.
+  A loose word such as "approximate" gives no bound; a bound the design needs
+  is settled by running the real service, not a fake.
   How code behaves also depends on the code that calls it, so a claim about
   behaviour is read up to the layer that drives it. A claim that something
   does not happen is settled by running it, because reading one place cannot
