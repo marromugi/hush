@@ -74,6 +74,18 @@ export function showSecretKey(): Promise<string> {
   return call("show_secret_key");
 }
 
+let embedPages: Promise<string> | null = null;
+
+/**
+ * Where the pages YouTube videos are shown in are served from, as
+ * `http://127.0.0.1:{port}`. The server runs as long as the app does, so
+ * the answer is asked once and kept, a failure too.
+ */
+export function embedPagesOrigin(): Promise<string> {
+  embedPages ??= call("embed_pages_origin");
+  return embedPages;
+}
+
 /** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, or user switch. */
 const LOCK_REQUESTED = "lock-requested";
 

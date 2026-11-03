@@ -7,6 +7,7 @@ use zeroize::Zeroizing;
 
 use crate::app_error::AppError;
 use crate::app_state::AppState;
+use crate::embed_pages;
 use crate::entry::EntryFont;
 use crate::session::{self, EntryView, VaultStatus};
 
@@ -81,6 +82,11 @@ pub async fn save_entry(
 #[tauri::command]
 pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {
     session::entry_dates(&state)
+}
+
+#[tauri::command]
+pub async fn embed_pages_origin(state: State<'_, AppState>) -> Result<String, AppError> {
+    embed_pages::origin(&state)
 }
 
 /// The Secret Key as text, for the person to keep again.

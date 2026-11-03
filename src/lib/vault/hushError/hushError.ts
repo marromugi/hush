@@ -20,6 +20,7 @@ export const HUSH_ERROR_KINDS = [
   "invalidImageId",
   "noImage",
   "unsupportedPicture",
+  "embedPages",
   "decryption",
   "encryption",
   "keyDerivation",

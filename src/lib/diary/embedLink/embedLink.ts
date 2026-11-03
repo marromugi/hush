@@ -49,12 +49,22 @@ export function parseEmbed(site: string | null, id: string | null): EmbedLink | 
 }
 
 /**
- * The page that shows the embed, from the site itself. YouTube's is the one
- * that keeps no cookies until the video is played; X's is told not to use
- * what it shows for tracking, and drawn in `theme`.
+ * The page that shows the embed. A YouTube video is shown in a page served
+ * from `pagesOrigin` on this machine, which embeds YouTube's page that keeps
+ * no cookies until the video is played: YouTube plays only inside a page it
+ * can name. Without `pagesOrigin`, YouTube's page is used as it is. X's page
+ * is told not to use what it shows for tracking, and drawn in `theme`.
  */
-export function embedFrameSrc(embed: EmbedLink, theme: "light" | "dark"): string {
-  if (embed.site === "youtube") return `https://www.youtube-nocookie.com/embed/${embed.id}`;
+export function embedFrameSrc(
+  embed: EmbedLink,
+  theme: "light" | "dark",
+  pagesOrigin: string | null,
+): string {
+  if (embed.site === "youtube") {
+    return pagesOrigin === null
+      ? `https://www.youtube-nocookie.com/embed/${embed.id}`
+      : `${pagesOrigin}/youtube/${embed.id}`;
+  }
   return `https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&dnt=true&theme=${theme}&lang=ja`;
 }
 
