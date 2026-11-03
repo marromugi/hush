@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
-import type { FileList } from "./schemas";
-import { EntryDate, ImageId } from "./schemas";
+import type { FileList } from "@/lib/schemas";
+import { EntryDate, ImageId } from "@/lib/schemas";
 
 /** Where the newest version of each file is kept. */
 const CURRENT = "files/";
