@@ -22,7 +22,12 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            worker/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # The type-aware lint reads worker/tsconfig.json, which needs the worker's types.
+      - run: pnpm install --frozen-lockfile --ignore-workspace --dir worker
       - run: pnpm fmt:check
       - run: pnpm lint
       - run: pnpm test
