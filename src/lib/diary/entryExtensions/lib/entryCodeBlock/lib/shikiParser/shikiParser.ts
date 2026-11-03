@@ -58,7 +58,9 @@ export const shikiParser: Parser = (options) => {
     );
     return loadingHighlighter;
   }
-  const wanted = options.language && isBundled(options.language) ? options.language : PLAIN_TEXT;
+  // A class written by hand or pasted may be in capitals ("language-TS"); shiki's names are lowercase.
+  const named = options.language?.toLowerCase();
+  const wanted = named && isBundled(named) ? named : PLAIN_TEXT;
   const loaded = highlighter.getLoadedLanguages().includes(wanted);
   // The plugin keeps what is returned for a block, so a language still loading returns its promise again.
   if (wanted !== PLAIN_TEXT && !loaded && !failedLanguages.has(wanted)) {

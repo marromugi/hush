@@ -137,6 +137,25 @@ test("a fence alone and Enter make a code block with no language", () => {
   editor.destroy();
 });
 
+test("a language with capitals or signs after the fence is read too", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```C++</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe('<pre><code class="language-cpp"></code></pre><p></p>');
+  editor.destroy();
+});
+
+test("a fence and Enter in a list item leave the list whole", () => {
+  const body = "<ul><li><p>a</p></li><li><p>```</p></li><li><p>b</p></li></ul>";
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  editor.commands.setTextSelection(11);
+  expect(editor.state.selection.$from.parent.textContent).toBe("```");
+  pressEnter(editor);
+  expect(editor.getHTML()).not.toContain("<pre>");
+  expect(editor.getHTML().match(/<ul>/g)).toHaveLength(1);
+  editor.destroy();
+});
+
 test("Enter on a line with more than a fence splits the line as usual", () => {
   const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts は</p>" });
   editor.commands.focus("end");

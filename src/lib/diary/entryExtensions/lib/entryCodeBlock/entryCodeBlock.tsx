@@ -1,11 +1,11 @@
-import { CodeBlock, backtickInputRegex, tildeInputRegex } from "@tiptap/extension-code-block";
+import { CodeBlock } from "@tiptap/extension-code-block";
 import {
   NodeViewContent,
   NodeViewWrapper,
   ReactNodeViewRenderer,
   textblockTypeInputRule,
 } from "@tiptap/react";
-import type { Editor, ReactNodeViewProps } from "@tiptap/react";
+import type { ReactNodeViewProps } from "@tiptap/react";
 import { createHighlightPlugin } from "prosemirror-highlight";
 
 import { EntryCodeBlock } from "@/components/diary/EntryCodeBlock";
@@ -13,8 +13,12 @@ import { resolveCodeLanguage } from "@/lib/diary/codeLanguage";
 
 import { shikiParser } from "./lib/shikiParser";
 
-/** A line that is only a fence and an optional language: "```", "```ts". */
-const FENCE = /^```([^\s`]*)$/;
+/**
+ * A line that is only a fence and an optional language, then a space or
+ * Enter: "```", "```ts", "~~~c++". Tiptap runs input rules on Enter with
+ * the text "\n".
+ */
+const FENCES = [/^```([^\s`]*)[\s\n]$/, /^~~~([^\s~]*)[\s\n]$/];
 
 function EntryCodeBlockView({ node, editor, getPos, updateAttributes }: ReactNodeViewProps) {
   const language =
@@ -47,43 +51,13 @@ function EntryCodeBlockView({ node, editor, getPos, updateAttributes }: ReactNod
 }
 
 /**
- * Turns the line the cursor ends into a code block when the line is only a
- * fence, as "```ts" and then Enter. Does nothing, and lets Enter go on, for
- * any other line.
- */
-function startCodeBlock(editor: Editor, name: string): boolean {
-  const { $from, empty } = editor.state.selection;
-  if (!empty || $from.parent.type.name !== "paragraph") return false;
-  if ($from.parentOffset !== $from.parent.content.size) return false;
-  const fence = FENCE.exec($from.parent.textContent);
-  if (!fence) return false;
-  return editor
-    .chain()
-    .command(({ tr }) => {
-      tr.delete($from.start(), $from.end());
-      return true;
-    })
-    .setNode(name, { language: resolveCodeLanguage(fence[1] ?? "") })
-    .run();
-}
-
-/**
  * Code on lines of its own, colored by its language with shiki. The entry's
  * HTML keeps it as `<pre><code class="language-…">`, the language under
  * shiki's id; the colors are drawn when shown and never saved.
  */
 export const EntryCodeBlockNode = CodeBlock.extend({
-  addKeyboardShortcuts() {
-    const shortcuts = this.parent?.() ?? {};
-    return {
-      ...shortcuts,
-      Enter: (props) =>
-        startCodeBlock(props.editor, this.name) || (shortcuts.Enter?.(props) ?? false),
-    };
-  },
-
   addInputRules() {
-    return [backtickInputRegex, tildeInputRegex].map((find) =>
+    return FENCES.map((find) =>
       textblockTypeInputRule({
         find,
         type: this.type,
