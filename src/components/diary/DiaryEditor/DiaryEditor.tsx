@@ -15,7 +15,7 @@ export function DiaryEditor({
   fontFamily,
   fontLoading = false,
 }: DiaryEditorProps) {
-  const { editor, imageError, imageAlign, alignImage, imageMenu } = useDiaryEditor(
+  const { editor, imageAlign, alignImage, imageMenu } = useDiaryEditor(
     initialBody,
     onChange,
     disabled,
@@ -24,11 +24,6 @@ export function DiaryEditor({
 
   return (
     <>
-      {imageError ? (
-        <p role="alert" className="mb-4 text-sm text-error">
-          {imageError}
-        </p>
-      ) : null}
       {/* Over the sticky header and footer; shown and moved without the default delay. */}
       <BubbleMenu editor={editor} updateDelay={0} className="z-10" {...imageMenu}>
         <ImageMenu align={imageAlign} onAlign={alignImage} />

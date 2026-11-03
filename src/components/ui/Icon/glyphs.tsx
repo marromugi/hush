@@ -94,3 +94,12 @@ export function AlignRightIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function ImageOffIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...outline} {...props}>
+      <path d="M13.5 10.5v-6a2 2 0 0 0-2-2h-6M2.5 4.5v7a2 2 0 0 0 2 2h7" />
+      <path d="M2.5 10.5l3-3 2 2M2 2l12 12" />
+    </svg>
+  );
+}
