@@ -3,7 +3,18 @@
   "name": "hush-sync",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-19",
+  // Served only on the custom domain, where the zone's WAF rate limiting
+  // rule stops floods before they reach the Worker. workers.dev and preview
+  // URLs have no WAF in front of them.
+  "routes": [{ "pattern": "hush-sync.marromugi.me", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "hush" }],
+  // Writes allowed per minute, counted per Cloudflare location. One person
+  // syncing stays far below it; a client stuck in a loop does not.
+  "ratelimits": [
+    { "name": "WRITE_LIMIT", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+  ],
   // SYNC_KEY_HASH is a secret: the lowercase hex SHA-256 of the sync key.
   // Set it with `wrangler secret put SYNC_KEY_HASH`.
 }
