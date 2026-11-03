@@ -1,6 +1,6 @@
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
 import {
@@ -18,6 +18,7 @@ import { saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./lib/imageFiles";
+import { riseIn, settle, slideNextMove, stopSliding } from "./lib/menuMotion";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
 const CURSOR_ROOM = 16;
@@ -29,7 +30,9 @@ const CURSOR_ROOM = 16;
  * (`preparePicture`), saved as an encrypted image, and put where the cursor
  * is once saved; `imageError` says why the last one that failed did not
  * appear. `imageAlign` is where the selected image sits, and `alignImage`
- * moves it; `imageMenu` is what the bubble menu over a selected image needs.
+ * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
+ * selected image needs. The menu rises in as it appears, and slides only
+ * when the image is aligned or the window's width changes.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -104,6 +107,17 @@ export function useDiaryEditor(
     selector: ({ editor: current }) => selectedImageAlign(current),
   });
 
+  const imageMenuRef = useRef<HTMLDivElement>(null);
+
+  // The menu slides when the window's width changes; this runs before the menu is moved.
+  useEffect(() => {
+    const onResize = () => {
+      if (imageMenuRef.current) slideNextMove(imageMenuRef.current);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   // Built once per editor and edges: the bubble menu updates itself each time these change.
   const { top, bottom } = keepClear;
   const imageMenu = useMemo(() => {
@@ -112,7 +126,18 @@ export function useDiaryEditor(
     return {
       shouldShow: ({ editor: shown }: { editor: typeof editor }) => isImageSelected(shown),
       getReferencedVirtualElement: () => selectedImageBox(editor),
-      options: { flip: { padding }, shift: { padding } },
+      options: {
+        flip: { padding },
+        shift: { padding },
+        onShow: () => {
+          if (!imageMenuRef.current) return;
+          stopSliding(imageMenuRef.current);
+          riseIn(imageMenuRef.current);
+        },
+        onUpdate: () => {
+          if (imageMenuRef.current) settle(imageMenuRef.current);
+        },
+      },
     };
   }, [editor, top, bottom]);
 
@@ -121,6 +146,11 @@ export function useDiaryEditor(
     imageError,
     imageAlign,
     imageMenu,
-    alignImage: (align: ImageAlign) => alignSelectedImage(editor, align),
+    imageMenuRef,
+    // The menu slides along with the image as it moves to its new place.
+    alignImage: (align: ImageAlign) => {
+      if (imageMenuRef.current) slideNextMove(imageMenuRef.current);
+      alignSelectedImage(editor, align);
+    },
   };
 }

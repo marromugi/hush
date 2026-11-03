@@ -132,13 +132,28 @@ export function alignSelectedImage(editor: Editor, align: ImageAlign): void {
 }
 
 /**
- * The selected image's picture, for placing things over it: the node's own
- * box spans the entry's width, wider than a narrowed or aligned picture.
- * `null` when no image is selected.
+ * Where the selected image's picture is laid out, for placing things over
+ * it: the node's own box spans the entry's width, wider than a narrowed or
+ * aligned picture. The place is where the picture is headed, not where it is
+ * drawn while it slides there, so what is placed over it slides along.
+ * `null` when no image is selected or its picture has not been read yet.
  */
 export function selectedImageBox(editor: Editor): { getBoundingClientRect: () => DOMRect } | null {
   if (!editor.isActive(NAME)) return null;
   const node = editor.view.nodeDOM(editor.state.selection.from);
-  const picture = node instanceof HTMLElement ? node.querySelector("img") : null;
-  return picture ? { getBoundingClientRect: () => picture.getBoundingClientRect() } : null;
+  const frame = (node instanceof HTMLElement ? node.querySelector("img") : null)?.parentElement;
+  const column = frame?.parentElement;
+  if (!frame || !column) return null;
+  return {
+    // Offsets are layout positions, untouched by the transform that slides the frame.
+    getBoundingClientRect: () => {
+      const columnBox = column.getBoundingClientRect();
+      return DOMRect.fromRect({
+        x: columnBox.left + frame.offsetLeft - column.offsetLeft,
+        y: columnBox.top + frame.offsetTop - column.offsetTop,
+        width: frame.offsetWidth,
+        height: frame.offsetHeight,
+      });
+    },
+  };
 }
