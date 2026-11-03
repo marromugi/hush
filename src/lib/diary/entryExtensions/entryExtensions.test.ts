@@ -228,8 +228,19 @@ test("a pasted link to another site, or a link among other words, stays text", (
     editor.commands.setTextSelection(1);
     pasteText(editor, text);
     expect(editor.getHTML()).not.toContain("data-embed");
+    expect(editor.getText()).toBe(text);
     editor.destroy();
   }
+});
+
+test("a link pasted over selected words links those words instead of becoming an embed", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海の歌</p>" });
+  editor.commands.setTextSelection({ from: 1, to: 4 });
+  pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
+  expect(editor.getHTML()).not.toContain("data-embed");
+  expect(editor.getHTML()).toContain('href="https://youtu.be/dQw4w9WgXcQ"');
+  expect(editor.getText()).toBe("海の歌");
+  editor.destroy();
 });
 
 test("a link pasted into code stays text in the code", () => {
