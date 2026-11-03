@@ -1,6 +1,7 @@
 import type { z } from "@hono/zod-openapi";
 
 import type { FileList } from "./schemas";
+import { EntryDate, ImageId } from "./schemas";
 
 /** Where the newest version of each file is kept. */
 const CURRENT = "files/";
@@ -22,23 +23,36 @@ function pathOf(file: VaultFile): string {
   return `images/${file.id}.enc`;
 }
 
-const ENTRY_PATH = /^entries\/\d{4}\/(.+)\.enc$/;
-const IMAGE_PATH = /^images\/(.+)\.enc$/;
+/** The file stored at `path`, or null when no vault file is stored there. */
+function fileAt(path: string): VaultFile | null {
+  const file: VaultFile | null =
+    path === "vault.json"
+      ? { kind: "vault" }
+      : path.startsWith("entries/")
+        ? { kind: "entry", date: path.slice("entries/YYYY/".length, -".enc".length) }
+        : path.startsWith("images/")
+          ? { kind: "image", id: path.slice("images/".length, -".enc".length) }
+          : null;
+  if (file === null) return null;
+  const named =
+    file.kind === "vault" ||
+    (file.kind === "entry" ? EntryDate.safeParse(file.date) : ImageId.safeParse(file.id)).success;
+  return named && pathOf(file) === path ? file : null;
+}
 
+/** Lists the vault's files. Throws when the bucket holds anything else, naming it. */
 export async function listFiles(bucket: R2Bucket): Promise<z.infer<typeof FileList>> {
   const list: z.infer<typeof FileList> = { vault: null, entries: [], images: [] };
   let cursor: string | undefined;
   do {
     const page = await bucket.list({ prefix: CURRENT, cursor });
     for (const object of page.objects) {
-      const path = object.key.slice(CURRENT.length);
+      const file = fileAt(object.key.slice(CURRENT.length));
       const version = object.httpEtag;
-      const entry = ENTRY_PATH.exec(path)?.[1];
-      const image = IMAGE_PATH.exec(path)?.[1];
-      if (path === "vault.json") list.vault = version;
-      else if (entry !== undefined) list.entries.push({ date: entry, version });
-      else if (image !== undefined) list.images.push({ id: image, version });
-      else throw new Error(`${object.key} in the bucket is not a vault file.`);
+      if (file === null) throw new Error(`${object.key} in the bucket is not a vault file.`);
+      if (file.kind === "vault") list.vault = version;
+      else if (file.kind === "entry") list.entries.push({ date: file.date, version });
+      else list.images.push({ id: file.id, version });
     }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor !== undefined);

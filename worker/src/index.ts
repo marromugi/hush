@@ -25,6 +25,8 @@ const app = new OpenAPIHono<Env>({
 
 app.use("*", requireSyncKey);
 
+app.onError((error, c) => c.json({ error: error.message }, 500));
+
 app.openAPIRegistry.registerComponent("securitySchemes", "syncKey", {
   type: "http",
   scheme: "bearer",
@@ -79,7 +81,7 @@ function writeRoute<Params extends string>(path: Params, name: string) {
     summary: `Writes ${name}.`,
     responses: {
       204: { description: "Stored. The new version is in ETag.", headers: etag },
-      400: problem("The path does not name a file."),
+      400: problem("The path does not name a file, or the body is empty."),
       412: problem("The file changed since the version read, or already exists."),
       428: problem("The write states no condition, or more than one."),
     },
@@ -138,7 +140,10 @@ async function putFile(
 ) {
   const condition: WriteCondition =
     headers["if-match"] === undefined ? { creates: true } : { replaces: headers["if-match"] };
-  const version = await writeFile(c.env.FILES, file, await c.req.arrayBuffer(), condition);
+  const body = await c.req.arrayBuffer();
+  // Every file the app writes is encrypted, so it is never empty.
+  if (body.byteLength === 0) return c.json({ error: `${name} was sent with no body.` }, 400);
+  const version = await writeFile(c.env.FILES, file, body, condition);
   if (version === null) {
     const error =
       "replaces" in condition

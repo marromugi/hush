@@ -125,7 +125,14 @@ describe("reading and writing a file", () => {
   it("refuses names a vault's files do not have", async () => {
     for (const path of ["/entries/2026-13-01", "/entries/2026-1-3", "/images/XYZ"]) {
       expect((await put(path, "x", { "If-None-Match": "*" })).status).toBe(400);
+      expect((await send(path)).status).toBe(400);
     }
+    expect((await env.FILES.list()).objects).toHaveLength(0);
+  });
+
+  it("refuses an empty file", async () => {
+    expect((await put(ENTRY, "", { "If-None-Match": "*" })).status).toBe(400);
+    expect((await env.FILES.list()).objects).toHaveLength(0);
   });
 });
 
@@ -147,6 +154,20 @@ describe("the file list", () => {
 
   it("says there is no vault yet", async () => {
     expect(await (await send("/files")).json()).toEqual({ vault: null, entries: [], images: [] });
+  });
+
+  it("stops and names a file in the bucket that is not a vault file", async () => {
+    for (const key of [
+      "files/entries/2026/notes.enc",
+      "files/entries/2025/2026-01-01.enc",
+      "files/README.md",
+    ]) {
+      await env.FILES.put(key, "x");
+      const response = await send("/files");
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({ error: `${key} in the bucket is not a vault file.` });
+      await env.FILES.delete(key);
+    }
   });
 
   it("lists files beyond the first page", async () => {
