@@ -1,6 +1,6 @@
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
 import {
@@ -14,6 +14,7 @@ import {
 import { entryProse } from "@/lib/diary/entryProse";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
 import { preparePicture } from "@/lib/diary/preparePicture";
+import { toastError } from "@/lib/ui/toast";
 import { saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
@@ -28,8 +29,7 @@ const CURSOR_ROOM = 16;
  * When typing or moving the cursor would take it into `keepClear`, the page
  * scrolls so it stays in view. A pasted picture is prepared for saving
  * (`preparePicture`), saved as an encrypted image, and put where the cursor
- * is once saved; `imageError` says why the last one that failed did not
- * appear. `imageAlign` is where the selected image sits, and `alignImage`
+ * is once saved; one that fails is told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
  * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
  * selected image needs. The menu rises in as it appears, and slides only
  * when the image is aligned or the window's width changes.
@@ -40,7 +40,6 @@ export function useDiaryEditor(
   disabled: boolean,
   keepClear: KeepClear = { top: 0, bottom: 0 },
 ) {
-  const [imageError, setImageError] = useState<string | null>(null);
   const edges = { left: 0, right: 0, top: keepClear.top, bottom: keepClear.bottom };
   const editor = useEditor({
     extensions: entryExtensions,
@@ -74,20 +73,19 @@ export function useDiaryEditor(
   });
 
   async function addImages(files: File[]) {
-    setImageError(null);
     for (const file of files) {
       let picture: Uint8Array;
       try {
         picture = await preparePicture(file);
       } catch {
-        setImageError("この画像は読み込めませんでした。");
+        toastError("この画像は読み込めませんでした。");
         continue;
       }
       let id: string;
       try {
         id = await saveImage(picture);
       } catch (failure) {
-        setImageError(`画像を保存できませんでした。${failureText(failure)}`);
+        toastError(`画像を保存できませんでした。${failureText(failure)}`);
         continue;
       }
       // The editor is gone once the day changes or the vault locks; the image file stays unused.
@@ -124,7 +122,9 @@ export function useDiaryEditor(
     // Kept out of the bands in `keepClear`, which would cover it.
     const padding = { left: 0, right: 0, top, bottom };
     return {
-      shouldShow: ({ editor: shown }: { editor: typeof editor }) => isImageSelected(shown),
+      // Not over an image that is still being read or could not be read: there is no picture to place it by.
+      shouldShow: ({ editor: shown }: { editor: typeof editor }) =>
+        isImageSelected(shown) && selectedImageBox(shown) !== null,
       getReferencedVirtualElement: () => selectedImageBox(editor),
       options: {
         flip: { padding },
@@ -143,7 +143,6 @@ export function useDiaryEditor(
 
   return {
     editor,
-    imageError,
     imageAlign,
     imageMenu,
     imageMenuRef,

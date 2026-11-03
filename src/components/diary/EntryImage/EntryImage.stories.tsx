@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { fn } from "storybook/test";
 
+import { ToastRegion } from "@/components/ui/ToastRegion";
+
 import { EntryImage } from "./EntryImage";
 
 /** A small JPEG drawn on the spot: a sky over a field. */
@@ -56,8 +58,16 @@ export const Resizable: Story = {
   args: { selected: true, width: 60, onResize: fn() },
 };
 
-/** The image file is not on this device. */
+/** The image file is not on this device: a mark stays in its place, and a toast says why. */
 export const Missing: Story = {
+  decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <ToastRegion />
+      </>
+    ),
+  ],
   beforeEach: () => {
     mockIPC(() => {
       throw { kind: "noImage", message: "no image file with this id" };

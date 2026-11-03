@@ -6,6 +6,7 @@ export {
   ChevronDownIcon,
   CloseIcon,
   DiceIcon,
+  ImageOffIcon,
   LogoIcon,
   MenuIcon,
 } from "./glyphs";

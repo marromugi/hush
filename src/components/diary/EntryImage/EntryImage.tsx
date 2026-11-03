@@ -1,5 +1,7 @@
 import { clsx } from "clsx";
 
+import { Icon, ImageOffIcon } from "@/components/ui/Icon";
+
 import { ImageFrame } from "./components/ImageFrame";
 import { useImageSrc } from "./hooks/useImageSrc";
 import type { EntryImageProps } from "./type";
@@ -14,11 +16,29 @@ export function EntryImage({
 }: EntryImageProps) {
   const image = useImageSrc(id);
 
-  if (image.error) {
+  if (image.failed) {
+    // Marks where the picture was; why it could not be read is told in a toast.
     return (
-      <p role="alert" className="text-sm text-error">
-        {image.error}
-      </p>
+      <div
+        className={clsx(
+          // layout
+          "flex items-center justify-center",
+          // size
+          "size-10",
+          // spacing
+          align === "center" && "mx-auto",
+          align === "right" && "ml-auto",
+          // shape
+          "rounded-lg",
+          // color
+          "bg-current/10 text-current/50",
+          // focus
+          selected && "outline-2 outline-offset-2 outline-current/40",
+        )}
+      >
+        <Icon icon={ImageOffIcon} size="lg" />
+        <span className="sr-only">読み込めなかった画像</span>
+      </div>
     );
   }
   return (
