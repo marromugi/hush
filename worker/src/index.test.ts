@@ -60,6 +60,14 @@ describe("the write limit", () => {
     expect((await sendLimited(IMAGE, write)).status).toBe(429);
   });
 
+  it("is not used up by a write to no file", async () => {
+    const sendLimited = limitedSender(1);
+    const write = { method: "PUT", body: "x", headers: { "If-None-Match": "*" } };
+
+    expect((await sendLimited("/nope", write)).status).toBe(404);
+    expect((await sendLimited(ENTRY, write)).status).toBe(204);
+  });
+
   it("does not hold back reads", async () => {
     const sendLimited = limitedSender(0);
 

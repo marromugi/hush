@@ -21,17 +21,17 @@ import { put as putVault } from "@/routes/vault/put";
 const app = new Hono<Env>();
 
 app.use("*", requireSyncKey);
-// After the key check, so requests without the key cannot use up the owner's writes.
-app.on("PUT", "*", limitWrites);
 app.onError((error, c) => c.json({ error: error.message }, 500));
 
 app.get("/files", ...getFiles);
 app.get("/vault", ...getVault);
-app.put("/vault", ...putVault);
+// The write limit runs after the key check, so requests without the key
+// cannot use up the owner's writes.
+app.put("/vault", limitWrites, ...putVault);
 app.get("/entries/:date", ...getEntry);
-app.put("/entries/:date", ...putEntry);
+app.put("/entries/:date", limitWrites, ...putEntry);
 app.get("/images/:id", ...getImage);
-app.put("/images/:id", ...putImage);
+app.put("/images/:id", limitWrites, ...putImage);
 app.get("/openapi.json", getOpenApi(app));
 
 export default app;
