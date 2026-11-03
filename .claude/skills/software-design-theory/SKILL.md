@@ -22,6 +22,10 @@ before any code exists.
   settled that way. A claim about a source (a library's types, a document,
   another project's rules) holds only for the part that was read: read the
   rest before relying on it, or word the claim to cover only what was read.
+  How code behaves also depends on the code that calls it, so a claim about
+  behaviour is read up to the layer that drives it. A claim that something
+  does not happen is settled by running it, because reading one place cannot
+  show that no other place makes it happen.
   Anything taken from a source is checked against its full text, not a
   summary of it.
 - Only what the section "What goes to the developer" names is asked.
