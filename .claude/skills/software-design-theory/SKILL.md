@@ -20,8 +20,12 @@ before any code exists.
   the PR body when there is no issue, where the developer can overturn them.
 - A question that running something or reading the source can answer is
   settled that way. A claim about a source (a library's types, a document,
-  another project's rules) holds only for the part that was read: read the
-  rest before relying on it, or word the claim to cover only what was read.
+  another project's rules) holds only for the part that was read, and only
+  as exactly as the source words it: read the rest before relying on it, or
+  word the claim to cover only what was read. A loose word in a source
+  ("approximate", "best effort", "may exceed") gives no bound. A design that
+  needs a bound there runs the real service before anything is built on it;
+  a fake or a local emulator does not settle it.
   How code behaves also depends on the code that calls it, so a claim about
   behaviour is read up to the layer that drives it. A claim that something
   does not happen is settled by running it, because reading one place cannot
