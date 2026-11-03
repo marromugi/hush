@@ -1,96 +1,152 @@
-import { authorize } from "./auth";
-import { isFilePath } from "./filePath";
-import type { WriteCondition } from "./files";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import type { Context } from "hono";
+
+import { requireSyncKey } from "./auth";
+import type { VaultFile, WriteCondition } from "./files";
 import { listFiles, readFile, writeFile } from "./files";
+import { EntryDate, FileList, ImageId, Problem, WriteHeaders } from "./schemas";
+
+type Env = { Bindings: Cloudflare.Env };
 
 /**
  * Stores a vault's encrypted files for the app's devices. The files are
  * encrypted on the device; this only checks the sync key and refuses a
- * write made against a version that is no longer the newest.
- *
- * - `GET /files` lists every file with its version.
- * - `GET /files/<path>` returns a file, its version in `ETag`.
- * - `PUT /files/<path>` stores a file. It needs `If-Match: <version read>`
- *   to replace one, or `If-None-Match: *` to create one.
+ * write made against a version that is no longer the newest. The routes
+ * are described at `/openapi.json`.
  */
-export default {
-  fetch: (request, env) => handle(request, env),
-} satisfies ExportedHandler<Cloudflare.Env>;
+const app = new OpenAPIHono<Env>({
+  defaultHook: (result, c) => {
+    if (result.success) return undefined;
+    // A missing or malformed condition is the one way a write's headers fail.
+    const status = result.target === "header" ? 428 : 400;
+    return c.json({ error: z.prettifyError(result.error) }, status);
+  },
+});
 
-export async function handle(request: Request, env: Cloudflare.Env): Promise<Response> {
-  switch (await authorize(request, env.SYNC_KEY_HASH)) {
-    case "misconfigured":
-      return text(500, "SYNC_KEY_HASH is not set to a hex SHA-256 of the sync key.");
-    case "denied":
-      return text(401, "Send the sync key as Authorization: Bearer <key>.");
-    case "allowed":
-      break;
-  }
+app.use("*", requireSyncKey);
 
-  const { pathname } = new URL(request.url);
-  if (pathname === "/files") {
-    if (request.method !== "GET") return methodNotAllowed("GET");
-    return Response.json({ files: await listFiles(env.FILES) });
-  }
+app.openAPIRegistry.registerComponent("securitySchemes", "syncKey", {
+  type: "http",
+  scheme: "bearer",
+  description: "The sync key.",
+});
 
-  if (!pathname.startsWith("/files/")) return text(404, "Only /files and /files/<path> exist.");
-  const path = pathname.slice("/files/".length);
-  if (!isFilePath(path)) return text(400, `${path} is not a path a vault is made of.`);
+app.doc31("/openapi.json", {
+  openapi: "3.1.0",
+  info: { title: "Hush sync", version: "1" },
+  security: [{ syncKey: [] }],
+});
 
-  switch (request.method) {
-    case "GET":
-      return getFile(env.FILES, path);
-    case "PUT":
-      return putFile(env.FILES, path, request);
-    default:
-      return methodNotAllowed("GET, PUT");
-  }
+const problem = (description: string) => ({
+  description,
+  content: { "application/json": { schema: Problem } },
+});
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/files",
+    summary: "Lists every file with its newest version.",
+    responses: {
+      200: { description: "The files.", content: { "application/json": { schema: FileList } } },
+    },
+  }),
+  async (c) => c.json(await listFiles(c.env.FILES), 200),
+);
+
+const binary = {
+  "application/octet-stream": { schema: { type: "string", format: "binary" } },
+} as const;
+const etag = { ETag: { schema: { type: "string" } } } as const;
+
+function readRoute<Params extends string>(path: Params, name: string) {
+  return {
+    method: "get",
+    path,
+    summary: `Reads ${name}.`,
+    responses: {
+      200: { description: `${name}, its version in ETag.`, headers: etag, content: binary },
+      400: problem("The path does not name a file."),
+      404: problem("The file does not exist."),
+    },
+  } as const;
 }
 
-async function getFile(bucket: R2Bucket, path: string): Promise<Response> {
-  const file = await readFile(bucket, path);
-  if (file === null) return text(404, `${path} does not exist.`);
-  return new Response(file.body, {
-    headers: { "Content-Type": "application/octet-stream", ETag: file.httpEtag },
+function writeRoute<Params extends string>(path: Params, name: string) {
+  return {
+    method: "put",
+    path,
+    summary: `Writes ${name}.`,
+    responses: {
+      204: { description: "Stored. The new version is in ETag.", headers: etag },
+      400: problem("The path does not name a file."),
+      412: problem("The file changed since the version read, or already exists."),
+      428: problem("The write states no condition, or more than one."),
+    },
+  } as const;
+}
+
+const writeRequest = { headers: WriteHeaders, body: { required: true, content: binary } };
+
+app.openapi(createRoute(readRoute("/vault", "the vault")), (c) =>
+  getFile(c, { kind: "vault" }, "The vault"),
+);
+app.openapi(createRoute({ ...writeRoute("/vault", "the vault"), request: writeRequest }), (c) =>
+  putFile(c, { kind: "vault" }, "The vault", c.req.valid("header")),
+);
+
+const entryParams = z.object({ date: EntryDate });
+app.openapi(
+  createRoute({ ...readRoute("/entries/{date}", "an entry"), request: { params: entryParams } }),
+  (c) => getFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry"),
+);
+app.openapi(
+  createRoute({
+    ...writeRoute("/entries/{date}", "an entry"),
+    request: { params: entryParams, ...writeRequest },
+  }),
+  (c) => putFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry", c.req.valid("header")),
+);
+
+const imageParams = z.object({ id: ImageId });
+app.openapi(
+  createRoute({ ...readRoute("/images/{id}", "an image"), request: { params: imageParams } }),
+  (c) => getFile(c, { kind: "image", ...c.req.valid("param") }, "The image"),
+);
+app.openapi(
+  createRoute({
+    ...writeRoute("/images/{id}", "an image"),
+    request: { params: imageParams, ...writeRequest },
+  }),
+  (c) => putFile(c, { kind: "image", ...c.req.valid("param") }, "The image", c.req.valid("header")),
+);
+
+async function getFile(c: Context<Env>, file: VaultFile, name: string) {
+  const stored = await readFile(c.env.FILES, file);
+  if (stored === null) return c.json({ error: `${name} does not exist.` }, 404);
+  return c.body(stored.body, 200, {
+    "Content-Type": "application/octet-stream",
+    ETag: stored.httpEtag,
   });
 }
 
-async function putFile(bucket: R2Bucket, path: string, request: Request): Promise<Response> {
-  const condition = writeCondition(request.headers);
-  if (condition === null) {
-    return text(428, "Send If-Match with the one version you read, or If-None-Match: * to create.");
-  }
-
-  const version = await writeFile(bucket, path, await request.arrayBuffer(), condition);
+async function putFile(
+  c: Context<Env>,
+  file: VaultFile,
+  name: string,
+  headers: z.infer<typeof WriteHeaders>,
+) {
+  const condition: WriteCondition =
+    headers["if-match"] === undefined ? { creates: true } : { replaces: headers["if-match"] };
+  const version = await writeFile(c.env.FILES, file, await c.req.arrayBuffer(), condition);
   if (version === null) {
-    return text(
-      412,
+    const error =
       "replaces" in condition
-        ? `${path} has changed since that version was read.`
-        : `${path} already exists.`,
-    );
+        ? `${name} has changed since that version was read.`
+        : `${name} already exists.`;
+    return c.json({ error }, 412);
   }
-  return new Response(null, { status: 204, headers: { ETag: version } });
+  return c.body(null, 204, { ETag: version });
 }
 
-/** One version as `ETag` gives it: quoted, not `*` and not a list. */
-const VERSION = /^"[^",*]+"$/;
-
-/** The one condition the request states, or null when it states none, both, or another. */
-function writeCondition(headers: Headers): WriteCondition | null {
-  const ifMatch = headers.get("If-Match");
-  const ifNoneMatch = headers.get("If-None-Match");
-  if (ifMatch !== null && ifNoneMatch === null) {
-    return VERSION.test(ifMatch) ? { replaces: ifMatch } : null;
-  }
-  if (ifMatch === null && ifNoneMatch === "*") return { creates: true };
-  return null;
-}
-
-function methodNotAllowed(allow: string): Response {
-  return new Response(`Use ${allow}.`, { status: 405, headers: { Allow: allow } });
-}
-
-function text(status: number, message: string): Response {
-  return new Response(message, { status });
-}
+export default app;

@@ -2,10 +2,11 @@ import { reset } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { handle } from "./index";
+import app from "./index";
 
 const KEY = "test-sync-key";
-const ENTRY = "entries/2026/2026-11-03.enc";
+const ENTRY = "/entries/2026-11-03";
+const IMAGE = "/images/0123456789abcdef0123456789abcdef";
 
 afterEach(() => reset());
 
@@ -16,7 +17,7 @@ function send(path: string, init: RequestInit = {}, key: string | null = KEY): P
 }
 
 function put(path: string, body: string, condition: Record<string, string>): Promise<Response> {
-  return send(`/files/${path}`, { method: "PUT", body, headers: condition });
+  return send(path, { method: "PUT", body, headers: condition });
 }
 
 async function create(path: string, body: string): Promise<string> {
@@ -25,6 +26,10 @@ async function create(path: string, body: string): Promise<string> {
   const version = response.headers.get("ETag");
   expect(version).not.toBeNull();
   return version ?? "";
+}
+
+async function read(path: string): Promise<string> {
+  return (await send(path)).text();
 }
 
 describe("the sync key", () => {
@@ -36,14 +41,15 @@ describe("the sync key", () => {
     expect((await send("/files", {}, "another-key")).status).toBe(401);
   });
 
-  it("guards writes too", async () => {
-    const response = await send(
-      `/files/${ENTRY}`,
+  it("guards writes and the API description too", async () => {
+    const write = await send(
+      ENTRY,
       { method: "PUT", body: "x", headers: { "If-None-Match": "*" } },
       "another-key",
     );
-    expect(response.status).toBe(401);
-    expect((await send(`/files/${ENTRY}`)).status).toBe(404);
+    expect(write.status).toBe(401);
+    expect((await send(ENTRY)).status).toBe(404);
+    expect((await send("/openapi.json", {}, null)).status).toBe(401);
   });
 });
 
@@ -53,7 +59,7 @@ describe("a Worker without SYNC_KEY_HASH", () => {
       const request = new Request("https://sync.example/files", {
         headers: { Authorization: `Bearer ${KEY}` },
       });
-      const response = await handle(request, { ...env, SYNC_KEY_HASH: hash });
+      const response = await app.fetch(request, { ...env, SYNC_KEY_HASH: hash });
       expect(response.status).toBe(500);
     }
   });
@@ -63,7 +69,7 @@ describe("reading and writing a file", () => {
   it("returns what was written, with the version the write gave", async () => {
     const version = await create(ENTRY, "first");
 
-    const response = await send(`/files/${ENTRY}`);
+    const response = await send(ENTRY);
     expect(response.status).toBe(200);
     expect(response.headers.get("ETag")).toBe(version);
     expect(await response.text()).toBe("first");
@@ -72,30 +78,32 @@ describe("reading and writing a file", () => {
   it("replaces a file when the version read is still the newest", async () => {
     const first = await create(ENTRY, "first");
 
-    const response = await put(ENTRY, "second", { "If-Match": first });
-    expect(response.status).toBe(204);
-    expect(await (await send(`/files/${ENTRY}`)).text()).toBe("second");
+    expect((await put(ENTRY, "second", { "If-Match": first })).status).toBe(204);
+    expect(await read(ENTRY)).toBe("second");
   });
 
   it("refuses a replace made against an older version", async () => {
     const first = await create(ENTRY, "first");
     expect((await put(ENTRY, "from the Mac", { "If-Match": first })).status).toBe(204);
 
-    const response = await put(ENTRY, "from the iPhone", { "If-Match": first });
-    expect(response.status).toBe(412);
-    expect(await (await send(`/files/${ENTRY}`)).text()).toBe("from the Mac");
+    expect((await put(ENTRY, "from the iPhone", { "If-Match": first })).status).toBe(412);
+    expect(await read(ENTRY)).toBe("from the Mac");
   });
 
   it("refuses to create a file that exists", async () => {
     await create(ENTRY, "first");
 
     expect((await put(ENTRY, "again", { "If-None-Match": "*" })).status).toBe(412);
-    expect(await (await send(`/files/${ENTRY}`)).text()).toBe("first");
+    expect(await read(ENTRY)).toBe("first");
   });
 
-  it("refuses a write that states no condition", async () => {
-    expect((await put(ENTRY, "x", {})).status).toBe(428);
-    expect((await send(`/files/${ENTRY}`)).status).toBe(404);
+  it("refuses a write that states no condition, or both", async () => {
+    const first = await create(ENTRY, "first");
+
+    expect((await put(ENTRY, "over", {})).status).toBe(428);
+    const both = { "If-Match": first, "If-None-Match": "*" };
+    expect((await put(ENTRY, "over", both)).status).toBe(428);
+    expect(await read(ENTRY)).toBe("first");
   });
 
   it("refuses a replace that does not name one version", async () => {
@@ -104,22 +112,18 @@ describe("reading and writing a file", () => {
     for (const ifMatch of ["*", first.slice(1, -1), `${first}, "other"`]) {
       expect((await put(ENTRY, "over", { "If-Match": ifMatch })).status).toBe(428);
     }
-    expect(await (await send(`/files/${ENTRY}`)).text()).toBe("first");
+    expect(await read(ENTRY)).toBe("first");
   });
 
-  it("accepts every path a vault is made of", async () => {
-    for (const path of ["vault.json", ENTRY, "images/0123456789abcdef0123456789abcdef.enc"]) {
-      expect((await put(path, "x", { "If-None-Match": "*" })).status).toBe(204);
+  it("accepts every kind of file a vault is made of", async () => {
+    for (const path of ["/vault", ENTRY, IMAGE]) {
+      expect((await put(path, path, { "If-None-Match": "*" })).status).toBe(204);
+      expect(await read(path)).toBe(path);
     }
   });
 
-  it("refuses paths a vault is not made of", async () => {
-    for (const path of [
-      "notes.txt",
-      "entries/2026/2025-11-03.enc",
-      "images/XYZ.enc",
-      "history/vault.json",
-    ]) {
+  it("refuses names a vault's files do not have", async () => {
+    for (const path of ["/entries/2026-13-01", "/entries/2026-1-3", "/images/XYZ"]) {
       expect((await put(path, "x", { "If-None-Match": "*" })).status).toBe(400);
     }
   });
@@ -127,32 +131,46 @@ describe("reading and writing a file", () => {
 
 describe("the file list", () => {
   it("lists every file with its newest version", async () => {
-    const vault = await create("vault.json", "{}");
+    const vault = await create("/vault", "{}");
+    const image = await create(IMAGE, "picture");
     const first = await create(ENTRY, "first");
-    const response = await put(ENTRY, "second", { "If-Match": first });
-    const entry = response.headers.get("ETag");
+    const entry = (await put(ENTRY, "second", { "If-Match": first })).headers.get("ETag");
 
     const list = await send("/files");
     expect(list.status).toBe(200);
     expect(await list.json()).toEqual({
-      files: [
-        { path: ENTRY, version: entry },
-        { path: "vault.json", version: vault },
-      ],
+      vault,
+      entries: [{ date: "2026-11-03", version: entry }],
+      images: [{ id: "0123456789abcdef0123456789abcdef", version: image }],
     });
+  });
+
+  it("says there is no vault yet", async () => {
+    expect(await (await send("/files")).json()).toEqual({ vault: null, entries: [], images: [] });
+  });
+
+  it("lists files beyond the first page", async () => {
+    const ids = Array.from({ length: 1001 }, (_, i) => i.toString(16).padStart(32, "0"));
+    for (const id of ids) await env.FILES.put(`files/images/${id}.enc`, "x");
+
+    const { images } = await (await send("/files")).json<{ images: { id: string }[] }>();
+    expect(images.map((image) => image.id)).toEqual(ids);
   });
 });
 
-describe("a long file list", () => {
-  it("lists files beyond the first page", async () => {
-    const paths = Array.from(
-      { length: 1001 },
-      (_, i) => `images/${i.toString(16).padStart(32, "0")}.enc`,
-    );
-    for (const path of paths) await env.FILES.put(`files/${path}`, "x");
-
-    const { files } = await (await send("/files")).json<{ files: { path: string }[] }>();
-    expect(files.map((file) => file.path)).toEqual(paths);
+describe("the API description", () => {
+  it("names every route", async () => {
+    const response = await send("/openapi.json");
+    expect(response.status).toBe(200);
+    const { paths } = await response.json<{ paths: Record<string, Record<string, unknown>> }>();
+    expect(
+      Object.fromEntries(Object.entries(paths).map(([path, ops]) => [path, Object.keys(ops)])),
+    ).toEqual({
+      "/files": ["get"],
+      "/vault": ["get", "put"],
+      "/entries/{date}": ["get", "put"],
+      "/images/{id}": ["get", "put"],
+    });
   });
 });
 
@@ -162,11 +180,20 @@ describe("history", () => {
     await put(ENTRY, "from the Mac", { "If-Match": first });
     await put(ENTRY, "from the iPhone", { "If-Match": first });
 
-    const kept = await env.FILES.list({ prefix: `history/${ENTRY}/` });
+    const kept = await env.FILES.list({ prefix: "history/entries/2026/2026-11-03.enc/" });
     const bodies = await Promise.all(
       kept.objects.map(async (object) => (await env.FILES.get(object.key))?.text() ?? null),
     );
     expect(bodies).toHaveLength(3);
     expect(new Set(bodies)).toEqual(new Set(["first", "from the Mac", "from the iPhone"]));
+  });
+
+  it("keeps nothing from a write that was refused before reaching the bucket", async () => {
+    const first = await create(ENTRY, "first");
+    await put(ENTRY, "over", { "If-Match": "*" });
+    await put(ENTRY, "over", { "If-Match": first.slice(1, -1) });
+
+    const kept = await env.FILES.list({ prefix: "history/" });
+    expect(kept.objects).toHaveLength(1);
   });
 });

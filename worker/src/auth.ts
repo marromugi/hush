@@ -1,3 +1,5 @@
+import { createMiddleware } from "hono/factory";
+
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
 export type AuthResult = "allowed" | "denied" | "misconfigured";
@@ -31,3 +33,15 @@ function hexToBytes(hex: string): Uint8Array {
   }
   return bytes;
 }
+
+/** Lets a request through only with the sync key. */
+export const requireSyncKey = createMiddleware<{ Bindings: Cloudflare.Env }>(async (c, next) => {
+  switch (await authorize(c.req.raw, c.env.SYNC_KEY_HASH)) {
+    case "misconfigured":
+      return c.json({ error: "SYNC_KEY_HASH is not set to a hex SHA-256 of the sync key." }, 500);
+    case "denied":
+      return c.json({ error: "Send the sync key as Authorization: Bearer <key>." }, 401);
+    case "allowed":
+      return next();
+  }
+});
