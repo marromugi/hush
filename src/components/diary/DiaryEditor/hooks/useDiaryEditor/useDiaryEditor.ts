@@ -108,7 +108,9 @@ export function useDiaryEditor(
     // Kept out of the bands in `keepClear`, which would cover it.
     const padding = { left: 0, right: 0, top, bottom };
     return {
-      shouldShow: ({ editor: shown }: { editor: typeof editor }) => isImageSelected(shown),
+      // Not over an image that is still being read or could not be read: there is no picture to place it by.
+      shouldShow: ({ editor: shown }: { editor: typeof editor }) =>
+        isImageSelected(shown) && selectedImageBox(shown) !== null,
       getReferencedVirtualElement: () => selectedImageBox(editor),
       options: { flip: { padding }, shift: { padding } },
     };

@@ -22,13 +22,18 @@ export function EntryImage({
       <div
         className={clsx(
           // layout
-          "inline-flex items-center justify-center",
+          "flex items-center justify-center",
           // size
           "size-10",
+          // spacing
+          align === "center" && "mx-auto",
+          align === "right" && "ml-auto",
           // shape
           "rounded-lg",
           // color
           "bg-current/10 text-current/50",
+          // focus
+          selected && "outline-2 outline-offset-2 outline-current/40",
         )}
       >
         <Icon icon={ImageOffIcon} size="lg" />
