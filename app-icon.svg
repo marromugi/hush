@@ -4,6 +4,8 @@
     (an 824px rounded square inside 1024px). The source for `pnpm tauri icon app-icon.svg`.
     The mark is drawn on a circle of radius 100 and scaled; its colors are
     the page (stone-50) and the text (stone-900) of the light theme.
+    app-icon-ios.svg and the logo glyph (LogoIcon) draw the same mark;
+    change them together.
   -->
   <defs>
     <mask id="moon">

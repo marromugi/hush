@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!--
+    The iOS version of app-icon.svg: the same mark on a full square, since
+    iOS rounds the corners itself. The mark keeps its size relative to the
+    tile in app-icon.svg (radius 250 on 824px). The source for the icons in
+    src-tauri/gen/apple: generate them with `pnpm tauri icon app-icon-ios.svg
+    -o <scratch dir>` and copy its ios/ folder into the AppIcon set, since a
+    plain run would overwrite the desktop icons too. Then remove the alpha
+    channel from the copied PNGs: the App Store rejects an icon that has one.
+  -->
+  <defs>
+    <mask id="moon">
+      <rect x="-100" y="-100" width="200" height="200" fill="#fff" />
+      <circle cx="45" cy="-5" r="55" fill="#000" />
+      <circle cx="45" cy="-8" r="16.5" fill="#fff" />
+      <polygon points="37.7,-5 52.3,-5 64.1,55 25.9,55" fill="#fff" />
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="#fafaf9" />
+  <g transform="translate(512 512) scale(3.107)">
+    <circle r="100" fill="#1c1917" mask="url(#moon)" />
+  </g>
+</svg>
