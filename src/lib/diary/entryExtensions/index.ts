@@ -1,2 +1,8 @@
 export { entryExtensions } from "./entryExtensions";
-export { insertEntryImage } from "./lib/entryImageNode";
+export {
+  alignSelectedImage,
+  insertEntryImage,
+  isImageSelected,
+  selectedImageAlign,
+  selectedImageBox,
+} from "./lib/entryImageNode";

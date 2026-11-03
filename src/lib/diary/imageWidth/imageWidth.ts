@@ -21,9 +21,9 @@ export function parseWidth(text: string | null): number | null {
 }
 
 /**
- * The width an image takes while its right edge is dragged to `pointerX`:
- * from its left edge `left` to the pointer, in percent of `columnWidth`.
+ * The width, in percent of `columnWidth`, of an image that was `startWidth`
+ * pixels wide and has grown by `growth` pixels (shrunk, when negative).
  */
-export function widthAt(pointerX: number, left: number, columnWidth: number): number {
-  return clampWidth(((pointerX - left) / columnWidth) * 100);
+export function grownWidth(startWidth: number, growth: number, columnWidth: number): number {
+  return clampWidth(((startWidth + growth) / columnWidth) * 100);
 }

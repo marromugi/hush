@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { parseWidth, widthAt } from "./imageWidth";
+import { grownWidth, parseWidth } from "./imageWidth";
 
 test("a written width is read as a whole percent", () => {
   expect(parseWidth("60")).toBe(60);
@@ -14,12 +14,12 @@ test("a missing or unusable width leaves the image at its own size", () => {
   }
 });
 
-test("dragging gives the width from the image's left edge to the pointer", () => {
-  expect(widthAt(400, 100, 600)).toBe(50);
-  expect(widthAt(301, 100, 600)).toBe(34);
+test("a grown or shrunk image's width is its new size in percent of the column", () => {
+  expect(grownWidth(200, 100, 600)).toBe(50);
+  expect(grownWidth(300, -99, 600)).toBe(34);
 });
 
-test("dragging past either end stops at the narrowest or the full width", () => {
-  expect(widthAt(110, 100, 600)).toBe(10);
-  expect(widthAt(2000, 100, 600)).toBe(100);
+test("growing or shrinking past either end stops at the narrowest or the full width", () => {
+  expect(grownWidth(200, -190, 600)).toBe(10);
+  expect(grownWidth(200, 2000, 600)).toBe(100);
 });

@@ -4,11 +4,12 @@ import { useWidthDrag } from "./hooks/useWidthDrag";
 import type { ImageFrameProps } from "./type";
 
 /**
- * The box an entry's image sits in, at its width. With `onResize`, a grip on
- * its right edge resizes it by dragging.
+ * The box an entry's image sits in, at its width and alignment. With
+ * `onResize`, a grip on its edge resizes it by dragging: the right edge, or
+ * the left one for a right-aligned image.
  */
-export function ImageFrame({ width, onResize, children }: ImageFrameProps) {
-  const { setFrame, shownWidth, grip } = useWidthDrag(width, onResize ?? (() => {}));
+export function ImageFrame({ width, align, onResize, children }: ImageFrameProps) {
+  const { setFrame, shownWidth, grip } = useWidthDrag(width, align, onResize ?? (() => {}));
 
   return (
     <div
@@ -18,6 +19,9 @@ export function ImageFrame({ width, onResize, children }: ImageFrameProps) {
         "relative",
         // size: a given width is filled; without one, the box fits the picture once it is in
         shownWidth === null ? "max-w-full has-[img]:w-fit" : "[&>img]:w-full",
+        // spacing
+        align === "center" && "mx-auto",
+        align === "right" && "ml-auto",
       )}
       style={shownWidth === null ? undefined : { width: `${shownWidth}%` }}
     >
@@ -29,7 +33,8 @@ export function ImageFrame({ width, onResize, children }: ImageFrameProps) {
           onLostPointerCapture={grip.onPointerCancel}
           className={clsx(
             // layout
-            "absolute top-1/2 -right-3 -translate-y-1/2",
+            "absolute top-1/2 -translate-y-1/2",
+            align === "right" ? "-left-3" : "-right-3",
             // size: wider than it looks, to be easy to catch
             "flex h-12 w-4 items-center justify-center",
             // interaction

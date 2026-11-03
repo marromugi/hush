@@ -5,7 +5,13 @@ import { useImageSrc } from "./hooks/useImageSrc";
 import type { EntryImageProps } from "./type";
 
 /** A picture in an entry, read from its encrypted file. */
-export function EntryImage({ id, selected = false, width = null, onResize }: EntryImageProps) {
+export function EntryImage({
+  id,
+  selected = false,
+  width = null,
+  align = "left",
+  onResize,
+}: EntryImageProps) {
   const image = useImageSrc(id);
 
   if (image.error) {
@@ -16,7 +22,7 @@ export function EntryImage({ id, selected = false, width = null, onResize }: Ent
     );
   }
   return (
-    <ImageFrame width={width} onResize={selected ? onResize : undefined}>
+    <ImageFrame width={width} align={align} onResize={selected ? onResize : undefined}>
       {image.src ? (
         <img
           src={image.src}

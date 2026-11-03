@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 
+import type { ImageAlign } from "@/lib/diary/imageAlign";
+
 export type ImageFrameProps = {
   /** In percent of the entry's width; `null` for the image's own size. */
   width: number | null;
+  /** Where the box sits across the entry's width. */
+  align: ImageAlign;
   /** Given only while the image can be resized; called with the new width once dragging ends. */
   onResize?: (width: number) => void;
   /** The image, or what stands in for it while it is read. */

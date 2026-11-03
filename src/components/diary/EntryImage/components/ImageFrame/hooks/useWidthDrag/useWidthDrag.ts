@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { PointerEvent } from "react";
 
-import { widthAt } from "@/lib/diary/imageWidth";
+import type { ImageAlign } from "@/lib/diary/imageAlign";
+import { grownWidth } from "@/lib/diary/imageWidth";
 
 export type UseWidthDrag = {
   /** The ref for the element around the image; its parent is the entry's column. */
@@ -17,17 +18,26 @@ export type UseWidthDrag = {
   };
 };
 
-/** Where a drag started: the image's left edge, how far the pointer was past its right edge, and the column's width. */
-type Drag = { left: number; grabOffset: number; columnWidth: number };
+/** Where a drag started: the pointer, the image's width in pixels, and the column's width. */
+type Drag = { startX: number; startWidth: number; columnWidth: number };
 
 /**
- * Dragging the grip with the main button resizes the image from its left
- * edge, in percent of the column. The width follows the pointer while
- * dragging and is handed to `onResize` once, when the pointer is let go, and
- * only if the pointer moved and the width changed.
+ * How much wider the image gets per pixel the grip moves right. A centred
+ * image grows on both sides, so its edge moves half as far as its width
+ * changes. A right-aligned image's grip is on its left edge, so moving right
+ * shrinks it.
+ */
+const GROWTH_PER_PIXEL: Record<ImageAlign, number> = { left: 1, center: 2, right: -1 };
+
+/**
+ * Dragging the grip with the main button resizes the image, in percent of
+ * the column, so that the grip's edge follows the pointer. The width follows
+ * the pointer while dragging and is handed to `onResize` once, when the
+ * pointer is let go, and only if the pointer moved and the width changed.
  */
 export function useWidthDrag(
   width: number | null,
+  align: ImageAlign,
   onResize: (width: number) => void,
 ): UseWidthDrag {
   const [frame, setFrame] = useState<HTMLDivElement | null>(null);
@@ -35,7 +45,8 @@ export function useWidthDrag(
   const [dragged, setDragged] = useState<number | null>(null);
 
   function widthFor(from: Drag, pointerX: number): number {
-    return widthAt(pointerX - from.grabOffset, from.left, from.columnWidth);
+    const growth = (pointerX - from.startX) * GROWTH_PER_PIXEL[align];
+    return grownWidth(from.startWidth, growth, from.columnWidth);
   }
 
   function end() {
@@ -53,10 +64,9 @@ export function useWidthDrag(
         // Without this the browser sends a mousedown, and the editor starts selecting or dragging the image.
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        const box = frame.getBoundingClientRect();
         setDrag({
-          left: box.left,
-          grabOffset: event.clientX - box.right,
+          startX: event.clientX,
+          startWidth: frame.getBoundingClientRect().width,
           columnWidth: column.clientWidth,
         });
       },
