@@ -8,9 +8,10 @@ import { watchIdle } from "./watchIdle";
 const IDLE_MS = 5 * 60 * 1000;
 
 /**
- * Locks when no one has touched the app for a while, and when the system
- * sleeps or locks the screen. Use it on every screen shown while unlocked;
- * `lock` saves anything still being written before it locks.
+ * Locks when no one has touched the app for a while, when the system sleeps
+ * or locks the screen, and on iOS when the person leaves the app. Use it on
+ * every screen shown while unlocked; `lock` saves anything still being
+ * written before it locks.
  */
 export function useAutoLock(lock: () => Promise<void>): void {
   const lockNow = useEffectEvent(() => {

@@ -2,7 +2,7 @@
 //! screen. The frontend locks, saving what is being written first; locking
 //! here would drop that writing.
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Window, WindowEvent};
 
 /// The event the frontend listens to.
 pub const LOCK_REQUESTED: &str = "lock-requested";
@@ -86,3 +86,19 @@ pub fn watch(app: &AppHandle) {
 /// Other platforms send nothing yet.
 #[cfg(not(target_os = "macos"))]
 pub fn watch(_app: &AppHandle) {}
+
+/// Emits `LOCK_REQUESTED` on iOS as soon as the app becomes inactive,
+/// Control Center and the app switcher included.
+#[cfg(target_os = "ios")]
+pub fn on_window_event(window: &Window, event: &WindowEvent) {
+    use tauri::Emitter;
+
+    if let WindowEvent::Suspended = event {
+        // Nothing to do if no window listens; the vault then has nothing shown.
+        let _ = window.emit(LOCK_REQUESTED, ());
+    }
+}
+
+/// Other platforms send nothing here; `watch` covers sleep and screen lock.
+#[cfg(not(target_os = "ios"))]
+pub fn on_window_event(_window: &Window, _event: &WindowEvent) {}
