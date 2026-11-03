@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import type { Env } from "@/lib/factory";
+import { limitWrites } from "@/middleware/limitWrites";
 import { requireSyncKey } from "@/middleware/requireSyncKey";
 import { get as getEntry } from "@/routes/entries/[date]/get";
 import { put as putEntry } from "@/routes/entries/[date]/put";
@@ -20,6 +21,8 @@ import { put as putVault } from "@/routes/vault/put";
 const app = new Hono<Env>();
 
 app.use("*", requireSyncKey);
+// After the key check, so requests without the key cannot use up the owner's writes.
+app.on("PUT", "*", limitWrites);
 app.onError((error, c) => c.json({ error: error.message }, 500));
 
 app.get("/files", ...getFiles);
