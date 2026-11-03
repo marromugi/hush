@@ -2,6 +2,8 @@ import { reset } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { handle } from "./index";
+
 const KEY = "test-sync-key";
 const ENTRY = "entries/2026/2026-11-03.enc";
 
@@ -45,6 +47,18 @@ describe("the sync key", () => {
   });
 });
 
+describe("a Worker without SYNC_KEY_HASH", () => {
+  it("refuses every request, even one with a key", async () => {
+    for (const hash of [undefined, "not-a-hash"]) {
+      const request = new Request("https://sync.example/files", {
+        headers: { Authorization: `Bearer ${KEY}` },
+      });
+      const response = await handle(request, { ...env, SYNC_KEY_HASH: hash });
+      expect(response.status).toBe(500);
+    }
+  });
+});
+
 describe("reading and writing a file", () => {
   it("returns what was written, with the version the write gave", async () => {
     const version = await create(ENTRY, "first");
@@ -84,6 +98,21 @@ describe("reading and writing a file", () => {
     expect((await send(`/files/${ENTRY}`)).status).toBe(404);
   });
 
+  it("refuses a replace that does not name one version", async () => {
+    const first = await create(ENTRY, "first");
+
+    for (const ifMatch of ["*", first.slice(1, -1), `${first}, "other"`]) {
+      expect((await put(ENTRY, "over", { "If-Match": ifMatch })).status).toBe(428);
+    }
+    expect(await (await send(`/files/${ENTRY}`)).text()).toBe("first");
+  });
+
+  it("accepts every path a vault is made of", async () => {
+    for (const path of ["vault.json", ENTRY, "images/0123456789abcdef0123456789abcdef.enc"]) {
+      expect((await put(path, "x", { "If-None-Match": "*" })).status).toBe(204);
+    }
+  });
+
   it("refuses paths a vault is not made of", async () => {
     for (const path of [
       "notes.txt",
@@ -111,6 +140,19 @@ describe("the file list", () => {
         { path: "vault.json", version: vault },
       ],
     });
+  });
+});
+
+describe("a long file list", () => {
+  it("lists files beyond the first page", async () => {
+    const paths = Array.from(
+      { length: 1001 },
+      (_, i) => `images/${i.toString(16).padStart(32, "0")}.enc`,
+    );
+    for (const path of paths) await env.FILES.put(`files/${path}`, "x");
+
+    const { files } = await (await send("/files")).json<{ files: { path: string }[] }>();
+    expect(files.map((file) => file.path)).toEqual(paths);
   });
 });
 

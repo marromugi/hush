@@ -14,36 +14,38 @@ import { listFiles, readFile, writeFile } from "./files";
  *   to replace one, or `If-None-Match: *` to create one.
  */
 export default {
-  async fetch(request, env): Promise<Response> {
-    switch (await authorize(request, env.SYNC_KEY_HASH)) {
-      case "misconfigured":
-        return text(500, "SYNC_KEY_HASH is not set to a hex SHA-256 of the sync key.");
-      case "denied":
-        return text(401, "Send the sync key as Authorization: Bearer <key>.");
-      case "allowed":
-        break;
-    }
-
-    const { pathname } = new URL(request.url);
-    if (pathname === "/files") {
-      if (request.method !== "GET") return methodNotAllowed("GET");
-      return Response.json({ files: await listFiles(env.FILES) });
-    }
-
-    if (!pathname.startsWith("/files/")) return text(404, "Only /files and /files/<path> exist.");
-    const path = pathname.slice("/files/".length);
-    if (!isFilePath(path)) return text(400, `${path} is not a path a vault is made of.`);
-
-    switch (request.method) {
-      case "GET":
-        return getFile(env.FILES, path);
-      case "PUT":
-        return putFile(env.FILES, path, request);
-      default:
-        return methodNotAllowed("GET, PUT");
-    }
-  },
+  fetch: (request, env) => handle(request, env),
 } satisfies ExportedHandler<Cloudflare.Env>;
+
+export async function handle(request: Request, env: Cloudflare.Env): Promise<Response> {
+  switch (await authorize(request, env.SYNC_KEY_HASH)) {
+    case "misconfigured":
+      return text(500, "SYNC_KEY_HASH is not set to a hex SHA-256 of the sync key.");
+    case "denied":
+      return text(401, "Send the sync key as Authorization: Bearer <key>.");
+    case "allowed":
+      break;
+  }
+
+  const { pathname } = new URL(request.url);
+  if (pathname === "/files") {
+    if (request.method !== "GET") return methodNotAllowed("GET");
+    return Response.json({ files: await listFiles(env.FILES) });
+  }
+
+  if (!pathname.startsWith("/files/")) return text(404, "Only /files and /files/<path> exist.");
+  const path = pathname.slice("/files/".length);
+  if (!isFilePath(path)) return text(400, `${path} is not a path a vault is made of.`);
+
+  switch (request.method) {
+    case "GET":
+      return getFile(env.FILES, path);
+    case "PUT":
+      return putFile(env.FILES, path, request);
+    default:
+      return methodNotAllowed("GET, PUT");
+  }
+}
 
 async function getFile(bucket: R2Bucket, path: string): Promise<Response> {
   const file = await readFile(bucket, path);
@@ -56,7 +58,7 @@ async function getFile(bucket: R2Bucket, path: string): Promise<Response> {
 async function putFile(bucket: R2Bucket, path: string, request: Request): Promise<Response> {
   const condition = writeCondition(request.headers);
   if (condition === null) {
-    return text(428, "Send If-Match with the version you read, or If-None-Match: * to create.");
+    return text(428, "Send If-Match with the one version you read, or If-None-Match: * to create.");
   }
 
   const version = await writeFile(bucket, path, await request.arrayBuffer(), condition);
@@ -71,11 +73,16 @@ async function putFile(bucket: R2Bucket, path: string, request: Request): Promis
   return new Response(null, { status: 204, headers: { ETag: version } });
 }
 
+/** One version as `ETag` gives it: quoted, not `*` and not a list. */
+const VERSION = /^"[^",*]+"$/;
+
 /** The one condition the request states, or null when it states none, both, or another. */
 function writeCondition(headers: Headers): WriteCondition | null {
   const ifMatch = headers.get("If-Match");
   const ifNoneMatch = headers.get("If-None-Match");
-  if (ifMatch !== null && ifNoneMatch === null) return { replaces: ifMatch };
+  if (ifMatch !== null && ifNoneMatch === null) {
+    return VERSION.test(ifMatch) ? { replaces: ifMatch } : null;
+  }
   if (ifMatch === null && ifNoneMatch === "*") return { creates: true };
   return null;
 }
