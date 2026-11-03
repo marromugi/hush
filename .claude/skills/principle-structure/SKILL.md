@@ -55,24 +55,21 @@ Why: the parent's entrance already leads to the child, so importing back through
 DiaryEditor/
   DiaryEditor.tsx
   index.ts
-  hooks/
-    useDiaryEditor/
-      useDiaryEditor.ts
-      useDiaryEditor.test.ts
-      index.ts
-  lib/
+  useDiaryEditor/
+    useDiaryEditor.ts
+    useDiaryEditor.test.ts
+    index.ts
     countCharacters/
       countCharacters.ts
       countCharacters.test.ts
       index.ts
-  components/
-    EditorToolbar/
-      EditorToolbar.tsx
-      index.ts
+  EditorToolbar/
+    EditorToolbar.tsx
+    index.ts
 ```
 
-Hooks go in `hooks/`, plain functions in `lib/`, child components in `components/`, each in the same one-unit shape. The same holds inside a hook or function directory: a helper only `useDiaryEditor` uses goes in `useDiaryEditor/lib/`.
-Why: the unit's only user is right next to it, so it is obvious who depends on it, and it disappears with its user.
+Each one sits directly in its user's directory, in the same one-unit shape, with no `hooks/`, `lib/`, or `components/` folder between. Its name says its kind: `useXxx` is a hook, `Xxx` a component, `xxx` a plain function. The same holds inside a hook or function directory: a helper only `useDiaryEditor` uses goes in `useDiaryEditor/countCharacters/`.
+Why: the unit's only user is right next to it, so it is obvious who depends on it, and it disappears with its user. A folder per kind would add a level at every step of nesting while the name already tells the kind.
 
 **Once a second unit uses it, move it to the shared place for its kind.**
 
