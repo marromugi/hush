@@ -16,8 +16,8 @@ export function EntryEmbed({ embed, selected = false }: EntryEmbedProps) {
         embed.site === "x" && "max-w-[550px]",
         // spacing
         "my-[1em]",
-        // shape
-        "overflow-hidden rounded-lg",
+        // shape: a post on X draws its own border and corners
+        embed.site === "youtube" && "overflow-hidden rounded-lg",
         // focus
         selected && "outline-2 outline-offset-2 outline-current/40",
       )}
@@ -26,7 +26,7 @@ export function EntryEmbed({ embed, selected = false }: EntryEmbedProps) {
         ref={ref}
         src={src}
         title={TITLE[embed.site]}
-        // Kept off Hush's own page; links in it open in the browser.
+        // Kept off Hush's own page.
         // oxlint-disable-next-line react/iframe-missing-sandbox -- the page is another site's, so its own origin cannot reach Hush's
         sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
