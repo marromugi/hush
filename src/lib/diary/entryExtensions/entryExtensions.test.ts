@@ -175,3 +175,73 @@ test("a fence and a space also start a code block, with the language under shiki
   expect(editor.getHTML()).toBe('<pre><code class="language-python"></code></pre><p></p>');
   editor.destroy();
 });
+
+/** Pastes `text` into `editor`, as from the clipboard. */
+function pasteText(editor: Editor, text: string) {
+  const data = new DataTransfer();
+  data.setData("text/plain", text);
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", { value: data });
+  editor.view.dom.dispatchEvent(event);
+}
+
+test("an embed in an entry's HTML is read back and written as the same HTML", () => {
+  const body =
+    '<p>見た。</p><div data-embed="youtube" data-id="dQw4w9WgXcQ"></div><div data-embed="x" data-id="20"></div><p>また。</p>';
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  expect(editor.getHTML()).toBe(body);
+  editor.destroy();
+});
+
+test("an embed of an unknown site or a broken id is not kept", () => {
+  const editor = new Editor({
+    extensions: entryExtensions,
+    content:
+      '<p>a</p><div data-embed="vimeo" data-id="1"></div><div data-embed="x" data-id="1&amp;b=2"></div>',
+  });
+  expect(editor.getHTML()).toBe("<p>a</p>");
+  editor.destroy();
+});
+
+test("a pasted YouTube link becomes the video, with the cursor on the line after it", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  editor.commands.setTextSelection(2);
+  pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
+  editor.commands.insertContent("x");
+  expect(editor.getHTML()).toBe(
+    '<p>海</p><div data-embed="youtube" data-id="dQw4w9WgXcQ"></div><p>x</p>',
+  );
+  editor.destroy();
+});
+
+test("a pasted link to a post on X becomes the post", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://x.com/jack/status/20");
+  expect(editor.getHTML()).toContain('<div data-embed="x" data-id="20"></div>');
+  editor.destroy();
+});
+
+test("a pasted link to another site, or a link among other words, stays text", () => {
+  for (const text of ["https://example.com/", "見て https://youtu.be/dQw4w9WgXcQ"]) {
+    const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+    editor.commands.setTextSelection(1);
+    pasteText(editor, text);
+    expect(editor.getHTML()).not.toContain("data-embed");
+    editor.destroy();
+  }
+});
+
+test("a link pasted into code stays text in the code", () => {
+  const editor = new Editor({
+    extensions: entryExtensions,
+    content: '<pre><code class="language-typescript"></code></pre>',
+  });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
+  expect(editor.getHTML()).toContain(
+    '<pre><code class="language-typescript">https://youtu.be/dQw4w9WgXcQ</code></pre>',
+  );
+  expect(editor.getHTML()).not.toContain("data-embed");
+  editor.destroy();
+});
