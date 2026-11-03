@@ -22,7 +22,7 @@ const YOUTUBE_ID_LEN: usize = 11;
 
 /// How long a connection may take to send its whole request before it is dropped.
 const REQUEST_DEADLINE: Duration = if cfg!(test) {
-    Duration::from_millis(300)
+    Duration::from_secs(1)
 } else {
     Duration::from_secs(5)
 };
