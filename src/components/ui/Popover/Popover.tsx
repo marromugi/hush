@@ -18,7 +18,7 @@ import { cloneElement, useState } from "react";
 
 import { Nested } from "@/components/ui/Nested";
 
-import { originFor, placementFor } from "./lib/placement";
+import { originFor, placementFor } from "./placement";
 import type { PopoverProps } from "./type";
 
 const VIEWPORT_MARGIN = 8;

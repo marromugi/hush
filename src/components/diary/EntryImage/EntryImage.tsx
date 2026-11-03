@@ -2,9 +2,9 @@ import { clsx } from "clsx";
 
 import { Icon, ImageOffIcon } from "@/components/ui/Icon";
 
-import { ImageFrame } from "./components/ImageFrame";
-import { useImageSrc } from "./hooks/useImageSrc";
+import { ImageFrame } from "./ImageFrame";
 import type { EntryImageProps } from "./type";
+import { useImageSrc } from "./useImageSrc";
 
 /** A picture in an entry, read from its encrypted file. */
 export function EntryImage({

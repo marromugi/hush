@@ -3,9 +3,9 @@ import { TextField } from "@/components/ui/TextField";
 import { errorText } from "@/lib/vault/errorText";
 import { isAboutPassphrase } from "@/lib/vault/hushError";
 
-import { QrScanner } from "./components/QrScanner";
-import { useNewDeviceUnlockForm } from "./hooks/useNewDeviceUnlockForm";
+import { QrScanner } from "./QrScanner";
 import type { NewDeviceUnlockFormProps } from "./type";
+import { useNewDeviceUnlockForm } from "./useNewDeviceUnlockForm";
 
 /** Opens the vault on a device that does not have its Secret Key yet. */
 export function NewDeviceUnlockForm({ busy, error, onUnlock }: NewDeviceUnlockFormProps) {

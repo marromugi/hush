@@ -1,6 +1,6 @@
 import { Modal } from "@/components/ui/Modal";
 
-import { SettingsBody } from "./components/SettingsBody";
+import { SettingsBody } from "./SettingsBody";
 import type { SettingsModalProps } from "./type";
 
 /**

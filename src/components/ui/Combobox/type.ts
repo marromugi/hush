@@ -1,4 +1,4 @@
-import type { Option } from "./lib/matchOptions";
+import type { Option } from "./matchOptions";
 
 export type ComboboxProps = {
   label: string;

@@ -4,8 +4,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import { ChevronDownIcon, Icon } from "@/components/ui/Icon";
 import { Popover } from "@/components/ui/Popover";
 
-import { useLanguagePicker } from "./hooks/useLanguagePicker";
 import type { EntryCodeBlockProps } from "./type";
+import { useLanguagePicker } from "./useLanguagePicker";
 
 const LABEL = "text-xs opacity-60";
 

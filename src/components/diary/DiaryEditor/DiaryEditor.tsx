@@ -4,9 +4,9 @@ import { clsx } from "clsx";
 
 import { fontLoadingStyle } from "@/lib/diary/entryProse";
 
-import { ImageMenu } from "./components/ImageMenu";
-import { useDiaryEditor } from "./hooks/useDiaryEditor";
+import { ImageMenu } from "./ImageMenu";
 import type { DiaryEditorProps } from "./type";
+import { useDiaryEditor } from "./useDiaryEditor";
 
 export function DiaryEditor({
   initialBody,
