@@ -3,8 +3,8 @@ import { TextField } from "@/components/ui/TextField";
 import { errorText } from "@/lib/vault/errorText";
 import { isAboutPassphrase } from "@/lib/vault/hushError";
 
-import { useUnlockForm } from "./hooks/useUnlockForm";
 import type { UnlockFormProps } from "./type";
+import { useUnlockForm } from "./useUnlockForm";
 
 export function UnlockForm({ busy, error, onUnlock }: UnlockFormProps) {
   const form = useUnlockForm(onUnlock);

@@ -1,7 +1,7 @@
 import { StarterKit } from "@tiptap/starter-kit";
 
-import { EntryCodeBlockNode } from "./lib/entryCodeBlock";
-import { EntryImageNode } from "./lib/entryImageNode";
+import { EntryCodeBlockNode } from "./entryCodeBlock";
+import { EntryImageNode } from "./entryImageNode";
 
 /** What an entry's body can hold, the same whether it is written or read. */
 export const entryExtensions = [

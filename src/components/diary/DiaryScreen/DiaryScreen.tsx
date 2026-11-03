@@ -12,12 +12,12 @@ import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
 
-import { PastEntry } from "./components/PastEntry";
-import { SecretKeyModal } from "./components/SecretKeyModal";
-import { Sidebar } from "./components/Sidebar";
-import { useDiaryScreen } from "./hooks/useDiaryScreen";
-import { useFontDice } from "./hooks/useFontDice";
-import { useTodayScreen } from "./hooks/useTodayScreen";
+import { PastEntry } from "./PastEntry";
+import { SecretKeyModal } from "./SecretKeyModal";
+import { Sidebar } from "./Sidebar";
+import { useDiaryScreen } from "./useDiaryScreen";
+import { useFontDice } from "./useFontDice";
+import { useTodayScreen } from "./useTodayScreen";
 
 /** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of. */
 const BANDS = { top: 84, bottom: 104 };

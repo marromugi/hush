@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode, Ref } from "react";
 
-import type { Align, Direction } from "./lib/placement";
+import type { Align, Direction } from "./placement";
 
 /**
  * Whoever passes `open` holds the state, so it must also take the changes.

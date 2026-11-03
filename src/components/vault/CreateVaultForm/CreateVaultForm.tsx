@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 
-import { useCreateVaultForm } from "./hooks/useCreateVaultForm";
 import type { CreateVaultFormProps } from "./type";
+import { useCreateVaultForm } from "./useCreateVaultForm";
 
 export function CreateVaultForm({ busy, error, onCreate }: CreateVaultFormProps) {
   const { register, passphraseError, confirmError, handleSubmit } = useCreateVaultForm(

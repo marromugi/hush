@@ -8,8 +8,8 @@ import { failureText } from "@/lib/vault/errorText";
 import { toHushError } from "@/lib/vault/hushError";
 import type { HushError } from "@/lib/vault/hushError";
 
-import { shownFor } from "./lib/shownFor";
-import type { Loaded, SaveFailure } from "./lib/shownFor";
+import { shownFor } from "./shownFor";
+import type { Loaded, SaveFailure } from "./shownFor";
 
 export type UseTodayEntry = {
   /** True until the entry for `date` has been read. */

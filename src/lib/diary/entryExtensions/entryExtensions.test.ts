@@ -7,7 +7,7 @@ import {
   insertEntryImage,
   isImageSelected,
   selectedImageAlign,
-} from "./lib/entryImageNode";
+} from "./entryImageNode";
 
 test("an image in an entry's HTML is read back and written as the same HTML", () => {
   const body =

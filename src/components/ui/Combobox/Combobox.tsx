@@ -9,10 +9,10 @@ import { Nested } from "@/components/ui/Nested";
 import { optionList, optionRow } from "@/components/ui/Options";
 import { useDisclosure } from "@/hooks/common/useDisclosure";
 
-import { useOptionPanel } from "./hooks/useOptionPanel";
-import { matchOptions } from "./lib/matchOptions";
-import type { Option } from "./lib/matchOptions";
+import { matchOptions } from "./matchOptions";
+import type { Option } from "./matchOptions";
 import type { ComboboxProps } from "./type";
+import { useOptionPanel } from "./useOptionPanel";
 
 /** How many matches the list draws at once; typing more narrows the rest. */
 const MAX_ROWS = 100;

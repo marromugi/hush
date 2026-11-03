@@ -5,4 +5,4 @@ export {
   isImageSelected,
   selectedImageAlign,
   selectedImageBox,
-} from "./lib/entryImageNode";
+} from "./entryImageNode";
