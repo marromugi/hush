@@ -74,7 +74,6 @@ export function showSecretKey(): Promise<string> {
   return call("show_secret_key");
 }
 
-/** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, or user switch. */
 let embedPages: Promise<string> | null = null;
 
 /**
@@ -87,6 +86,7 @@ export function embedPagesOrigin(): Promise<string> {
   return embedPages;
 }
 
+/** Sent by the Rust side (`lock_signals::LOCK_REQUESTED`) on sleep, screen lock, or user switch. */
 const LOCK_REQUESTED = "lock-requested";
 
 /** Calls `onRequest` each time the system asks the vault to lock. */

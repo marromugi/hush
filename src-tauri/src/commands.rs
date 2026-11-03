@@ -84,12 +84,12 @@ pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>,
     session::entry_dates(&state)
 }
 
-/// The Secret Key as text, for the person to keep again.
 #[tauri::command]
 pub async fn embed_pages_origin(state: State<'_, AppState>) -> Result<String, AppError> {
     embed_pages::origin(&state)
 }
 
+/// The Secret Key as text, for the person to keep again.
 #[tauri::command]
 pub async fn show_secret_key(state: State<'_, AppState>) -> Result<String, AppError> {
     session::secret_key_text(&state)
