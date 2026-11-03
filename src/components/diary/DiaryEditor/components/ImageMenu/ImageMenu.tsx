@@ -4,6 +4,7 @@ import { AlignCenterIcon, AlignLeftIcon, AlignRightIcon, Icon } from "@/componen
 import type { IconSource } from "@/components/ui/Icon";
 import { optionList, optionRow } from "@/components/ui/Options";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
+import { quickMove } from "@/lib/ui/quickMove";
 
 import type { ImageMenuProps } from "./type";
 
@@ -23,7 +24,7 @@ export function ImageMenu({ align, onAlign }: ImageMenuProps) {
         className={optionList({ className: "flex-row shadow-float" })}
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", bounce: 0.25, duration: 0.3 }}
+        transition={quickMove}
       >
         {CHOICES.map((choice) => (
           <button

@@ -1,0 +1,1 @@
+export { quickMove } from "./quickMove";

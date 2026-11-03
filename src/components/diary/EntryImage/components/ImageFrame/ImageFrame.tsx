@@ -1,6 +1,8 @@
 import { clsx } from "clsx";
 import { MotionConfig, motion } from "motion/react";
 
+import { quickMove } from "@/lib/ui/quickMove";
+
 import { useWidthDrag } from "./hooks/useWidthDrag";
 import type { ImageFrameProps } from "./type";
 
@@ -19,7 +21,7 @@ export function ImageFrame({ width, align, onResize, children }: ImageFrameProps
         ref={setFrame}
         layout="position"
         layoutDependency={align}
-        transition={{ layout: { duration: 0.3, ease: "easeOut" } }}
+        transition={{ layout: quickMove }}
         className={clsx(
           // layout
           "relative",

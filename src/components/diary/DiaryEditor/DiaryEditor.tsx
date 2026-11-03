@@ -34,8 +34,8 @@ export function DiaryEditor({
         className={clsx(
           // layout
           "z-10",
-          // motion: the same pace as the image it follows
-          "transition-[left,top] duration-300 ease-out motion-reduce:transition-none",
+          // motion: the same pace as the image it follows (quickMove)
+          "transition-[left,top] duration-180 ease-in-out motion-reduce:transition-none",
         )}
         {...imageMenu}
       >
