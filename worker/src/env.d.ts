@@ -4,7 +4,8 @@ declare global {
   namespace Cloudflare {
     interface Env {
       FILES: R2Bucket;
-      SYNC_KEY_HASH: string;
+      /** Unset until `wrangler secret put SYNC_KEY_HASH` has run. */
+      SYNC_KEY_HASH?: string;
     }
     interface GlobalProps {
       mainModule: typeof main;
