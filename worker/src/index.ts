@@ -1,10 +1,13 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import type { Context } from "hono";
+import { Hono } from "hono";
+import type { DescribeRouteOptions } from "hono-openapi";
+import { describeRoute, openAPIRouteHandler, resolver, validator } from "hono-openapi";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { requireSyncKey } from "./auth";
 import type { VaultFile, WriteCondition } from "./files";
 import { listFiles, readFile, writeFile } from "./files";
-import { EntryDate, FileList, ImageId, Problem, WriteHeaders } from "./schemas";
+import { EntryParams, FileList, ImageParams, Problem, WriteHeaders } from "./schemas";
 
 type Env = { Bindings: Cloudflare.Env };
 
@@ -14,113 +17,111 @@ type Env = { Bindings: Cloudflare.Env };
  * write made against a version that is no longer the newest. The routes
  * are described at `/openapi.json`.
  */
-const app = new OpenAPIHono<Env>({
-  defaultHook: (result, c) => {
-    if (result.success) return undefined;
-    // A missing or malformed condition is the one way a write's headers fail.
-    const status = result.target === "header" ? 428 : 400;
-    return c.json({ error: z.prettifyError(result.error) }, status);
-  },
-});
+const app = new Hono<Env>();
 
 app.use("*", requireSyncKey);
 
 app.onError((error, c) => c.json({ error: error.message }, 500));
 
-app.openAPIRegistry.registerComponent("securitySchemes", "syncKey", {
-  type: "http",
-  scheme: "bearer",
-  description: "The sync key.",
-});
-
-app.doc31("/openapi.json", {
-  openapi: "3.1.0",
-  info: { title: "Hush sync", version: "1" },
-  security: [{ syncKey: [] }],
-});
+/** Answers a request whose `target` does not fit its schema with `status`. */
+function refuse(status: ContentfulStatusCode) {
+  return (
+    result: { success: true } | { success: false; error: readonly { message: string }[] },
+    c: Context<Env>,
+  ) =>
+    result.success
+      ? undefined
+      : c.json({ error: result.error.map((issue) => issue.message).join(" ") }, status);
+}
 
 const problem = (description: string) => ({
   description,
-  content: { "application/json": { schema: Problem } },
+  content: { "application/json": { schema: resolver(Problem) } },
 });
-
-app.openapi(
-  createRoute({
-    method: "get",
-    path: "/files",
-    summary: "Lists every file with its newest version.",
-    responses: {
-      200: { description: "The files.", content: { "application/json": { schema: FileList } } },
-    },
-  }),
-  async (c) => c.json(await listFiles(c.env.FILES), 200),
-);
 
 const binary = {
   "application/octet-stream": { schema: { type: "string", format: "binary" } },
 } as const;
+
 const etag = { ETag: { schema: { type: "string" } } } as const;
 
-function readRoute<Params extends string>(path: Params, name: string) {
+function readRoute(name: string): DescribeRouteOptions {
   return {
-    method: "get",
-    path,
     summary: `Reads ${name}.`,
     responses: {
       200: { description: `${name}, its version in ETag.`, headers: etag, content: binary },
       400: problem("The path does not name a file."),
       404: problem("The file does not exist."),
     },
-  } as const;
+  };
 }
 
-function writeRoute<Params extends string>(path: Params, name: string) {
+function writeRoute(name: string): DescribeRouteOptions {
   return {
-    method: "put",
-    path,
     summary: `Writes ${name}.`,
+    requestBody: { required: true, content: binary },
     responses: {
       204: { description: "Stored. The new version is in ETag.", headers: etag },
       400: problem("The path does not name a file, or the body is empty."),
       412: problem("The file changed since the version read, or already exists."),
       428: problem("The write states no condition, or more than one."),
     },
-  } as const;
+  };
 }
 
-const writeRequest = { headers: WriteHeaders, body: { required: true, content: binary } };
+const writeHeaders = validator("header", WriteHeaders, refuse(428));
 
-app.openapi(createRoute(readRoute("/vault", "the vault")), (c) =>
+app.get(
+  "/files",
+  describeRoute({
+    summary: "Lists every file with its newest version.",
+    responses: {
+      200: {
+        description: "The files.",
+        content: { "application/json": { schema: resolver(FileList) } },
+      },
+    },
+  }),
+  async (c) => c.json(await listFiles(c.env.FILES)),
+);
+
+app.get("/vault", describeRoute(readRoute("the vault")), (c) =>
   getFile(c, { kind: "vault" }, "The vault"),
 );
-app.openapi(createRoute({ ...writeRoute("/vault", "the vault"), request: writeRequest }), (c) =>
+app.put("/vault", describeRoute(writeRoute("the vault")), writeHeaders, (c) =>
   putFile(c, { kind: "vault" }, "The vault", c.req.valid("header")),
 );
 
-const entryParams = z.object({ date: EntryDate });
-app.openapi(
-  createRoute({ ...readRoute("/entries/{date}", "an entry"), request: { params: entryParams } }),
-  (c) => getFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry"),
+const entryParams = validator("param", EntryParams, refuse(400));
+app.get("/entries/:date", describeRoute(readRoute("an entry")), entryParams, (c) =>
+  getFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry"),
 );
-app.openapi(
-  createRoute({
-    ...writeRoute("/entries/{date}", "an entry"),
-    request: { params: entryParams, ...writeRequest },
-  }),
-  (c) => putFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry", c.req.valid("header")),
+app.put("/entries/:date", describeRoute(writeRoute("an entry")), entryParams, writeHeaders, (c) =>
+  putFile(c, { kind: "entry", ...c.req.valid("param") }, "The entry", c.req.valid("header")),
 );
 
-const imageParams = z.object({ id: ImageId });
-app.openapi(
-  createRoute({ ...readRoute("/images/{id}", "an image"), request: { params: imageParams } }),
-  (c) => getFile(c, { kind: "image", ...c.req.valid("param") }, "The image"),
+const imageParams = validator("param", ImageParams, refuse(400));
+app.get("/images/:id", describeRoute(readRoute("an image")), imageParams, (c) =>
+  getFile(c, { kind: "image", ...c.req.valid("param") }, "The image"),
 );
-app.openapi(
-  createRoute({
-    ...writeRoute("/images/{id}", "an image"),
-    request: { params: imageParams, ...writeRequest },
+app.put("/images/:id", describeRoute(writeRoute("an image")), imageParams, writeHeaders, (c) =>
+  putFile(c, { kind: "image", ...c.req.valid("param") }, "The image", c.req.valid("header")),
+);
+
+app.get(
+  "/openapi.json",
+  openAPIRouteHandler(app, {
+    documentation: {
+      info: { title: "Hush sync", version: "1" },
+      components: {
+        securitySchemes: {
+          syncKey: { type: "http", scheme: "bearer", description: "The sync key." },
+        },
+      },
+      security: [{ syncKey: [] }],
+    },
+    defaultValidationErrorResponse: false,
   }),
-  (c) => putFile(c, { kind: "image", ...c.req.valid("param") }, "The image", c.req.valid("header")),
 );
 
 async function getFile(c: Context<Env>, file: VaultFile, name: string) {
@@ -132,12 +133,7 @@ async function getFile(c: Context<Env>, file: VaultFile, name: string) {
   });
 }
 
-async function putFile(
-  c: Context<Env>,
-  file: VaultFile,
-  name: string,
-  headers: z.infer<typeof WriteHeaders>,
-) {
+async function putFile(c: Context<Env>, file: VaultFile, name: string, headers: WriteHeaders) {
   const condition: WriteCondition =
     headers["if-match"] === undefined ? { creates: true } : { replaces: headers["if-match"] };
   const body = await c.req.arrayBuffer();

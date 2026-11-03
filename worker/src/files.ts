@@ -1,4 +1,4 @@
-import type { z } from "@hono/zod-openapi";
+import * as v from "valibot";
 
 import type { FileList } from "./schemas";
 import { EntryDate, ImageId } from "./schemas";
@@ -36,13 +36,13 @@ function fileAt(path: string): VaultFile | null {
   if (file === null) return null;
   const named =
     file.kind === "vault" ||
-    (file.kind === "entry" ? EntryDate.safeParse(file.date) : ImageId.safeParse(file.id)).success;
+    (file.kind === "entry" ? v.is(EntryDate, file.date) : v.is(ImageId, file.id));
   return named && pathOf(file) === path ? file : null;
 }
 
 /** Lists the vault's files. Throws when the bucket holds anything else, naming it. */
-export async function listFiles(bucket: R2Bucket): Promise<z.infer<typeof FileList>> {
-  const list: z.infer<typeof FileList> = { vault: null, entries: [], images: [] };
+export async function listFiles(bucket: R2Bucket): Promise<FileList> {
+  const list: FileList = { vault: null, entries: [], images: [] };
   let cursor: string | undefined;
   do {
     const page = await bucket.list({ prefix: CURRENT, cursor });
