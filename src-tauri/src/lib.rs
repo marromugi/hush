@@ -3,6 +3,7 @@ pub mod app_state;
 pub mod b64;
 pub mod commands;
 pub mod crypto;
+pub mod embed_pages;
 pub mod entry;
 pub mod file_version;
 pub mod image;
@@ -26,10 +27,10 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
-            app.manage(AppState::new(AppStateInner::new(LocalStore::new(
-                dir,
-                Arc::new(Keychain),
-            ))));
+            let mut inner = AppStateInner::new(LocalStore::new(dir, Arc::new(Keychain)));
+            // Without it the diary still works; only YouTube videos cannot play.
+            inner.embed_pages = embed_pages::start().ok();
+            app.manage(AppState::new(inner));
             lock_signals::watch(app.handle());
             Ok(())
         })
@@ -41,6 +42,7 @@ pub fn run() {
             commands::read_entry,
             commands::save_entry,
             commands::list_entry_dates,
+            commands::embed_pages_origin,
             commands::show_secret_key,
             commands::save_image,
             commands::read_image,

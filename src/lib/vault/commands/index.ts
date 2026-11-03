@@ -1,5 +1,6 @@
 export {
   createVault,
+  embedPagesOrigin,
   listenLockRequests,
   listEntryDates,
   lockVault,

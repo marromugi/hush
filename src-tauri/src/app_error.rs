@@ -77,6 +77,9 @@ pub enum AppError {
     #[error("vault is locked")]
     Locked,
 
+    #[error("the server for video pages is not running")]
+    EmbedPages,
+
     #[error("file access failed")]
     Io(#[from] std::io::Error),
 
@@ -112,6 +115,7 @@ impl AppError {
             Self::NoVault => "noVault",
             Self::VaultExists => "vaultExists",
             Self::Locked => "locked",
+            Self::EmbedPages => "embedPages",
             Self::Io(_) => "io",
             Self::Tauri(_) => "tauri",
         }

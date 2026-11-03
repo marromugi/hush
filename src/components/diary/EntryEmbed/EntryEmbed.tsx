@@ -24,7 +24,7 @@ export function EntryEmbed({ embed, selected = false }: EntryEmbedProps) {
     >
       <iframe
         ref={ref}
-        src={src}
+        src={src ?? undefined}
         title={TITLE[embed.site]}
         // Kept off Hush's own page.
         // oxlint-disable-next-line react/iframe-missing-sandbox -- the page is another site's, so its own origin cannot reach Hush's

@@ -47,11 +47,18 @@ test("an embed written in an entry is shown only for a known site and a valid id
   expect(parseEmbed(null, "123")).toBeNull();
 });
 
-test("a video is shown from YouTube's cookieless page, and a post from X's in the theme asked", () => {
-  expect(embedFrameSrc({ site: "youtube", id: "dQw4w9WgXcQ" }, "dark")).toBe(
+test("a video is shown from the page served on this machine, or YouTube's own without one", () => {
+  const video = { site: "youtube", id: "dQw4w9WgXcQ" } as const;
+  expect(embedFrameSrc(video, "dark", "http://127.0.0.1:5123")).toBe(
+    "http://127.0.0.1:5123/youtube/dQw4w9WgXcQ",
+  );
+  expect(embedFrameSrc(video, "dark", null)).toBe(
     "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
   );
-  expect(embedFrameSrc({ site: "x", id: "20" }, "dark")).toBe(
+});
+
+test("a post is shown from X's page in the theme asked", () => {
+  expect(embedFrameSrc({ site: "x", id: "20" }, "dark", "http://127.0.0.1:5123")).toBe(
     "https://platform.twitter.com/embed/Tweet.html?id=20&dnt=true&theme=dark&lang=ja",
   );
 });
