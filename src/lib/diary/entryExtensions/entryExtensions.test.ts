@@ -245,3 +245,11 @@ test("a link pasted into code stays text in the code", () => {
   expect(editor.getHTML()).not.toContain("data-embed");
   editor.destroy();
 });
+
+test("a link pasted into inline code stays text in the code", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p><code>abc</code></p>" });
+  editor.commands.setTextSelection(3);
+  pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
+  expect(editor.getHTML()).toBe("<p><code>abhttps://youtu.be/dQw4w9WgXcQc</code></p>");
+  editor.destroy();
+});

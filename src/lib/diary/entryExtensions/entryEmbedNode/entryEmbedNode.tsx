@@ -27,7 +27,7 @@ function EntryEmbedView({ node, selected }: ReactNodeViewProps) {
  * A YouTube video or a post on X on a line of its own, made by pasting its
  * link on its own. The entry's HTML keeps only the site and the id; the
  * video or post is read from the site each time it is shown. Pasted into
- * code, the link stays text.
+ * code, a block or inline, the link stays text.
  */
 export const EntryEmbedNode = Node.create({
   name: NAME,
@@ -76,7 +76,10 @@ export const EntryEmbedNode = Node.create({
       new Plugin({
         props: {
           handlePaste: (view, event) => {
-            if (view.state.selection.$from.parent.type.spec.code) return false;
+            const { $from } = view.state.selection;
+            if ($from.parent.type.spec.code || $from.marks().some((mark) => mark.type.spec.code)) {
+              return false;
+            }
             const embed = parseEmbedLink(event.clipboardData?.getData("text/plain") ?? "");
             if (!embed) return false;
             insertAtomBlock(editor, { type: NAME, attrs: { site: embed.site, id: embed.id } });
