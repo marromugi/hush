@@ -2,7 +2,7 @@ import { reset } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { put, read, send } from "@/lib/testRequest";
+import { put, read, send } from "@/test/request";
 
 const ENTRY = "/entries/2026-11-03";
 const IMAGE = "/images/0123456789abcdef0123456789abcdef";

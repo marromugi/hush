@@ -1,7 +1,7 @@
 import { reset } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { send } from "@/lib/testRequest";
+import { send } from "@/test/request";
 
 afterEach(() => reset());
 
