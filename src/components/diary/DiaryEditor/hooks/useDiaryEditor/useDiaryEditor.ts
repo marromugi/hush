@@ -18,6 +18,7 @@ import { saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./lib/imageFiles";
+import { riseIn, settle, slideNextMove, stopSliding } from "./lib/menuMotion";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
 const CURSOR_ROOM = 16;
@@ -29,8 +30,9 @@ const CURSOR_ROOM = 16;
  * (`preparePicture`), saved as an encrypted image, and put where the cursor
  * is once saved; `imageError` says why the last one that failed did not
  * appear. `imageAlign` is where the selected image sits, and `alignImage`
- * moves it; `imageMenu`, `imageMenuRef`, and `imageMenuShows` are what the
- * bubble menu over a selected image needs.
+ * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
+ * selected image needs. The menu rises in as it appears, and slides only
+ * when the image is aligned or the window's width changes.
  */
 export function useDiaryEditor(
   initialBody: string,
@@ -105,9 +107,16 @@ export function useDiaryEditor(
     selector: ({ editor: current }) => selectedImageAlign(current),
   });
 
-  // Counts each time the image menu appears, so its content can play its entrance again.
-  const [imageMenuShows, setImageMenuShows] = useState(0);
   const imageMenuRef = useRef<HTMLDivElement>(null);
+
+  // The menu slides when the window's width changes; this runs before the menu is moved.
+  useEffect(() => {
+    const onResize = () => {
+      if (imageMenuRef.current) slideNextMove(imageMenuRef.current);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Built once per editor and edges: the bubble menu updates itself each time these change.
   const { top, bottom } = keepClear;
@@ -120,17 +129,13 @@ export function useDiaryEditor(
       options: {
         flip: { padding },
         shift: { padding },
-        // The menu slides when it moves, but not from wherever it was last shown.
         onShow: () => {
-          setImageMenuShows((shows) => shows + 1);
-          imageMenuRef.current?.style.setProperty("transition", "none");
+          if (!imageMenuRef.current) return;
+          stopSliding(imageMenuRef.current);
+          riseIn(imageMenuRef.current);
         },
         onUpdate: () => {
-          const menu = imageMenuRef.current;
-          if (!menu?.style.getPropertyValue("transition")) return;
-          // Draw the first place before sliding is allowed again.
-          void menu.offsetLeft;
-          menu.style.removeProperty("transition");
+          if (imageMenuRef.current) settle(imageMenuRef.current);
         },
       },
     };
@@ -142,7 +147,10 @@ export function useDiaryEditor(
     imageAlign,
     imageMenu,
     imageMenuRef,
-    imageMenuShows,
-    alignImage: (align: ImageAlign) => alignSelectedImage(editor, align),
+    // The menu slides along with the image as it moves to its new place.
+    alignImage: (align: ImageAlign) => {
+      if (imageMenuRef.current) slideNextMove(imageMenuRef.current);
+      alignSelectedImage(editor, align);
+    },
   };
 }

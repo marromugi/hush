@@ -1,1 +1,1 @@
-export { quickMove } from "./quickMove";
+export { quickMove, quickMoveTiming } from "./quickMove";

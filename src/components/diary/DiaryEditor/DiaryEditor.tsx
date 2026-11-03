@@ -16,8 +16,12 @@ export function DiaryEditor({
   fontFamily,
   fontLoading = false,
 }: DiaryEditorProps) {
-  const { editor, imageError, imageAlign, alignImage, imageMenu, imageMenuRef, imageMenuShows } =
-    useDiaryEditor(initialBody, onChange, disabled, keepClear);
+  const { editor, imageError, imageAlign, alignImage, imageMenu, imageMenuRef } = useDiaryEditor(
+    initialBody,
+    onChange,
+    disabled,
+    keepClear,
+  );
 
   return (
     <>
@@ -35,11 +39,11 @@ export function DiaryEditor({
           // layout
           "z-10",
           // motion: the same pace as the image it follows (quickMove)
-          "transition-[left,top] duration-180 ease-in-out motion-reduce:transition-none",
+          "data-slide:transition-[left,top] data-slide:duration-180 data-slide:ease-in-out motion-reduce:transition-none",
         )}
         {...imageMenu}
       >
-        <ImageMenu key={imageMenuShows} align={imageAlign} onAlign={alignImage} />
+        <ImageMenu align={imageAlign} onAlign={alignImage} />
       </BubbleMenu>
       <EditorContent
         editor={editor}

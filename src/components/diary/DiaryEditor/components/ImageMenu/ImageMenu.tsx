@@ -1,10 +1,7 @@
-import { MotionConfig, motion } from "motion/react";
-
 import { AlignCenterIcon, AlignLeftIcon, AlignRightIcon, Icon } from "@/components/ui/Icon";
 import type { IconSource } from "@/components/ui/Icon";
 import { optionList, optionRow } from "@/components/ui/Options";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
-import { quickMove } from "@/lib/ui/quickMove";
 
 import type { ImageMenuProps } from "./type";
 
@@ -14,34 +11,29 @@ const CHOICES: Array<{ align: ImageAlign; icon: IconSource; label: string }> = [
   { align: "right", icon: AlignRightIcon, label: "右に寄せる" },
 ];
 
-/** The buttons that move the selected image across the entry. Rises into place when it appears. */
+/** The buttons that move the selected image across the entry. */
 export function ImageMenu({ align, onAlign }: ImageMenuProps) {
   return (
-    <MotionConfig reducedMotion="user">
-      <motion.div
-        role="toolbar"
-        aria-label="画像の位置"
-        className={optionList({ className: "flex-row shadow-float" })}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={quickMove}
-      >
-        {CHOICES.map((choice) => (
-          <button
-            key={choice.align}
-            type="button"
-            aria-label={choice.label}
-            aria-pressed={align === choice.align}
-            className={optionRow({
-              active: align === choice.align ? "yes" : "no",
-              className: "w-auto px-2",
-            })}
-            onClick={() => onAlign(choice.align)}
-          >
-            <Icon icon={choice.icon} size="md" />
-          </button>
-        ))}
-      </motion.div>
-    </MotionConfig>
+    <div
+      role="toolbar"
+      aria-label="画像の位置"
+      className={optionList({ className: "flex-row shadow-float" })}
+    >
+      {CHOICES.map((choice) => (
+        <button
+          key={choice.align}
+          type="button"
+          aria-label={choice.label}
+          aria-pressed={align === choice.align}
+          className={optionRow({
+            active: align === choice.align ? "yes" : "no",
+            className: "w-auto px-2",
+          })}
+          onClick={() => onAlign(choice.align)}
+        >
+          <Icon icon={choice.icon} size="md" />
+        </button>
+      ))}
+    </div>
   );
 }
