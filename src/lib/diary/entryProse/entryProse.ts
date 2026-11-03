@@ -13,6 +13,11 @@ export const entryProse = clsx(
   "text-[length:var(--entry-size,18px)] leading-[var(--entry-line,1.6)] tracking-(--entry-tracking)",
   // spacing: the first and last paragraphs keep prose's flush edges
   "prose-p:my-[0.5em] [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+  // code: shiki's colors for each scheme, from the variables it sets on the block and each word
+  "prose-pre:my-0 prose-pre:border prose-pre:border-edge",
+  "prose-pre:bg-(--shiki-light-bg,var(--color-surface)) prose-pre:text-(--shiki-light,inherit)",
+  "dark:prose-pre:bg-(--shiki-dark-bg,var(--color-surface)) dark:prose-pre:text-(--shiki-dark,inherit)",
+  "[&_.shiki]:text-(--shiki-light) dark:[&_.shiki]:text-(--shiki-dark)",
 );
 
 /**

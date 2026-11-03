@@ -105,3 +105,73 @@ test("text that is selected is not an image", () => {
   expect(isImageSelected(editor)).toBe(false);
   editor.destroy();
 });
+
+/** Presses Enter in the editor, as the keyboard would. */
+function pressEnter(editor: Editor): void {
+  editor.view.someProp("handleKeyDown", (handle) =>
+    handle(editor.view, new KeyboardEvent("keydown", { key: "Enter" })),
+  );
+}
+
+test("a code block in an entry's HTML is read back and written as the same HTML", () => {
+  const body = '<pre><code class="language-typescript">const a = 1;</code></pre><p>海</p>';
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  expect(editor.getHTML()).toBe(body);
+  editor.destroy();
+});
+
+test("a fence and Enter turn the line into a code block of that language", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  editor.commands.insertContent("x");
+  expect(editor.getHTML()).toBe('<pre><code class="language-typescript">x</code></pre><p></p>');
+  editor.destroy();
+});
+
+test("a fence alone and Enter make a code block with no language", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe("<pre><code></code></pre><p></p>");
+  editor.destroy();
+});
+
+test("a language with capitals or signs after the fence is read too", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```C++</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe('<pre><code class="language-cpp"></code></pre><p></p>');
+  editor.destroy();
+});
+
+test("a fence and Enter in a list item leave the list whole", () => {
+  const body = "<ul><li><p>a</p></li><li><p>```</p></li><li><p>b</p></li></ul>";
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  editor.commands.setTextSelection(11);
+  expect(editor.state.selection.$from.parent.textContent).toBe("```");
+  pressEnter(editor);
+  expect(editor.getHTML()).not.toContain("<pre>");
+  expect(editor.getHTML().match(/<ul>/g)).toHaveLength(1);
+  editor.destroy();
+});
+
+test("Enter on a line with more than a fence splits the line as usual", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts は</p>" });
+  editor.commands.focus("end");
+  pressEnter(editor);
+  expect(editor.getHTML()).toBe("<p>```ts は</p><p></p>");
+  editor.destroy();
+});
+
+test("a fence and a space also start a code block, with the language under shiki's id", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.focus("end");
+  editor.commands.insertContent("```py");
+  const { from } = editor.state.selection;
+  editor.view.someProp("handleTextInput", (handle) =>
+    handle(editor.view, from, from, " ", () => editor.state.tr.insertText(" ", from, from)),
+  );
+  expect(editor.getHTML()).toBe('<pre><code class="language-python"></code></pre><p></p>');
+  editor.destroy();
+});
