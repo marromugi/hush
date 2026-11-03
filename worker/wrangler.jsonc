@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hush-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-19",
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "hush" }],
+  // SYNC_KEY_HASH is a secret: the lowercase hex SHA-256 of the sync key.
+  // Set it with `wrangler secret put SYNC_KEY_HASH`.
+}

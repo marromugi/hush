@@ -1,0 +1,26 @@
+{
+  "name": "hush-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@valibot/to-json-schema": "1.8.0",
+    "hono": "4.13.13",
+    "hono-openapi": "1.5.0",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.5",
+    "@cloudflare/workers-types": "5.20261019.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "wrangler": "4.151.2"
+  },
+  "packageManager": "pnpm@10.28.0"
+}
