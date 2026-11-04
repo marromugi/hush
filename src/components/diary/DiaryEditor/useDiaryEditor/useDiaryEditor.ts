@@ -125,10 +125,15 @@ export function useDiaryEditor(
     void listenKeyboardMoves(() => {
       keyboardMoved = true;
       reveal();
-    }).then((stop) => {
-      if (stopped) stop();
-      else unlisten = stop;
-    });
+      // Once the resize had its chance, a later one is not the keyboard's.
+      setTimeout(() => (keyboardMoved = false), 500);
+    })
+      .then((stop) => {
+        if (stopped) stop();
+        else unlisten = stop;
+      })
+      // Outside the app, as in Storybook, there is no keyboard to hear from.
+      .catch(() => {});
     return () => {
       stopped = true;
       unlisten?.();
