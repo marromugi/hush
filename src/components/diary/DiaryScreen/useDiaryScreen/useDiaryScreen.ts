@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 
 import { dateParts } from "@/components/diary/DiaryScreen/dateParts";
 import type { DateParts } from "@/components/diary/DiaryScreen/dateParts";
-import { WIDE } from "@/components/diary/DiaryScreen/useWide";
 import { useDisclosure } from "@/hooks/common/useDisclosure";
 import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
 import { useSession } from "@/hooks/vault/useSession";
+import { atLeast } from "@/lib/ui/breakpoints";
 import { toastError } from "@/lib/ui/toast";
 import { listEntryDates } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
@@ -54,7 +54,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
 
   // The days shown over the diary have no place once the sidebar is back.
   useEffect(() => {
-    const wide = window.matchMedia(WIDE);
+    const wide = window.matchMedia(atLeast("md"));
     const putAway = () => {
       if (wide.matches) setDatesOpen(false);
     };

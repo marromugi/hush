@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@config "./tailwind.config.ts";
 
 @theme {
   --color-accent: oklch(50% 0.24 265);
