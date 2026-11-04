@@ -93,3 +93,11 @@ const LOCK_REQUESTED = "lock-requested";
 export function listenLockRequests(onRequest: () => void): Promise<UnlistenFn> {
   return listen(LOCK_REQUESTED, () => onRequest());
 }
+
+/** Sent by the Rust side (`full_screen::KEYBOARD_MOVED`) on iOS once the webview has been fitted above the on-screen keyboard. */
+const KEYBOARD_MOVED = "keyboard-moved";
+
+/** Calls `onMove` each time the on-screen keyboard has moved and the window was resized to fit. Never on the desktop. */
+export function listenKeyboardMoves(onMove: () => void): Promise<UnlistenFn> {
+  return listen(KEYBOARD_MOVED, () => onMove());
+}

@@ -15,7 +15,7 @@ import { entryProse } from "@/lib/diary/entryProse";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
 import { preparePicture } from "@/lib/diary/preparePicture";
 import { toastError } from "@/lib/ui/toast";
-import { saveImage } from "@/lib/vault/commands";
+import { listenKeyboardMoves, saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./imageFiles";
@@ -100,33 +100,44 @@ export function useDiaryEditor(
     editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
-  // The on-screen keyboard shrinks the part of the page in view without a
-  // transaction, which would leave the cursor behind the footer until the
-  // next keystroke; it is brought back into view once the bands have moved.
-  // Only the keyboard counts: the window resizing or a pinch zoom also
-  // resizes the part in view, and must leave the page where the person put it.
+  // The on-screen keyboard shrinks the window without a transaction, which
+  // would leave the cursor behind the footer until the next keystroke; it is
+  // brought back into view once the window has been resized. Only the
+  // keyboard counts: a window resized by hand leaves the page where it is.
   useEffect(() => {
-    const vp = window.visualViewport;
-    if (!vp) return () => {};
-    let windowHeight = document.documentElement.clientHeight;
-    let height = vp.height;
+    let keyboardMoved = false;
     let frame = 0;
-    const onResize = () => {
-      const keyboardMoved =
-        vp.scale === 1 &&
-        document.documentElement.clientHeight === windowHeight &&
-        vp.height !== height;
-      windowHeight = document.documentElement.clientHeight;
-      height = vp.height;
-      if (!keyboardMoved) return;
+    const reveal = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!editor.isDestroyed && editor.isFocused) editor.commands.scrollIntoView();
       });
     };
-    vp.addEventListener("resize", onResize);
+    // The resize and the keyboard's word can come in either order.
+    const onResize = () => {
+      if (!keyboardMoved) return;
+      keyboardMoved = false;
+      reveal();
+    };
+    window.addEventListener("resize", onResize);
+    let stopped = false;
+    let unlisten: (() => void) | undefined;
+    void listenKeyboardMoves(() => {
+      keyboardMoved = true;
+      reveal();
+      // Once the resize had its chance, a later one is not the keyboard's.
+      setTimeout(() => (keyboardMoved = false), 500);
+    })
+      .then((stop) => {
+        if (stopped) stop();
+        else unlisten = stop;
+      })
+      // Outside the app, as in Storybook, there is no keyboard to hear from.
+      .catch(() => {});
     return () => {
-      vp.removeEventListener("resize", onResize);
+      stopped = true;
+      unlisten?.();
+      window.removeEventListener("resize", onResize);
       cancelAnimationFrame(frame);
     };
   }, [editor]);

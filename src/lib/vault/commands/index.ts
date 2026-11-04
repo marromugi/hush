@@ -1,6 +1,7 @@
 export {
   createVault,
   embedPagesOrigin,
+  listenKeyboardMoves,
   listenLockRequests,
   listEntryDates,
   lockVault,

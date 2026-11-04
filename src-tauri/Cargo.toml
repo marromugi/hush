@@ -57,9 +57,25 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSString",
 ] }
 
-# The webview's scroll view, reached to let the page fill the screen.
+# The webview, fitted to the screen and kept above the keyboard.
 [target.'cfg(target_os = "ios")'.dependencies]
 objc2 = "0.6.5"
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSDictionary",
+  "NSNotification",
+  "NSString",
+  "NSValue",
+] }
+objc2-ui-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "objc2-core-foundation",
+  "UIGeometry",
+  "UIResponder",
+  "UIView",
+  "UIWindow",
+] }
 
 [dev-dependencies]
 tempfile = "3.27.0"
