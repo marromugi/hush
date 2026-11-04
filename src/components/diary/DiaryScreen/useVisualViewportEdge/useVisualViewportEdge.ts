@@ -6,8 +6,9 @@ type Side = "top" | "bottom";
 function edge(side: Side): number {
   const vp = window.visualViewport;
   if (!vp) return 0;
-  if (side === "top") return vp.offsetTop;
-  return Math.max(0, document.documentElement.clientHeight - vp.offsetTop - vp.height);
+  // Rounded, since the window's height is a whole number and the part in view's is not.
+  if (side === "top") return Math.round(vp.offsetTop);
+  return Math.max(0, Math.round(document.documentElement.clientHeight - vp.offsetTop - vp.height));
 }
 
 function subscribe(onChange: () => void): () => void {
