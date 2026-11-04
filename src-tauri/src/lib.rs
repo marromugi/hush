@@ -6,6 +6,7 @@ pub mod crypto;
 pub mod embed_pages;
 pub mod entry;
 pub mod file_version;
+pub mod full_screen;
 pub mod image;
 pub mod keychain;
 pub mod local_store;
@@ -32,6 +33,7 @@ pub fn run() {
             inner.embed_pages = embed_pages::start().ok();
             app.manage(AppState::new(inner));
             lock_signals::watch(app.handle());
+            full_screen::extend(app)?;
             Ok(())
         })
         .on_window_event(lock_signals::on_window_event)

@@ -10,8 +10,8 @@ export function ToastRegion() {
   return (
     <Toaster
       position="bottom-center"
-      // Above the sticky footer (h-26) and its dice.
-      containerStyle={{ bottom: 112 }}
+      // Above the sticky footer (h-26, grown by the bottom safe-area inset) and its dice.
+      containerStyle={{ bottom: "calc(112px + var(--spacing-safe-bottom))" }}
       toastOptions={{ duration: 5000 }}
     >
       {(shown) => (

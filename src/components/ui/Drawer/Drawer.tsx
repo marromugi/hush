@@ -65,7 +65,7 @@ function DrawerBody({ label, open, onOpenChange, returnFocus, children }: Drawer
                       // layout
                       "absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col",
                       // spacing
-                      "p-5 pt-10",
+                      "px-5 pt-[calc(--spacing(10)+var(--spacing-safe-top))] pb-[calc(--spacing(5)+var(--spacing-safe-bottom))]",
                       // color
                       "border-r border-edge bg-page shadow-float",
                       // focus

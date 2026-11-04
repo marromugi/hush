@@ -9,6 +9,7 @@ import {
   useInteractions,
   useRole,
 } from "@floating-ui/react";
+import { clsx } from "clsx";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useId } from "react";
 
@@ -54,7 +55,15 @@ function ModalBody({ title, open, onOpenChange, returnFocus, height, children }:
         <MotionConfig reducedMotion="user">
           <AnimatePresence>
             {open ? (
-              <FloatingOverlay lockScroll className="z-20 grid place-items-center p-6">
+              <FloatingOverlay
+                lockScroll
+                className={clsx(
+                  // layout
+                  "z-20 grid place-items-center",
+                  // spacing: clear of the notch and the home indicator
+                  "px-6 pt-[calc(--spacing(6)+var(--spacing-safe-top))] pb-[calc(--spacing(6)+var(--spacing-safe-bottom))]",
+                )}
+              >
                 <motion.div
                   aria-hidden
                   className="absolute inset-0 bg-scrim"

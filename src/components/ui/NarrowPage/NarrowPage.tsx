@@ -11,7 +11,7 @@ export function NarrowPage({ children }: NarrowPageProps) {
           // layout
           "mx-auto max-w-2xl",
           // spacing
-          "px-6 py-12",
+          "px-6 pt-[calc(--spacing(12)+var(--spacing-safe-top))] pb-[calc(--spacing(12)+var(--spacing-safe-bottom))]",
         )}
       >
         {children}
