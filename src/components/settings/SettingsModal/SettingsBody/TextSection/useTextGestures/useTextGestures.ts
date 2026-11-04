@@ -67,10 +67,10 @@ export function useTextGestures(
     );
   };
 
+  // Any finger lifting ends the gesture. A finger still down stays known, so
+  // one landing beside it pinches again; on its own it no longer drags.
   const end = (event: PointerEvent) => {
     if (!points.current.delete(event.pointerId)) return;
-    // Any finger lifting ends the gesture; the next one starts afresh.
-    points.current.clear();
     origin.current = null;
     gesture.current = null;
     setAxis(null);

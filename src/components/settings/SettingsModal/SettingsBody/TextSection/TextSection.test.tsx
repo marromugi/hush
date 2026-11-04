@@ -36,6 +36,7 @@ function windowWidth(wide: boolean) {
 }
 
 test("each slider changes its own setting, and reset keeps the focus", () => {
+  windowWidth(true);
   render(<TextSection />);
   fireEvent.change(screen.getByLabelText("フォントサイズ"), { target: { value: "20" } });
   fireEvent.change(screen.getByLabelText("行間"), { target: { value: "1.8" } });
@@ -93,6 +94,24 @@ test("dragging down spreads the lines and dragging left narrows the letters, wit
   expect(readSettings().text.letterSpacing).toBe(0.02);
 });
 
+test("after a pinch, the finger left down does not drag, and one landing beside it pinches again", () => {
+  windowWidth(false);
+  render(<TextSection />);
+  const sample = screen.getByText(/今日は晴れ/);
+  fireEvent.pointerDown(sample, touch(1, 100, 100));
+  fireEvent.pointerDown(sample, touch(2, 200, 100));
+  fireEvent.pointerMove(sample, touch(2, 216, 100));
+  fireEvent.pointerUp(sample, touch(2, 216, 100));
+  expect(changing("フォントサイズ")).toBe(false);
+
+  fireEvent.pointerMove(sample, touch(1, 100, 300));
+  expect(readSettings().text).toEqual({ size: 19, lineHeight: 1.6, letterSpacing: 0 });
+
+  fireEvent.pointerDown(sample, touch(3, 200, 300));
+  fireEvent.pointerMove(sample, touch(3, 232, 300));
+  expect(readSettings().text.size).toBe(21);
+});
+
 test("a short touch changes nothing, and a mouse never does", () => {
   windowWidth(false);
   render(<TextSection />);
@@ -100,6 +119,13 @@ test("a short touch changes nothing, and a mouse never does", () => {
   fireEvent.pointerDown(sample, touch(1, 100, 100));
   fireEvent.pointerMove(sample, touch(1, 104, 104));
   fireEvent.pointerUp(sample, touch(1, 104, 104));
+  // Past the 8px that reads the direction, but short of a whole step.
+  fireEvent.pointerDown(sample, touch(4, 100, 100));
+  fireEvent.pointerMove(sample, touch(4, 109, 100));
+  fireEvent.pointerUp(sample, touch(4, 109, 100));
+  fireEvent.pointerDown(sample, touch(5, 100, 100));
+  fireEvent.pointerMove(sample, touch(5, 91, 100));
+  fireEvent.pointerUp(sample, touch(5, 91, 100));
   fireEvent.pointerDown(sample, { ...touch(2, 100, 100), pointerType: "mouse" });
   fireEvent.pointerMove(sample, { ...touch(2, 100, 300), pointerType: "mouse" });
   expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.6, letterSpacing: 0 });

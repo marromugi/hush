@@ -27,13 +27,13 @@ export function dragDistance(axis: GestureAxis, dx: number, dy: number): number 
 export type GestureStep = { value: number; from: number };
 
 /**
- * The setting after a finger went from `from` to `to`: a step for every
- * STEP_PX, kept inside its range. Past either end, `from` moves along with
- * the finger, so turning back changes the value at once.
+ * The setting after a finger went from `from` to `to`: a step for each whole
+ * STEP_PX, the same both ways, kept inside its range. Past either end, `from`
+ * moves along with the finger, so turning back changes the value at once.
  */
 export function valueAt(axis: GestureAxis, start: number, from: number, to: number): GestureStep {
   const range = TEXT_RANGES[axis];
-  const steps = Math.round((to - from) / STEP_PX);
+  const steps = Math.trunc((to - from) / STEP_PX);
   const wanted = start + steps * range.step;
   const value = Math.min(range.max, Math.max(range.min, wanted));
   const moved = wanted === value ? from : to - ((value - start) / range.step) * STEP_PX;
