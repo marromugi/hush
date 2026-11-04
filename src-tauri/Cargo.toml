@@ -57,5 +57,9 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSString",
 ] }
 
+# The webview's scroll view, reached to let the page fill the screen.
+[target.'cfg(target_os = "ios")'.dependencies]
+objc2 = "0.6.5"
+
 [dev-dependencies]
 tempfile = "3.27.0"

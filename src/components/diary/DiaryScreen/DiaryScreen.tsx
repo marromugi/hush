@@ -17,9 +17,10 @@ import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";
 import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
+import { useSafeAreaInset } from "./useSafeAreaInset";
 import { useTodayScreen } from "./useTodayScreen";
 
-/** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of. */
+/** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of, before the safe-area insets. */
 const BANDS = { top: 84, bottom: 104 };
 
 /** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
@@ -28,6 +29,8 @@ export function DiaryScreen() {
   const screen = useDiaryScreen(today.date);
   const settings = useSettings();
   const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
+  const insetTop = useSafeAreaInset("top");
+  const insetBottom = useSafeAreaInset("bottom");
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
@@ -36,8 +39,8 @@ export function DiaryScreen() {
   return (
     // The page scrolls as a whole and only the entry moves: the header,
     // sidebar, and footer stick, on the page's color, so the entry passes
-    // under them. The header is h-21 and the footer h-26; the sidebar fits
-    // between them. Below md there is no room for the sidebar, and the
+    // under them. The header is h-21 and the footer h-26, each grown by the
+    // safe-area inset on its edge; the sidebar fits between them. Below md there is no room for the sidebar, and the
     // header's button shows the days over the entry instead.
     <div
       className={clsx(
@@ -50,9 +53,9 @@ export function DiaryScreen() {
       <header
         className={clsx(
           // layout
-          "sticky top-0 z-5 grid h-21 grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2",
+          "sticky top-0 z-5 grid h-[calc(--spacing(21)+var(--spacing-safe-top))] grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2",
           // spacing
-          "pt-10",
+          "pt-[calc(--spacing(10)+var(--spacing-safe-top))]",
           // color
           "bg-page",
         )}
@@ -95,9 +98,9 @@ export function DiaryScreen() {
       <div
         className={clsx(
           // layout
-          "sticky top-21 hidden self-start md:col-start-1 md:row-start-2 md:block",
+          "sticky top-[calc(--spacing(21)+var(--spacing-safe-top))] hidden self-start md:col-start-1 md:row-start-2 md:block",
           // size: between the header and the footer, scrolling only when a month is long
-          "max-h-[calc(100dvh-var(--spacing)*47)] overflow-y-auto",
+          "max-h-[calc(100dvh-var(--spacing)*47-var(--spacing-safe-top)-var(--spacing-safe-bottom))] overflow-y-auto",
           // spacing: room for the focus outline, which the scroll area would clip
           "-mx-1 px-1 pt-18 pb-1",
         )}
@@ -128,7 +131,7 @@ export function DiaryScreen() {
                 initialBody={today.initialBody}
                 onChange={today.onChange}
                 disabled={today.locking}
-                keepClear={BANDS}
+                keepClear={{ top: BANDS.top + insetTop, bottom: BANDS.bottom + insetBottom }}
                 fontFamily={today.fontFamily}
                 fontLoading={today.fontLoading || dice.rolling}
               />
@@ -141,9 +144,9 @@ export function DiaryScreen() {
       <footer
         className={clsx(
           // layout
-          "sticky bottom-0 z-5 grid h-26 grid-cols-[1fr_auto_1fr] items-end md:col-span-2",
+          "sticky bottom-0 z-5 grid h-[calc(--spacing(26)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto_1fr] items-end md:col-span-2",
           // spacing
-          "pb-10",
+          "pb-[calc(--spacing(10)+var(--spacing-safe-bottom))]",
           // color
           "bg-page",
         )}
