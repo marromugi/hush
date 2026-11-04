@@ -27,6 +27,8 @@ use crate::local_store::LocalStore;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Taps felt while pinching the text sample; it does nothing on the desktop.
+        .plugin(tauri_plugin_haptics::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             let store = LocalStore::new(dir, Arc::new(Keychain));
