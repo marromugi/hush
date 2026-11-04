@@ -1,7 +1,9 @@
 //! What the Music app is playing, shown in a corner of the diary screen.
 //! Only Apple's Music app can be read: macOS no longer lets other apps see
-//! what any app is playing. Nothing here starts the Music app.
+//! what any app is playing. Nothing here starts the Music app. Reading the
+//! Music app's answer is built only where it is asked, and for the tests.
 
+#[cfg(any(target_os = "macos", test))]
 use base64ct::{Base64, Encoding};
 use serde::Serialize;
 use tauri::AppHandle;
@@ -21,10 +23,12 @@ pub struct NowPlaying {
 
 /// The largest album art sent to the page. The card shows it 48px wide, and
 /// every byte crosses into the webview on each change of song.
+#[cfg(any(target_os = "macos", test))]
 const MAX_ARTWORK: usize = 1024 * 1024;
 
 /// A `data:` URL for an image, typed by its first bytes; None for anything
 /// that is not a PNG or a JPEG, which the page could not show.
+#[cfg(any(target_os = "macos", test))]
 fn data_url(bytes: &[u8]) -> Option<String> {
     let mime = if bytes.starts_with(b"\x89PNG") {
         "image/png"
@@ -42,6 +46,7 @@ fn data_url(bytes: &[u8]) -> Option<String> {
 /// Reads what `osascript -s s` prints for `{"title", "artist", «data ...»}`,
 /// the last item being `missing value` when the song has no art. Anything
 /// else, the empty string printed when nothing plays included, is None.
+#[cfg(any(target_os = "macos", test))]
 fn parse(out: &str) -> Option<NowPlaying> {
     let mut rest = out.trim().strip_prefix('{')?.strip_suffix('}')?;
     let title = take_string(&mut rest)?;
@@ -69,6 +74,7 @@ fn parse(out: &str) -> Option<NowPlaying> {
 }
 
 /// Takes a quoted AppleScript string off the front of `rest`, undoing its `\"` and `\\`.
+#[cfg(any(target_os = "macos", test))]
 fn take_string(rest: &mut &str) -> Option<String> {
     let mut chars = rest.strip_prefix('"')?.char_indices();
     let mut text = String::new();
@@ -85,6 +91,7 @@ fn take_string(rest: &mut &str) -> Option<String> {
     None
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn hex(text: &str) -> Option<Vec<u8>> {
     if !text.len().is_multiple_of(2) {
         return None;
