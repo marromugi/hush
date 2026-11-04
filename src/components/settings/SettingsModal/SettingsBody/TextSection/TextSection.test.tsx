@@ -6,7 +6,9 @@ import { readSettings } from "@/lib/settings/settings";
 
 import { TextSection } from "./TextSection";
 
-vi.mock("@tauri-apps/plugin-haptics", () => ({ selectionFeedback: vi.fn<typeof selectionFeedback>() }));
+vi.mock("@tauri-apps/plugin-haptics", () => ({
+  selectionFeedback: vi.fn<typeof selectionFeedback>(),
+}));
 
 beforeEach(() => {
   vi.mocked(selectionFeedback).mockResolvedValue({ status: "ok", data: null });
