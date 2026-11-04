@@ -100,6 +100,37 @@ export function useDiaryEditor(
     editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
+  // The on-screen keyboard shrinks the part of the page in view without a
+  // transaction, which would leave the cursor behind the footer until the
+  // next keystroke; it is brought back into view once the bands have moved.
+  // Only the keyboard counts: the window resizing or a pinch zoom also
+  // resizes the part in view, and must leave the page where the person put it.
+  useEffect(() => {
+    const vp = window.visualViewport;
+    if (!vp) return () => {};
+    let windowHeight = document.documentElement.clientHeight;
+    let height = vp.height;
+    let frame = 0;
+    const onResize = () => {
+      const keyboardMoved =
+        vp.scale === 1 &&
+        document.documentElement.clientHeight === windowHeight &&
+        vp.height !== height;
+      windowHeight = document.documentElement.clientHeight;
+      height = vp.height;
+      if (!keyboardMoved) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!editor.isDestroyed && editor.isFocused) editor.commands.scrollIntoView();
+      });
+    };
+    vp.addEventListener("resize", onResize);
+    return () => {
+      vp.removeEventListener("resize", onResize);
+      cancelAnimationFrame(frame);
+    };
+  }, [editor]);
+
   const imageAlign = useEditorState({
     editor,
     selector: ({ editor: current }) => selectedImageAlign(current),
