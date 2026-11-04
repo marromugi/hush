@@ -53,6 +53,11 @@
     }
   }
 
+  /* The window itself never bounces at its ends. */
+  html {
+    @apply overscroll-none;
+  }
+
   body {
     @apply bg-page text-stone-900 dark:text-stone-100;
   }
