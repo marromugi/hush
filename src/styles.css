@@ -3,6 +3,8 @@
 @config "./tailwind.config.ts";
 
 @theme {
+  /* The breakpoints are only those in src/lib/ui/breakpoints, which @config adds back. */
+  --breakpoint-*: initial;
   --color-accent: oklch(50% 0.24 265);
   --color-on-accent: #ffffff;
   --color-edge: #8884;

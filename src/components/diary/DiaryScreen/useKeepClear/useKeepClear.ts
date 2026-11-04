@@ -1,5 +1,6 @@
 import { useSafeAreaInset } from "@/components/diary/DiaryScreen/useSafeAreaInset";
-import { useMedia } from "@/hooks/common/useMedia";
+
+import { useMedia } from "./useMedia";
 
 /** The sticky header and footer, in pixels, before the safe-area insets. Must match their heights in `DiaryScreen`. */
 const BANDS = { narrow: { top: 60, bottom: 80 }, wide: { top: 84, bottom: 104 } };

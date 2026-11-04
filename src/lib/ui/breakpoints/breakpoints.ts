@@ -1,6 +1,6 @@
 /**
- * The widths the layout changes at. Tailwind's `md:` and the rest come from
- * here through `src/tailwind.config.ts`, so these are the only breakpoints.
+ * The widths the layout changes at, and the only breakpoints Tailwind knows:
+ * `styles.css` clears its defaults and `src/tailwind.config.ts` adds these.
  */
 export const BREAKPOINTS = { md: "48rem" } as const;
 
