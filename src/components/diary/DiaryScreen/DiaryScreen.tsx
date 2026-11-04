@@ -17,12 +17,8 @@ import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";
 import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
-import { useSafeAreaInset } from "./useSafeAreaInset";
+import { useKeepClear } from "./useKeepClear";
 import { useTodayScreen } from "./useTodayScreen";
-import { useWide } from "./useWide";
-
-/** The sticky header and footer, in pixels, that the cursor must stay out of, before the safe-area insets: h-15 and h-20 below md, h-21 and h-26 from md. */
-const BANDS = { narrow: { top: 60, bottom: 80 }, wide: { top: 84, bottom: 104 } };
 
 /** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
 export function DiaryScreen() {
@@ -30,9 +26,7 @@ export function DiaryScreen() {
   const screen = useDiaryScreen(today.date);
   const settings = useSettings();
   const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
-  const insetTop = useSafeAreaInset("top");
-  const insetBottom = useSafeAreaInset("bottom");
-  const bands = useWide() ? BANDS.wide : BANDS.narrow;
+  const keepClear = useKeepClear();
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
@@ -41,10 +35,11 @@ export function DiaryScreen() {
   return (
     // The page scrolls as a whole and only the entry moves: the header,
     // sidebar, and footer stick, on the page's color, so the entry passes
-    // under them. The header is h-21 and the footer h-26, each grown by the
-    // safe-area inset on its edge; below md they keep less room from the
-    // edge, h-15 and h-20, since a phone's screen is short; the sidebar fits between them. Below md there is no room for the sidebar, and the
-    // header's button shows the days over the entry instead.
+    // under them. The header is h-21 and the footer h-26 from md, and h-15
+    // and h-20 below it, each grown by the safe-area inset on its edge; the
+    // heights are repeated in useKeepClear. The sidebar fits between them.
+    // Below md there is no room for the sidebar, and the header's button
+    // shows the days over the entry instead.
     <div
       className={clsx(
         // layout
@@ -134,7 +129,7 @@ export function DiaryScreen() {
                 initialBody={today.initialBody}
                 onChange={today.onChange}
                 disabled={today.locking}
-                keepClear={{ top: bands.top + insetTop, bottom: bands.bottom + insetBottom }}
+                keepClear={keepClear}
                 fontFamily={today.fontFamily}
                 fontLoading={today.fontLoading || dice.rolling}
               />
