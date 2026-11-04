@@ -100,6 +100,21 @@ export function useDiaryEditor(
     editor.setEditable(!disabled, false);
   }, [editor, disabled]);
 
+  // The on-screen keyboard shrinks the part of the page in view without a
+  // transaction, which would leave the cursor behind the footer until the
+  // next keystroke; it is brought back into view once the bands have moved.
+  useEffect(() => {
+    const vp = window.visualViewport;
+    if (!vp) return () => {};
+    const onResize = () => {
+      requestAnimationFrame(() => {
+        if (editor.isFocused) editor.commands.scrollIntoView();
+      });
+    };
+    vp.addEventListener("resize", onResize);
+    return () => vp.removeEventListener("resize", onResize);
+  }, [editor]);
+
   const imageAlign = useEditorState({
     editor,
     selector: ({ editor: current }) => selectedImageAlign(current),

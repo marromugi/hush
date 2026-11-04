@@ -19,6 +19,7 @@ import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
 import { useSafeAreaInset } from "./useSafeAreaInset";
 import { useTodayScreen } from "./useTodayScreen";
+import { useVisualViewportEdge } from "./useVisualViewportEdge";
 
 /** The sticky header (h-21) and footer (h-26), in pixels, that the cursor must stay out of, before the safe-area insets. */
 const BANDS = { top: 84, bottom: 104 };
@@ -31,6 +32,12 @@ export function DiaryScreen() {
   const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
   const insetTop = useSafeAreaInset("top");
   const insetBottom = useSafeAreaInset("bottom");
+  // While the on-screen keyboard is up, the bands follow the part of the
+  // page left in view: the header stays at its top, and the footer sits on
+  // the keyboard, its home indicator room behind it.
+  const pushedOut = useVisualViewportEdge("top");
+  const keyboard = useVisualViewportEdge("bottom");
+  const footerLift = keyboard > 0 ? keyboard - insetBottom : 0;
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
@@ -51,6 +58,7 @@ export function DiaryScreen() {
       )}
     >
       <header
+        style={{ top: pushedOut }}
         className={clsx(
           // layout
           "sticky top-0 z-5 grid h-[calc(--spacing(21)+var(--spacing-safe-top))] grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2",
@@ -131,7 +139,10 @@ export function DiaryScreen() {
                 initialBody={today.initialBody}
                 onChange={today.onChange}
                 disabled={today.locking}
-                keepClear={{ top: BANDS.top + insetTop, bottom: BANDS.bottom + insetBottom }}
+                keepClear={{
+                  top: BANDS.top + insetTop,
+                  bottom: BANDS.bottom + (keyboard > 0 ? 0 : insetBottom),
+                }}
                 fontFamily={today.fontFamily}
                 fontLoading={today.fontLoading || dice.rolling}
               />
@@ -142,6 +153,7 @@ export function DiaryScreen() {
         </div>
       </main>
       <footer
+        style={{ bottom: footerLift }}
         className={clsx(
           // layout
           "sticky bottom-0 z-5 grid h-[calc(--spacing(26)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto_1fr] items-end md:col-span-2",
