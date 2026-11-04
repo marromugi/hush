@@ -28,6 +28,8 @@ zeroize = { version = "1.9.1", features = ["derive"] }
 base64ct = { version = "1.8.3", features = ["alloc"] }
 getrandom = "0.4.3"
 keyring = { version = "3.6.3", features = ["apple-native"] }
+# Taps felt while pinching the text sample; a no-op on the desktop.
+tauri-plugin-haptics = "2.4.2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
