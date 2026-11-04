@@ -32,6 +32,26 @@ pub enum AppError {
     #[error("keychain access failed")]
     Keychain(#[source] keyring::Error),
 
+    #[error("this device has no Touch ID or Face ID set up")]
+    NoBiometry,
+
+    /// The person cancelled Touch ID or Face ID.
+    #[error("touch id or face id was cancelled")]
+    BiometryCancelled,
+
+    /// Touch ID or Face ID failed too many times, and is locked until the
+    /// device passcode is entered.
+    #[error("touch id or face id failed")]
+    BiometryFailed,
+
+    #[error("keychain access for touch id or face id failed with status {0}")]
+    BiometricKeychain(i32),
+
+    /// No key is kept for Touch ID or Face ID, or the kept one no longer
+    /// opens the vault.
+    #[error("no key is kept for touch id or face id")]
+    NoKeptKey,
+
     #[error("passphrase is empty")]
     EmptyPassphrase,
 
@@ -101,6 +121,11 @@ impl AppError {
             Self::NoSecretKey => "noSecretKey",
             Self::Keychain(_) => "keychain",
             Self::OutdatedVault(_) => "outdatedVault",
+            Self::NoBiometry => "noBiometry",
+            Self::BiometryCancelled => "biometryCancelled",
+            Self::BiometryFailed => "biometryFailed",
+            Self::BiometricKeychain(_) => "biometricKeychain",
+            Self::NoKeptKey => "noKeptKey",
             Self::EmptyPassphrase => "emptyPassphrase",
             Self::NewerVaultVersion(_) => "newerVaultVersion",
             Self::BrokenVault(_) => "brokenVault",
@@ -176,6 +201,9 @@ mod tests {
             ),
             (AppError::InvalidSecretKey, "invalidSecretKey"),
             (AppError::NoSecretKey, "noSecretKey"),
+            (AppError::BiometryCancelled, "biometryCancelled"),
+            (AppError::BiometryFailed, "biometryFailed"),
+            (AppError::NoKeptKey, "noKeptKey"),
             (AppError::OutdatedVault(1), "outdatedVault"),
             (AppError::NewerImageVersion(2), "newerImageVersion"),
             (AppError::InvalidImageId(String::new()), "invalidImageId"),

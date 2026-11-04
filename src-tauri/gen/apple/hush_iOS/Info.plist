@@ -40,5 +40,7 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Secret Key の QR コードを読み取るために、カメラを使います。</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>日記帳を Face ID で開くために使います。</string>
 </dict>
 </plist>

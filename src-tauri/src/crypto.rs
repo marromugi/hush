@@ -31,7 +31,8 @@ pub const DEFAULT_KDF: KdfParams = KdfParams {
 };
 
 /// The key derived from the passphrase and the Secret Key. Wiped from memory when dropped,
-/// never cloned, and never printed. The bytes live on the heap so moving a
+/// never cloned, and never printed. The one exception is the iOS keychain
+/// call in `biometry`, which copies it into a buffer it cannot wipe. The bytes live on the heap so moving a
 /// `VaultKey` moves a pointer and leaves no copy of the key behind.
 #[derive(ZeroizeOnDrop)]
 pub struct VaultKey(Box<[u8; KEY_LEN]>);
@@ -39,6 +40,22 @@ pub struct VaultKey(Box<[u8; KEY_LEN]>);
 impl fmt::Debug for VaultKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("VaultKey(..)")
+    }
+}
+
+impl VaultKey {
+    /// A key read back from where a device kept it; `None` for the wrong length.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != KEY_LEN {
+            return None;
+        }
+        let mut key = VaultKey(Box::new([0; KEY_LEN]));
+        key.0.copy_from_slice(bytes);
+        Some(key)
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0[..]
     }
 }
 

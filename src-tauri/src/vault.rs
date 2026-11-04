@@ -162,16 +162,21 @@ impl Vault {
         self.id.iter().map(|b| format!("{b:02x}")).collect()
     }
 
-    /// Derives the key and checks it against the verifier. The cipher
-    /// authenticates the verifier, so decrypting it at all proves the key.
-    /// A wrong passphrase and a wrong Secret Key look the same.
+    /// Derives the key and checks it. A wrong passphrase and a wrong Secret
+    /// Key look the same.
     pub fn unlock(&self, passphrase: &str, secret_key: &SecretKey) -> Result<VaultKey, AppError> {
         let key = crypto::derive_key(passphrase, secret_key, &self.kdf.salt, &self.kdf.params())?;
-        match crypto::decrypt(&key, VERIFIER_AAD, &self.verifier) {
-            Ok(_) => Ok(key),
-            Err(AppError::Decryption) => Err(AppError::WrongPassphraseOrSecretKey),
-            Err(other) => Err(other),
-        }
+        self.check(key).map_err(|e| match e {
+            AppError::Decryption => AppError::WrongPassphraseOrSecretKey,
+            other => other,
+        })
+    }
+
+    /// `key` back if it is this vault's, `Decryption` if not. The cipher
+    /// authenticates the verifier, so decrypting it at all proves the key.
+    pub fn check(&self, key: VaultKey) -> Result<VaultKey, AppError> {
+        crypto::decrypt(&key, VERIFIER_AAD, &self.verifier)?;
+        Ok(key)
     }
 
     pub fn to_json(&self) -> String {

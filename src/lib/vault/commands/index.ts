@@ -1,4 +1,5 @@
 export {
+  biometryStatus,
   createVault,
   embedPagesOrigin,
   listenKeyboardMoves,
@@ -10,7 +11,10 @@ export {
   saveEntry,
   saveImage,
   showSecretKey,
+  turnOffBiometry,
+  turnOnBiometry,
   unlockVault,
+  unlockWithBiometry,
   vaultStatus,
 } from "./commands";
-export type { EntryView, VaultStatus } from "./commands";
+export type { Biometry, BiometryStatus, EntryView, VaultStatus } from "./commands";

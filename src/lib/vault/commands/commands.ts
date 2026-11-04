@@ -41,6 +41,34 @@ export function unlockVault(passphrase: string, secretKey?: string): Promise<voi
   return call("unlock_vault", { passphrase, secretKey });
 }
 
+/** How this device recognizes its owner. */
+export type Biometry = "touchId" | "faceId" | "opticId";
+
+export type BiometryStatus = {
+  /** `null` when the device has no biometry set up. */
+  biometry: Biometry | null;
+  /** Whether the vault opens with it on this device. */
+  on: boolean;
+};
+
+export function biometryStatus(): Promise<BiometryStatus> {
+  return call("biometry_status");
+}
+
+/** Lets the vault open with Touch ID or Face ID on this device. Only while unlocked. */
+export function turnOnBiometry(): Promise<void> {
+  return call("turn_on_biometry");
+}
+
+export function turnOffBiometry(): Promise<void> {
+  return call("turn_off_biometry");
+}
+
+/** Asks for Touch ID or Face ID, showing `reason` where the system has room for it. */
+export function unlockWithBiometry(reason: string): Promise<void> {
+  return call("unlock_with_biometry", { reason });
+}
+
 export function lockVault(): Promise<void> {
   return call("lock_vault");
 }

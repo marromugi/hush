@@ -57,8 +57,10 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSString",
 ] }
 
-# The webview, fitted to the screen and kept above the keyboard.
+# The webview, fitted to the screen and kept above the keyboard; the vault
+# key kept behind Touch ID or Face ID.
 [target.'cfg(target_os = "ios")'.dependencies]
+core-foundation = "0.10.1"
 objc2 = "0.6.5"
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
@@ -76,6 +78,13 @@ objc2-ui-kit = { version = "0.3.2", default-features = false, features = [
   "UIView",
   "UIWindow",
 ] }
+objc2-local-authentication = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "LAContext",
+  "LABiometryType",
+] }
+security-framework = "3.7.0"
+security-framework-sys = "2.17.0"
 
 [dev-dependencies]
 tempfile = "3.27.0"

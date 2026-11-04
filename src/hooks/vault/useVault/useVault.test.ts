@@ -219,3 +219,35 @@ test("a status that cannot be read stays as the error, not a toast, since nothin
   expect(result.current.status).toBe("loading");
   expect(told).not.toHaveBeenCalled();
 });
+
+test("Touch ID opens the vault; a cancel stays quiet and a lost key is told", async () => {
+  let failure: { kind: string; message: string } | null = {
+    kind: "biometryCancelled",
+    message: "cancelled",
+  };
+  mockIPC((command) => {
+    if (command === "vault_status") return "locked";
+    if (command === "unlock_with_biometry") {
+      if (failure) throw failure;
+      return null;
+    }
+    throw new Error(`unexpected command ${command}`);
+  });
+  const told = vi.spyOn(toasts, "toastError").mockImplementation(() => {});
+  const { result } = renderHook(() => useVault());
+  await waitFor(() => expect(result.current.status).toBe("locked"));
+
+  await act(() => result.current.unlockWithBiometry("open"));
+  expect(result.current.status).toBe("locked");
+  expect(told).not.toHaveBeenCalled();
+
+  failure = { kind: "noKeptKey", message: "no key" };
+  await act(() => result.current.unlockWithBiometry("open"));
+  expect(told).toHaveBeenCalledWith(
+    "指紋や顔では開けなくなりました。パスフレーズで開いてください。",
+  );
+
+  failure = null;
+  await act(() => result.current.unlockWithBiometry("open"));
+  expect(result.current.status).toBe("unlocked");
+});

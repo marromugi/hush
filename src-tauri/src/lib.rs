@@ -1,6 +1,7 @@
 pub mod app_error;
 pub mod app_state;
 pub mod b64;
+pub mod biometry;
 pub mod commands;
 pub mod crypto;
 pub mod embed_pages;
@@ -28,7 +29,10 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
-            let mut inner = AppStateInner::new(LocalStore::new(dir, Arc::new(Keychain)));
+            let store = LocalStore::new(dir, Arc::new(Keychain));
+            #[cfg(target_os = "ios")]
+            let store = store.with_vault_keys(Arc::new(biometry::BiometricKeychain));
+            let mut inner = AppStateInner::new(store);
             // Without it the diary still works; only YouTube videos cannot play.
             inner.embed_pages = embed_pages::start().ok();
             app.manage(AppState::new(inner));
@@ -41,6 +45,10 @@ pub fn run() {
             commands::vault_status,
             commands::create_vault,
             commands::unlock_vault,
+            commands::unlock_with_biometry,
+            commands::biometry_status,
+            commands::turn_on_biometry,
+            commands::turn_off_biometry,
             commands::lock_vault,
             commands::read_entry,
             commands::save_entry,

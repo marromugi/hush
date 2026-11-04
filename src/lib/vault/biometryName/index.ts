@@ -1,0 +1,1 @@
+export { biometryName } from "./biometryName";

@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 
 import { FontSection } from "./FontSection";
 import { LanguageSection } from "./LanguageSection";
+import { LockSection } from "./LockSection";
 import { TextSection } from "./TextSection";
 import { SECTIONS, useSettingsModal } from "./useSettingsModal";
 
@@ -51,6 +52,7 @@ export function SettingsBody() {
       {settings.section === "language" ? <LanguageSection /> : null}
       {settings.section === "font" ? <FontSection /> : null}
       {settings.section === "text" ? <TextSection /> : null}
+      {settings.section === "lock" ? <LockSection /> : null}
     </div>
   );
 }

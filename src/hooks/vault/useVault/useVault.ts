@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 
 import { useSingleFlight } from "@/hooks/common/useSingleFlight";
 import { toastError } from "@/lib/ui/toast";
-import { createVault, lockVault, unlockVault, vaultStatus } from "@/lib/vault/commands";
+import {
+  createVault,
+  lockVault,
+  unlockVault,
+  unlockWithBiometry,
+  vaultStatus,
+} from "@/lib/vault/commands";
 import type { VaultStatus } from "@/lib/vault/commands";
 import { errorText } from "@/lib/vault/errorText";
 import { isAboutInput, toHushError } from "@/lib/vault/hushError";
@@ -21,6 +27,8 @@ export type UseVault = {
   keptSecretKey: () => void;
   /** `secretKey` only on a device that does not have it yet. */
   unlock: (passphrase: string, secretKey?: string) => Promise<void>;
+  /** Asks for Touch ID or Face ID, showing `reason` where the system has room for it. */
+  unlockWithBiometry: (reason: string) => Promise<void>;
   lock: () => Promise<void>;
 };
 
@@ -56,8 +64,11 @@ export function useVault(): UseVault {
       } catch (failure) {
         const failed = toHushError(failure);
         setError(failed);
-        // A form shows what is about its fields; anything else is a toast.
-        if (!isAboutInput(failed.kind)) toastError(errorText(failed.kind));
+        // A form shows what is about its fields, and a cancelled Touch ID
+        // leaves the passphrase field in view; anything else is a toast.
+        if (!isAboutInput(failed.kind) && failed.kind !== "biometryCancelled") {
+          toastError(errorText(failed.kind));
+        }
         // The device lost the vault's Secret Key, or never kept it: ask for it.
         if (failed.kind === "noSecretKey") setStatus("needsSecretKey");
       }
@@ -73,6 +84,7 @@ export function useVault(): UseVault {
       run(async () => setNewSecretKey(await createVault(passphrase)), "unlocked"),
     keptSecretKey: () => setNewSecretKey(null),
     unlock: (passphrase, secretKey) => run(() => unlockVault(passphrase, secretKey), "unlocked"),
+    unlockWithBiometry: (reason) => run(() => unlockWithBiometry(reason), "unlocked"),
     lock: () =>
       run(async () => {
         await lockVault();
