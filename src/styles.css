@@ -53,7 +53,7 @@
     }
   }
 
-  /* The window itself never bounces; a scroll area inside it still does. */
+  /* The window itself never bounces at its ends. */
   html {
     @apply overscroll-none;
   }
