@@ -56,8 +56,14 @@ export function TextSection() {
           );
         })}
       </div>
-      {/* touch-none: the two fingers are the pinch's, not the page's to scroll. */}
-      <div style={entryTextStyle(section.text)} className="touch-none" {...pinch.handlers}>
+      <div
+        style={entryTextStyle(section.text)}
+        className={clsx(
+          // touch: the fingers are the pinch's, not the page's to scroll or the text's to select
+          pinch.on && "touch-none select-none [-webkit-touch-callout:none]",
+        )}
+        {...pinch.handlers}
+      >
         <p className={clsx(entryProse, "rounded-container border border-edge container-p-4")}>
           今日は晴れ。午後から少し風が出てきて、窓の外の木がずっと揺れていた。
         </p>
@@ -67,7 +73,14 @@ export function TextSection() {
           <div
             key={slider.name}
             data-active={pinch.axis === slider.name ? "" : undefined}
-            className="flex gap-1.5 opacity-60 transition duration-160 ease-out data-active:font-semibold data-active:opacity-100"
+            className={clsx(
+              // layout
+              "flex gap-1.5",
+              // the setting being pinched stands out
+              "opacity-60 data-active:font-semibold data-active:opacity-100",
+              // motion
+              "transition duration-160 ease-out",
+            )}
           >
             <dt>{slider.label}</dt>
             <dd className="tabular-nums">{slider.show(section.text[slider.name])}</dd>

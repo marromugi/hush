@@ -2,6 +2,7 @@ import { selectionFeedback } from "@tauri-apps/plugin-haptics";
 import { useRef, useState } from "react";
 import type { PointerEvent } from "react";
 
+import { useMedia } from "@/hooks/common/useMedia";
 import type { TextSettings } from "@/lib/settings/settings";
 
 import { axisOf, spreadOf, valueAt } from "./pinch";
@@ -9,12 +10,14 @@ import type { PinchAxis } from "./pinch";
 
 type Point = { x: number; y: number };
 
-/** The pinch in progress: what it changes, and where it started from. */
-type Pinch = { axis: PinchAxis; start: number; from: number };
+/** The pinch in progress: what it changes, where it started from, and the value it last set. */
+type Pinch = { axis: PinchAxis; start: number; from: number; value: number };
 
 export type UsePinchText = {
   /** The setting two fingers are changing now; null when none are down. */
   axis: PinchAxis | null;
+  /** Whether pinching works: only below md, where there are no sliders. */
+  on: boolean;
   /** Spread onto the sample the fingers pinch. */
   handlers: {
     onPointerDown: (event: PointerEvent) => void;
@@ -32,7 +35,7 @@ function tap() {
 /**
  * Two fingers on the sample change one text setting: the angle between them
  * when the second lands picks which, and moving them apart or together
- * changes it a step at a time.
+ * changes it a step at a time. From md up the sliders do this instead.
  */
 export function usePinchText(
   text: TextSettings,
@@ -41,6 +44,7 @@ export function usePinchText(
   const points = useRef(new Map<number, Point>());
   const pinch = useRef<Pinch | null>(null);
   const [axis, setAxis] = useState<PinchAxis | null>(null);
+  const on = !useMedia("md");
 
   const between = () => {
     const [a, b] = [...points.current.values()];
@@ -57,14 +61,16 @@ export function usePinchText(
 
   return {
     axis,
+    on,
     handlers: {
       onPointerDown: (event) => {
-        if (event.pointerType !== "touch" || points.current.size >= 2) return;
+        if (!on || event.pointerType !== "touch" || points.current.size >= 2) return;
         points.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (points.current.size < 2) return;
         const { dx, dy } = between();
         const picked = axisOf(dx, dy);
-        pinch.current = { axis: picked, start: text[picked], from: spreadOf(picked, dx, dy) };
+        const start = text[picked];
+        pinch.current = { axis: picked, start, from: spreadOf(picked, dx, dy), value: start };
         setAxis(picked);
       },
       onPointerMove: (event) => {
@@ -79,9 +85,12 @@ export function usePinchText(
           current.from,
           spreadOf(current.axis, dx, dy),
         );
-        if (next === text[current.axis]) return;
+        current.from = next.from;
+        // Compared with the value this pinch last set, not the rendered one, which may not have caught up yet.
+        if (next.value === current.value) return;
+        current.value = next.value;
+        change(current.axis, next.value);
         tap();
-        change(current.axis, next);
       },
       onPointerUp: end,
       onPointerCancel: end,
