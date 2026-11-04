@@ -9,6 +9,7 @@ use crate::app_error::AppError;
 use crate::app_state::AppState;
 use crate::embed_pages;
 use crate::entry::EntryFont;
+use crate::now_playing::{self, NowPlaying};
 use crate::session::{self, BiometryStatus, EntryView, VaultStatus};
 
 fn now_ms() -> u64 {
@@ -140,4 +141,10 @@ pub async fn save_image(
 #[tauri::command]
 pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Response, AppError> {
     Ok(Response::new(session::read_image(&state, id)?))
+}
+
+/// What the Music app plays now; later changes come as `NOW_PLAYING_CHANGED`.
+#[tauri::command]
+pub async fn now_playing() -> Result<Option<NowPlaying>, AppError> {
+    Ok(spawn_blocking(now_playing::read).await?)
 }
