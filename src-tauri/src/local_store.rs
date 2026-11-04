@@ -112,7 +112,7 @@ impl LocalStore {
     ) -> Result<VaultKey, AppError> {
         let vault = self.read_vault()?;
         let key = self.unlock_with_passphrase(&vault, passphrase, typed_secret_key)?;
-        if self.vault_keys.has(&vault.id()).unwrap_or(false) {
+        if self.vault_keys.is_on(&vault.id()).unwrap_or(false) {
             let _ = self.vault_keys.set(&vault.id(), &key);
         }
         Ok(key)
@@ -149,7 +149,7 @@ impl LocalStore {
     /// Whether the vault opens with Touch ID or Face ID on this device.
     pub fn keeps_vault_key(&self) -> Result<bool, AppError> {
         let vault = self.read_vault()?;
-        self.vault_keys.has(&vault.id())
+        self.vault_keys.is_on(&vault.id())
     }
 
     /// Keeps `key`, the open vault's, behind Touch ID or Face ID.
@@ -164,8 +164,9 @@ impl LocalStore {
     }
 
     /// Opens the vault with the key kept behind Touch ID or Face ID, asking
-    /// for it with `reason`. A kept key that no longer opens the vault is
-    /// forgotten, and the person goes back to the passphrase.
+    /// for it with `reason`. When no key comes out, or it does not open the
+    /// vault, the person goes back to the passphrase, which keeps the key
+    /// again.
     pub fn unlock_with_biometry(&self, reason: &str) -> Result<VaultKey, AppError> {
         let vault = self.read_vault()?;
         let key = self
@@ -173,10 +174,7 @@ impl LocalStore {
             .get(&vault.id(), reason)?
             .ok_or(AppError::NoKeptKey)?;
         vault.check(key).map_err(|e| match e {
-            AppError::Decryption => {
-                let _ = self.vault_keys.remove(&vault.id());
-                AppError::NoKeptKey
-            }
+            AppError::Decryption => AppError::NoKeptKey,
             other => other,
         })
     }
@@ -667,24 +665,32 @@ mod tests {
     }
 
     #[test]
-    fn a_kept_key_that_does_not_open_the_vault_is_forgotten() {
+    fn a_kept_key_that_does_not_open_the_vault_sends_the_person_to_the_passphrase() {
         let (_dir, store, keys) = store_with_biometry();
-        store.create_vault("correct horse").unwrap();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        store.keep_vault_key(&key).unwrap();
         keys.plant(&vault_id(&store), &[7; crate::crypto::KEY_LEN]);
         assert!(matches!(
             store.unlock_with_biometry("open"),
             Err(AppError::NoKeptKey)
         ));
-        assert!(!store.keeps_vault_key().unwrap());
+        assert!(store.keeps_vault_key().unwrap());
+
+        store.unlock("correct horse", None).unwrap();
+        assert!(store.unlock_with_biometry("open").is_ok());
     }
 
     #[test]
-    fn the_passphrase_keeps_the_vault_key_again_once_it_is_on() {
+    fn after_the_fingers_change_it_stays_on_and_the_passphrase_keeps_the_key_again() {
         let (_dir, store, keys) = store_with_biometry();
         let (key, _) = store.create_vault("correct horse").unwrap();
         store.keep_vault_key(&key).unwrap();
-        // What Touch ID gives out after the fingers set up have changed.
-        keys.plant(&vault_id(&store), &[7; crate::crypto::KEY_LEN]);
+        keys.invalidate(&vault_id(&store));
+        assert!(matches!(
+            store.unlock_with_biometry("open"),
+            Err(AppError::NoKeptKey)
+        ));
+        assert!(store.keeps_vault_key().unwrap());
 
         store.unlock("correct horse", None).unwrap();
         assert!(store.unlock_with_biometry("open").is_ok());

@@ -7,6 +7,7 @@ export const HUSH_ERROR_KINDS = [
   "keychain",
   "noBiometry",
   "biometryCancelled",
+  "biometryFailed",
   "biometricKeychain",
   "noKeptKey",
   "emptyPassphrase",

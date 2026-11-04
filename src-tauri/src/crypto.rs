@@ -31,7 +31,8 @@ pub const DEFAULT_KDF: KdfParams = KdfParams {
 };
 
 /// The key derived from the passphrase and the Secret Key. Wiped from memory when dropped,
-/// never cloned, and never printed. The bytes live on the heap so moving a
+/// never cloned, and never printed. The one exception is the iOS keychain
+/// call in `biometry`, which copies it into a buffer it cannot wipe. The bytes live on the heap so moving a
 /// `VaultKey` moves a pointer and leaves no copy of the key behind.
 #[derive(ZeroizeOnDrop)]
 pub struct VaultKey(Box<[u8; KEY_LEN]>);
