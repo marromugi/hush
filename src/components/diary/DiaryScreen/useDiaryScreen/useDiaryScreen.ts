@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { dateParts } from "@/components/diary/DiaryScreen/dateParts";
 import type { DateParts } from "@/components/diary/DiaryScreen/dateParts";
+import { WIDE } from "@/components/diary/DiaryScreen/useWide";
 import { useDisclosure } from "@/hooks/common/useDisclosure";
 import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
@@ -38,9 +39,6 @@ export type UseDiaryScreen = {
    */
   dates: string[];
 };
-
-/** Wide enough for the sidebar beside the diary: Tailwind's `md`. */
-const WIDE = "(min-width: 48rem)";
 
 /** Which day is shown, the days to choose from, and the menus and panels over the diary. */
 export function useDiaryScreen(today: string): UseDiaryScreen {
