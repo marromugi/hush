@@ -20,11 +20,13 @@ export function SettingsBody() {
         <ul
           className={clsx(
             // layout
-            "flex gap-1 overflow-x-auto md:h-full md:flex-col md:overflow-visible",
+            "flex gap-1 overflow-x-auto md:flex-col md:overflow-visible",
             // shape
             "rounded-container container-p-1 around-control-py-2",
-            // color
-            "bg-surface",
+            // typography; the corners are worked out from this line height
+            "text-sm font-semibold",
+            // color: a shade off the modal, lighter in dark and darker in light
+            "bg-edge/40",
             // scroll
             "[scrollbar-width:none]",
           )}
@@ -39,8 +41,6 @@ export function SettingsBody() {
                   "w-full cursor-pointer px-2 text-center whitespace-nowrap md:px-3 md:text-left",
                   // shape
                   "rounded-control control-py-2",
-                  // typography
-                  "text-sm font-semibold",
                   // color: the chosen section is filled in, the rest stay quiet until hovered
                   "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100",
                   "aria-[current=page]:bg-stone-900 aria-[current=page]:text-white aria-[current=page]:hover:text-white",
