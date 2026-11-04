@@ -9,33 +9,42 @@ import { SECTIONS, useSettingsModal } from "./useSettingsModal";
 /**
  * The modal's content, mounted only while it is open. From md up the sections
  * sit in a column on the left; below md there is no room for that, and they
- * sit in a row above the settings that scrolls sideways.
+ * sit in a row above the settings, sharing its width.
  */
 export function SettingsBody() {
   const settings = useSettingsModal();
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[8rem_1fr] md:gap-6">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[10rem_1fr] md:gap-6">
       <nav aria-label="設定の項目" className="min-w-0">
         <ul
           className={clsx(
             // layout
-            "flex gap-5 overflow-x-auto md:flex-col md:gap-0 md:overflow-visible",
-            // scroll; the room around the row keeps the focus outline from being cut off
-            "-m-1 p-1 [scrollbar-width:none]",
+            "flex gap-1 overflow-x-auto md:h-full md:flex-col md:overflow-visible",
+            // shape
+            "rounded-container container-p-1 around-control-py-2",
+            // color
+            "bg-surface",
+            // scroll
+            "[scrollbar-width:none]",
           )}
         >
           {SECTIONS.map((section) => (
-            <li key={section.id} className="shrink-0">
+            <li key={section.id} className="flex-1 shrink-0 md:flex-none">
               <button
                 type="button"
                 aria-current={settings.section === section.id ? "page" : undefined}
                 className={clsx(
                   // layout
-                  "cursor-pointer rounded-sm py-2 text-left whitespace-nowrap",
-                  // underline: the chosen section's is drawn, the rest only on hover
-                  "underline decoration-transparent decoration-2 underline-offset-6",
-                  "hover:decoration-edge aria-[current=page]:decoration-current",
+                  "w-full cursor-pointer px-2 text-center whitespace-nowrap md:px-3 md:text-left",
+                  // shape
+                  "rounded-control control-py-2",
+                  // typography
+                  "text-sm font-semibold",
+                  // color: the chosen section is filled in, the rest stay quiet until hovered
+                  "text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100",
+                  "aria-[current=page]:bg-stone-900 aria-[current=page]:text-white aria-[current=page]:hover:text-white",
+                  "dark:aria-[current=page]:bg-black",
                   // focus
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                   // motion
