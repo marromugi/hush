@@ -27,11 +27,13 @@ before any code exists.
   How code behaves also depends on the code that calls it, so a claim about
   behaviour is read up to the layer that drives it. A claim that something
   does not happen is settled by running it, because reading one place cannot
-  show that no other place makes it happen.
+  show that no other place makes it happen. A claim that one thing replaces
+  another is also a claim that the old one no longer happens.
   A run settles a claim only for the kinds of case it exercised. Before one
   passing case counts, name the kinds the claim covers and run one where it
   could fail. What holds in one environment (a browser, a test double,
-  another platform) is a guess in another until run there.
+  another platform, an earlier version of the same tool) is a guess in
+  another until run there.
   Anything taken from a source is checked against its full text, not a
   summary of it.
 - Only what the section "What goes to the developer" names is asked.
