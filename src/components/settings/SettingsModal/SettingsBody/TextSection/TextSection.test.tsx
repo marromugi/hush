@@ -58,56 +58,87 @@ const touch = (id: number, x: number, y: number) => ({
   clientY: y,
 });
 
-/** Whether the value shown under the sample for this setting is marked as the one being pinched. */
-const pinching = (label: string) =>
+/** Whether the value shown under the sample for this setting is marked as the one being changed. */
+const changing = (label: string) =>
   screen.getByText(label, { selector: "dt" }).parentElement?.hasAttribute("data-active");
 
-test("pinching the sample changes the setting the fingers' angle picks, with a tap a step", () => {
+test("dragging down spreads the lines and dragging left narrows the letters, with a tap a step", () => {
   windowWidth(false);
   render(<TextSection />);
   const sample = screen.getByText(/今日は晴れ/);
 
-  // Upright fingers, moved 32px apart: two steps more space between lines.
+  // Down 32px: two steps more space between lines. Drifting sideways on the way does not switch.
   fireEvent.pointerDown(sample, touch(1, 100, 100));
-  fireEvent.pointerDown(sample, touch(2, 105, 200));
-  expect(pinching("行間")).toBe(true);
-  fireEvent.pointerMove(sample, touch(2, 105, 216));
-  fireEvent.pointerMove(sample, touch(2, 105, 232));
-  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.8, letterSpacing: 0 });
+  fireEvent.pointerMove(sample, touch(1, 100, 116));
+  expect(changing("行間")).toBe(true);
+  fireEvent.pointerMove(sample, touch(1, 110, 132));
+  fireEvent.pointerMove(sample, touch(1, 160, 132));
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.8, letterSpacing: 0.0 });
   expect(selectionFeedback).toHaveBeenCalledTimes(2);
+  fireEvent.pointerUp(sample, touch(1, 160, 132));
+  expect(changing("行間")).toBe(false);
 
-  // Tilting the fingers on the way does not switch to another setting.
-  fireEvent.pointerMove(sample, touch(2, 260, 232));
-  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.8, letterSpacing: 0 });
+  // Up 16px: one step less.
+  fireEvent.pointerDown(sample, touch(2, 100, 100));
+  fireEvent.pointerMove(sample, touch(2, 100, 84));
+  fireEvent.pointerUp(sample, touch(2, 100, 84));
+  expect(readSettings().text.lineHeight).toBe(1.7);
 
-  // Once a finger lifts, the pinch is over; a mouse never starts one.
-  fireEvent.pointerUp(sample, touch(2, 260, 232));
-  expect(pinching("行間")).toBe(false);
-  fireEvent.pointerDown(sample, { ...touch(3, 0, 0), pointerType: "mouse" });
-  fireEvent.pointerMove(sample, touch(1, 300, 300));
-  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.8, letterSpacing: 0 });
+  // Right 48px, then back left 16px: two steps more space between letters.
+  fireEvent.pointerDown(sample, touch(3, 100, 100));
+  fireEvent.pointerMove(sample, touch(3, 148, 100));
+  fireEvent.pointerMove(sample, touch(3, 132, 100));
+  expect(changing("文字間")).toBe(true);
+  fireEvent.pointerUp(sample, touch(3, 132, 100));
+  expect(readSettings().text.letterSpacing).toBe(0.02);
 });
 
-test("a pinch the system cancels is over", () => {
+test("a short touch changes nothing, and a mouse never does", () => {
   windowWidth(false);
   render(<TextSection />);
   const sample = screen.getByText(/今日は晴れ/);
   fireEvent.pointerDown(sample, touch(1, 100, 100));
-  fireEvent.pointerDown(sample, touch(2, 200, 105));
-  expect(pinching("文字間")).toBe(true);
-  fireEvent.pointerCancel(sample, touch(2, 200, 105));
-  expect(pinching("文字間")).toBe(false);
-  fireEvent.pointerMove(sample, touch(1, 0, 100));
-  expect(readSettings().text.letterSpacing).toBe(0);
+  fireEvent.pointerMove(sample, touch(1, 104, 104));
+  fireEvent.pointerUp(sample, touch(1, 104, 104));
+  fireEvent.pointerDown(sample, { ...touch(2, 100, 100), pointerType: "mouse" });
+  fireEvent.pointerMove(sample, { ...touch(2, 100, 300), pointerType: "mouse" });
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.6, letterSpacing: 0 });
 });
 
-test("from md up the sliders change the text, and pinching does nothing", () => {
+test("two fingers pinch the size, whatever their angle, even after a drag began", () => {
+  windowWidth(false);
+  render(<TextSection />);
+  const sample = screen.getByText(/今日は晴れ/);
+  fireEvent.pointerDown(sample, touch(1, 100, 100));
+  fireEvent.pointerMove(sample, touch(1, 100, 116));
+  expect(changing("行間")).toBe(true);
+  fireEvent.pointerDown(sample, touch(2, 200, 116));
+  expect(changing("フォントサイズ")).toBe(true);
+  fireEvent.pointerMove(sample, touch(2, 232, 116));
+  expect(readSettings().text.size).toBe(20);
+});
+
+test("a gesture the system cancels is over", () => {
+  windowWidth(false);
+  render(<TextSection />);
+  const sample = screen.getByText(/今日は晴れ/);
+  fireEvent.pointerDown(sample, touch(1, 100, 100));
+  fireEvent.pointerMove(sample, touch(1, 120, 100));
+  expect(changing("文字間")).toBe(true);
+  fireEvent.pointerCancel(sample, touch(1, 120, 100));
+  expect(changing("文字間")).toBe(false);
+  fireEvent.pointerMove(sample, touch(1, 300, 100));
+  expect(readSettings().text.letterSpacing).toBe(0.01);
+});
+
+test("from md up the sliders change the text, and the gestures do nothing", () => {
   windowWidth(true);
   render(<TextSection />);
   const sample = screen.getByText(/今日は晴れ/);
   fireEvent.pointerDown(sample, touch(1, 100, 100));
+  fireEvent.pointerMove(sample, touch(1, 100, 200));
   fireEvent.pointerDown(sample, touch(2, 200, 200));
   fireEvent.pointerMove(sample, touch(2, 300, 300));
-  expect(readSettings().text.size).toBe(18);
+  expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.6, letterSpacing: 0 });
   expect(selectionFeedback).not.toHaveBeenCalled();
 });

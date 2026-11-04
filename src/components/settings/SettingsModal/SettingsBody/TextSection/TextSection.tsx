@@ -5,7 +5,7 @@ import { entryProse } from "@/lib/diary/entryProse";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { TEXT_RANGES } from "@/lib/settings/settings";
 
-import { usePinchText } from "./usePinchText";
+import { useTextGestures } from "./useTextGestures";
 import { useTextSection } from "./useTextSection";
 
 const SLIDERS = [
@@ -16,11 +16,11 @@ const SLIDERS = [
 
 /**
  * The size of the entry's text, and the space between its lines and letters.
- * From md they are set with sliders; below md, by pinching the sample.
+ * From md they are set with sliders; below md, by moving fingers over the sample.
  */
 export function TextSection() {
   const section = useTextSection();
-  const pinch = usePinchText(section.text, section.change);
+  const gestures = useTextGestures(section.text, section.change);
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,7 +29,7 @@ export function TextSection() {
         日記の本文の文字です。行間と文字間は、文字の大きさに対する倍率です。
       </p>
       <p className="text-sm opacity-70 md:hidden">
-        見本を二本指でつまんで調整します。斜めに広げると大きさ、縦は行間、横は文字間が変わります。
+        見本を指でなぞって調整します。下へなぞると行間が、右へなぞると文字間が広がります。二本指で広げると、文字が大きくなります。
       </p>
       <div className="hidden flex-col gap-4 md:flex">
         {SLIDERS.map((slider) => {
@@ -59,10 +59,10 @@ export function TextSection() {
       <div
         style={entryTextStyle(section.text)}
         className={clsx(
-          // touch: the fingers are the pinch's, not the page's to scroll or the text's to select
-          pinch.on && "touch-none select-none [-webkit-touch-callout:none]",
+          // touch: the fingers are the gestures', not the page's to scroll or the text's to select
+          gestures.on && "touch-none select-none [-webkit-touch-callout:none]",
         )}
-        {...pinch.handlers}
+        {...gestures.handlers}
       >
         <p className={clsx(entryProse, "rounded-container border border-edge container-p-4")}>
           今日は晴れ。午後から少し風が出てきて、窓の外の木がずっと揺れていた。
@@ -72,11 +72,11 @@ export function TextSection() {
         {SLIDERS.map((slider) => (
           <div
             key={slider.name}
-            data-active={pinch.axis === slider.name ? "" : undefined}
+            data-active={gestures.axis === slider.name ? "" : undefined}
             className={clsx(
               // layout
               "flex gap-1.5",
-              // the setting being pinched stands out
+              // the setting being changed stands out
               "opacity-60 data-active:font-semibold data-active:opacity-100",
               // motion
               "transition duration-160 ease-out",
