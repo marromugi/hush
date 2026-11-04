@@ -12,7 +12,7 @@ import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
 
-import { NowPlayingCard } from "./components/NowPlayingCard";
+import { NowPlayingCard } from "./NowPlayingCard";
 import { PastEntry } from "./PastEntry";
 import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";

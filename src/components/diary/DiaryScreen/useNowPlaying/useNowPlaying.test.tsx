@@ -29,17 +29,20 @@ test("starts with what plays, and follows the Music app as it changes", async ()
   expect(result.current).toEqual(next);
 });
 
-test("shows nothing when the first question fails", async () => {
-  let asked = false;
+test("a change that comes while the first question is still out wins over its answer", async () => {
+  let answer: ((song: typeof SONG) => void) | undefined;
   mockIPC(
-    (command) => {
-      if (command !== "now_playing") return null;
-      asked = true;
-      throw new Error("osascript failed");
-    },
+    (command) => (command === "now_playing" ? new Promise((resolve) => (answer = resolve)) : null),
     { shouldMockEvents: true },
   );
   const { result } = renderHook(() => useNowPlaying());
-  await waitFor(() => expect(asked).toBe(true));
-  expect(result.current).toBeNull();
+  const next = { ...SONG, title: "Next" };
+  await waitFor(async () => {
+    await act(async () => {
+      await emit("now-playing-changed", next);
+    });
+    expect(result.current).toEqual(next);
+  });
+  await act(async () => answer?.(SONG));
+  expect(result.current).toEqual(next);
 });
