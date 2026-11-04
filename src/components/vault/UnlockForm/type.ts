@@ -5,4 +5,6 @@ export type UnlockFormProps = {
   busy: boolean;
   error: HushError | null;
   onUnlock: (passphrase: string) => Promise<void>;
+  /** Asks for Touch ID or Face ID, showing `reason` where the system has room for it. */
+  onUnlockWithBiometry: (reason: string) => Promise<void>;
 };

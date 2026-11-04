@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use crate::app_error::AppError;
 use crate::app_state::{AppState, AppStateInner};
+use crate::biometry::Biometry;
 use crate::crypto::VaultKey;
 use crate::entry::{Entry, EntryDate, EntryFont};
 use crate::image::{ImageId, Picture};
@@ -17,6 +18,16 @@ pub enum VaultStatus {
     NeedsSecretKey,
     Locked,
     Unlocked,
+}
+
+/// Whether this device can open the vault with Touch ID or Face ID, and
+/// whether the person has turned it on.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BiometryStatus {
+    /// `None` when the device has no biometry set up.
+    pub biometry: Option<Biometry>,
+    pub on: bool,
 }
 
 /// An entry as the frontend sees it.
@@ -140,6 +151,25 @@ pub fn secret_key_text(state: &AppState) -> Result<String, AppError> {
     inner.key.as_ref().ok_or(AppError::Locked)?;
     let secret_key = inner.store.secret_key()?.ok_or(AppError::NoSecretKey)?;
     Ok(secret_key.to_text().to_string())
+}
+
+pub fn biometry_status(state: &AppState) -> Result<BiometryStatus, AppError> {
+    let store = inner(state).store.clone();
+    let biometry = store.biometry();
+    let on = biometry.is_some() && store.keeps_vault_key()?;
+    Ok(BiometryStatus { biometry, on })
+}
+
+/// Keeps the open vault's key behind Touch ID or Face ID. Only while unlocked.
+pub fn turn_on_biometry(state: &AppState) -> Result<(), AppError> {
+    let inner = inner(state);
+    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    inner.store.keep_vault_key(key)
+}
+
+pub fn turn_off_biometry(state: &AppState) -> Result<(), AppError> {
+    let store = inner(state).store.clone();
+    store.forget_vault_key()
 }
 
 /// Every date that has an entry, oldest first, as `YYYY-MM-DD`.
@@ -269,6 +299,51 @@ mod tests {
         assert_eq!(secret_key_text(&state).unwrap(), *created.to_text());
         lock(&state);
         assert!(matches!(secret_key_text(&state), Err(AppError::Locked)));
+    }
+
+    #[test]
+    fn touch_id_turns_on_only_while_unlocked_and_shows_in_the_status() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = LocalStore::new(
+            dir.path().to_path_buf(),
+            std::sync::Arc::new(crate::keychain::MemoryKeychain::default()),
+        )
+        .with_vault_keys(std::sync::Arc::new(
+            crate::biometry::MemoryVaultKeys::default(),
+        ));
+        let state = AppState::new(AppStateInner::new(store));
+        create_and_unlock(&state, "correct horse");
+        let off = BiometryStatus {
+            biometry: Some(Biometry::TouchId),
+            on: false,
+        };
+        assert_eq!(biometry_status(&state).unwrap(), off);
+
+        turn_on_biometry(&state).unwrap();
+        assert!(biometry_status(&state).unwrap().on);
+        turn_off_biometry(&state).unwrap();
+        assert_eq!(biometry_status(&state).unwrap(), off);
+
+        lock(&state);
+        assert!(matches!(turn_on_biometry(&state), Err(AppError::Locked)));
+    }
+
+    #[test]
+    fn a_device_without_biometry_shows_it_as_unavailable() {
+        let (_dir, state) = state();
+        create_and_unlock(&state, "correct horse");
+        let status = biometry_status(&state).unwrap();
+        assert_eq!(
+            status,
+            BiometryStatus {
+                biometry: None,
+                on: false
+            }
+        );
+        assert!(matches!(
+            turn_on_biometry(&state),
+            Err(AppError::NoBiometry)
+        ));
     }
 
     #[test]

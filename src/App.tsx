@@ -50,7 +50,12 @@ function Screen() {
         <NewDeviceUnlockForm busy={vault.busy} error={vault.error} onUnlock={vault.unlock} />
       ) : null}
       {vault.status === "locked" ? (
-        <UnlockForm busy={vault.busy} error={vault.error} onUnlock={vault.unlock} />
+        <UnlockForm
+          busy={vault.busy}
+          error={vault.error}
+          onUnlock={vault.unlock}
+          onUnlockWithBiometry={vault.unlockWithBiometry}
+        />
       ) : null}
     </NarrowPage>
   );

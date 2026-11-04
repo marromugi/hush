@@ -42,6 +42,22 @@ impl fmt::Debug for VaultKey {
     }
 }
 
+impl VaultKey {
+    /// A key read back from where a device kept it; `None` for the wrong length.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != KEY_LEN {
+            return None;
+        }
+        let mut key = VaultKey(Box::new([0; KEY_LEN]));
+        key.0.copy_from_slice(bytes);
+        Some(key)
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0[..]
+    }
+}
+
 /// A nonce and the ciphertext it produced. Neither is secret.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

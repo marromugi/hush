@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::app_error::AppError;
+use crate::biometry::{Biometry, NoBiometry, VaultKeyStore};
 use crate::crypto::VaultKey;
 use crate::entry::{self, Entry, EntryDate, EntryFont};
 use crate::image::{self, ImageId, Picture};
@@ -13,18 +14,28 @@ use crate::secret_key::SecretKey;
 use crate::vault::Vault;
 
 /// The vault, entries, and images on this device, and the device's Secret
-/// Keys. The file layout matches the GitHub repository (`vault.json`,
+/// Keys and the vault keys it keeps behind Touch ID or Face ID. The file layout matches the GitHub repository (`vault.json`,
 /// `entries/YYYY/YYYY-MM-DD.enc`, `images/{id}.enc`) so the same files can
 /// be pushed as they are.
 #[derive(Debug, Clone)]
 pub struct LocalStore {
     dir: PathBuf,
     secret_keys: Arc<dyn SecretKeyStore>,
+    vault_keys: Arc<dyn VaultKeyStore>,
 }
 
 impl LocalStore {
+    /// A store that keeps no vault key; see `with_vault_keys`.
     pub fn new(dir: PathBuf, secret_keys: Arc<dyn SecretKeyStore>) -> Self {
-        LocalStore { dir, secret_keys }
+        LocalStore {
+            dir,
+            secret_keys,
+            vault_keys: Arc::new(NoBiometry),
+        }
+    }
+
+    pub fn with_vault_keys(self, vault_keys: Arc<dyn VaultKeyStore>) -> Self {
+        LocalStore { vault_keys, ..self }
     }
 
     fn vault_path(&self) -> PathBuf {
@@ -90,12 +101,29 @@ impl LocalStore {
     /// kept in the keychain, so the device needs only the passphrase after.
     /// The vault opens even if keeping it fails; the next unlock then asks
     /// for the key again (`NoSecretKey`).
+    ///
+    /// When a vault key is kept behind Touch ID or Face ID, it is kept again
+    /// with the fingers or face set up now. A change to those stops the old
+    /// one from coming out, and the passphrase brings it back.
     pub fn unlock(
         &self,
         passphrase: &str,
         typed_secret_key: Option<&str>,
     ) -> Result<VaultKey, AppError> {
         let vault = self.read_vault()?;
+        let key = self.unlock_with_passphrase(&vault, passphrase, typed_secret_key)?;
+        if self.vault_keys.has(&vault.id()).unwrap_or(false) {
+            let _ = self.vault_keys.set(&vault.id(), &key);
+        }
+        Ok(key)
+    }
+
+    fn unlock_with_passphrase(
+        &self,
+        vault: &Vault,
+        passphrase: &str,
+        typed_secret_key: Option<&str>,
+    ) -> Result<VaultKey, AppError> {
         let Some(typed) = typed_secret_key else {
             let secret_key = self
                 .secret_keys
@@ -111,6 +139,46 @@ impl LocalStore {
         let key = vault.unlock(passphrase, &secret_key)?;
         let _ = self.secret_keys.set(&vault.id(), &secret_key);
         Ok(key)
+    }
+
+    /// How this device recognizes its owner, if it can.
+    pub fn biometry(&self) -> Option<Biometry> {
+        self.vault_keys.biometry()
+    }
+
+    /// Whether the vault opens with Touch ID or Face ID on this device.
+    pub fn keeps_vault_key(&self) -> Result<bool, AppError> {
+        let vault = self.read_vault()?;
+        self.vault_keys.has(&vault.id())
+    }
+
+    /// Keeps `key`, the open vault's, behind Touch ID or Face ID.
+    pub fn keep_vault_key(&self, key: &VaultKey) -> Result<(), AppError> {
+        let vault = self.read_vault()?;
+        self.vault_keys.set(&vault.id(), key)
+    }
+
+    pub fn forget_vault_key(&self) -> Result<(), AppError> {
+        let vault = self.read_vault()?;
+        self.vault_keys.remove(&vault.id())
+    }
+
+    /// Opens the vault with the key kept behind Touch ID or Face ID, asking
+    /// for it with `reason`. A kept key that no longer opens the vault is
+    /// forgotten, and the person goes back to the passphrase.
+    pub fn unlock_with_biometry(&self, reason: &str) -> Result<VaultKey, AppError> {
+        let vault = self.read_vault()?;
+        let key = self
+            .vault_keys
+            .get(&vault.id(), reason)?
+            .ok_or(AppError::NoKeptKey)?;
+        vault.check(key).map_err(|e| match e {
+            AppError::Decryption => {
+                let _ = self.vault_keys.remove(&vault.id());
+                AppError::NoKeptKey
+            }
+            other => other,
+        })
     }
 
     /// The entry for `date`, or `None` if nothing has been written that day.
@@ -243,6 +311,7 @@ fn write_temporary(path: &Path, contents: &[u8]) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::biometry::MemoryVaultKeys;
     use crate::keychain::{BrokenKeychain, MemoryKeychain};
 
     fn date(text: &str) -> EntryDate {
@@ -537,5 +606,95 @@ mod tests {
         let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000);
         assert!(matches!(result, Err(AppError::NewerEntryVersion(7))));
         assert_eq!(fs::read_to_string(&path).unwrap(), newer);
+    }
+
+    /// A store whose vault keys sit behind a Touch ID that always matches,
+    /// with a handle on those keys.
+    fn store_with_biometry() -> (tempfile::TempDir, LocalStore, Arc<MemoryVaultKeys>) {
+        let (dir, store) = store();
+        let keys = Arc::new(MemoryVaultKeys::default());
+        (dir, store.with_vault_keys(keys.clone()), keys)
+    }
+
+    fn vault_id(store: &LocalStore) -> String {
+        store.read_vault().unwrap().id()
+    }
+
+    #[test]
+    fn a_kept_vault_key_opens_the_vault_without_the_passphrase() {
+        let (_dir, store, _) = store_with_biometry();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        store
+            .save_entry(&key, &date("2026-10-29"), "晴れ".to_string(), None, 1)
+            .unwrap();
+        assert!(!store.keeps_vault_key().unwrap());
+        store.keep_vault_key(&key).unwrap();
+        drop(key);
+
+        assert!(store.keeps_vault_key().unwrap());
+        let key = store.unlock_with_biometry("open").unwrap();
+        let entry = store
+            .read_entry(&key, &date("2026-10-29"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(entry.body, "晴れ");
+    }
+
+    #[test]
+    fn without_a_kept_key_touch_id_cannot_open_the_vault() {
+        let (_dir, store, _) = store_with_biometry();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        store.keep_vault_key(&key).unwrap();
+        store.forget_vault_key().unwrap();
+        assert!(!store.keeps_vault_key().unwrap());
+        assert!(matches!(
+            store.unlock_with_biometry("open"),
+            Err(AppError::NoKeptKey)
+        ));
+    }
+
+    #[test]
+    fn a_cancelled_prompt_keeps_the_key_for_next_time() {
+        let (_dir, store, keys) = store_with_biometry();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        store.keep_vault_key(&key).unwrap();
+        keys.refuse.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert!(matches!(
+            store.unlock_with_biometry("open"),
+            Err(AppError::BiometryCancelled)
+        ));
+        assert!(store.keeps_vault_key().unwrap());
+    }
+
+    #[test]
+    fn a_kept_key_that_does_not_open_the_vault_is_forgotten() {
+        let (_dir, store, keys) = store_with_biometry();
+        store.create_vault("correct horse").unwrap();
+        keys.plant(&vault_id(&store), &[7; crate::crypto::KEY_LEN]);
+        assert!(matches!(
+            store.unlock_with_biometry("open"),
+            Err(AppError::NoKeptKey)
+        ));
+        assert!(!store.keeps_vault_key().unwrap());
+    }
+
+    #[test]
+    fn the_passphrase_keeps_the_vault_key_again_once_it_is_on() {
+        let (_dir, store, keys) = store_with_biometry();
+        let (key, _) = store.create_vault("correct horse").unwrap();
+        store.keep_vault_key(&key).unwrap();
+        // What Touch ID gives out after the fingers set up have changed.
+        keys.plant(&vault_id(&store), &[7; crate::crypto::KEY_LEN]);
+
+        store.unlock("correct horse", None).unwrap();
+        assert!(store.unlock_with_biometry("open").is_ok());
+    }
+
+    #[test]
+    fn the_passphrase_alone_never_turns_touch_id_on() {
+        let (_dir, store, _) = store_with_biometry();
+        store.create_vault("correct horse").unwrap();
+        store.unlock("correct horse", None).unwrap();
+        assert!(!store.keeps_vault_key().unwrap());
     }
 }

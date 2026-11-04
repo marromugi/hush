@@ -9,7 +9,7 @@ use crate::app_error::AppError;
 use crate::app_state::AppState;
 use crate::embed_pages;
 use crate::entry::EntryFont;
-use crate::session::{self, EntryView, VaultStatus};
+use crate::session::{self, BiometryStatus, EntryView, VaultStatus};
 
 fn now_ms() -> u64 {
     let since_epoch = SystemTime::now()
@@ -53,6 +53,35 @@ pub async fn unlock_vault(
     })
     .await??;
     session::finish_unlock(&state, pending, key)
+}
+
+/// Asks for Touch ID or Face ID, showing `reason` where the system has room
+/// for it, and opens the vault with the key kept behind it.
+#[tauri::command]
+pub async fn unlock_with_biometry(
+    reason: String,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let pending = session::begin_unlock(&state);
+    let store = pending.store.clone();
+    // The prompt waits for the person, so it must not hold an async thread.
+    let key = spawn_blocking(move || store.unlock_with_biometry(&reason)).await??;
+    session::finish_unlock(&state, pending, key)
+}
+
+#[tauri::command]
+pub async fn biometry_status(state: State<'_, AppState>) -> Result<BiometryStatus, AppError> {
+    session::biometry_status(&state)
+}
+
+#[tauri::command]
+pub async fn turn_on_biometry(state: State<'_, AppState>) -> Result<(), AppError> {
+    session::turn_on_biometry(&state)
+}
+
+#[tauri::command]
+pub async fn turn_off_biometry(state: State<'_, AppState>) -> Result<(), AppError> {
+    session::turn_off_biometry(&state)
 }
 
 #[tauri::command]

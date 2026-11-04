@@ -7,7 +7,12 @@ import { UnlockForm } from "./UnlockForm";
 const meta = {
   title: "vault/UnlockForm",
   component: UnlockForm,
-  args: { busy: false, error: null, onUnlock: async () => {} },
+  args: {
+    busy: false,
+    error: null,
+    onUnlock: async () => {},
+    onUnlockWithBiometry: async () => {},
+  },
 } satisfies Meta<typeof UnlockForm>;
 
 export default meta;
