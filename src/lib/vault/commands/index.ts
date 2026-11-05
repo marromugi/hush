@@ -4,6 +4,7 @@ export {
   embedPagesOrigin,
   listenKeyboardMoves,
   listenLockRequests,
+  listenShakes,
   listEntryDates,
   lockVault,
   musicPlaylists,

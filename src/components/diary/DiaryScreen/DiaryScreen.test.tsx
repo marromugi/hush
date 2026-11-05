@@ -173,6 +173,46 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
   await waitFor(() => expect(screen.queryByRole("button", { name: "メニュー" })).toBeNull());
 });
 
+test("shaking the phone shows today's entry in another font, and does nothing on past days", async () => {
+  mockIPC(
+    (command) => {
+      if (command === "read_entry") return null;
+      if (command === "list_entry_dates") return ["2020-01-01"];
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  vi.spyOn(fonts, "listFonts").mockResolvedValue([
+    { id: "klee-one", family: "Klee One", category: "handwriting" },
+  ]);
+  vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/klee-one", complete: true });
+  vi.spyOn(fonts, "loadFont").mockResolvedValue();
+  // Each roll picks a font, even one that finds nothing new to show.
+  const picks = vi.spyOn(fonts, "pickFont");
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  await act(async () => {
+    await emit("shaken");
+  });
+  await waitFor(() =>
+    expect(
+      document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily,
+    ).toBe('"Klee One", cursive'),
+  );
+
+  await openNewYear2020(within(document.body));
+  await screen.findByText("この日の日記はありません。");
+  const picksBefore = picks.mock.calls.length;
+  await act(async () => {
+    await emit("shaken");
+  });
+  expect(picks).toHaveBeenCalledTimes(picksBefore);
+});
+
 test("the dice cannot be pressed until today's entry has been read", async () => {
   mockIPC(
     (command) => {

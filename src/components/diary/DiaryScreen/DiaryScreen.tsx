@@ -20,6 +20,7 @@ import { Sidebar } from "./Sidebar";
 import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
 import { useKeepClear } from "./useKeepClear";
+import { useShakeToRoll } from "./useShakeToRoll";
 import { useTodayScreen } from "./useTodayScreen";
 
 /** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
@@ -29,6 +30,9 @@ export function DiaryScreen() {
   const settings = useSettings();
   const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
   const keepClear = useKeepClear();
+  // The dice rolls from its button or, on iOS, from a shake, once today's entry is ready for it.
+  const diceReady = !dice.rolling && !today.locking && !today.loading;
+  useShakeToRoll(() => void dice.roll(), screen.showsToday && diceReady);
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
@@ -187,7 +191,7 @@ export function DiaryScreen() {
               icon={DiceIcon}
               label="フォントを変える"
               type="button"
-              disabled={dice.rolling || today.locking || today.loading}
+              disabled={!diceReady}
               onClick={() => void dice.roll()}
             />
           </RadialMenu>

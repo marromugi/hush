@@ -130,6 +130,14 @@ export function listenKeyboardMoves(onMove: () => void): Promise<UnlistenFn> {
   return listen(KEYBOARD_MOVED, () => onMove());
 }
 
+/** Sent by the Rust side (`shake::SHAKEN`) on iOS each time the phone is shaken. */
+const SHAKEN = "shaken";
+
+/** Calls `onShake` each time the phone is shaken. Never on the desktop. */
+export function listenShakes(onShake: () => void): Promise<UnlistenFn> {
+  return listen(SHAKEN, () => onShake());
+}
+
 /** One of the person's playlists in the Music app (`music::Playlist`). `id` differs between devices. */
 export type Playlist = { id: string; name: string };
 
