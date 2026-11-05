@@ -183,7 +183,7 @@ Why: every name's origin stays visible where it is used.
 (BeautifulRust §9)
 
 **Tests live at the bottom of the file they test, in `#[cfg(test)] mod tests`.**
-Why: the test sits next to the code, the same as on the frontend (`principle-structure`).
+Why: the test sits next to the code, the same as on the frontend (`principle-structure-react`).
 
 ## Not taken
 
