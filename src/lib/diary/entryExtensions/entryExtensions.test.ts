@@ -317,11 +317,11 @@ test("a card whose page cannot be read keeps only its link", async () => {
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://example.com/a");
   await vi.waitFor(() => {
-    expect(editor.getJSON().content?.[0]?.attrs?.loading).toBe(true);
+    expect(failures).toHaveLength(1);
   });
   for (const fail of failures) fail({ kind: "link", message: "link could not be fetched" });
   await vi.waitFor(() => {
-    expect(editor.getJSON().content?.[0]?.attrs?.loading).toBe(false);
+    expect(editor.getJSON().content?.[0]?.attrs?.pending).toBeNull();
   });
   expect(editor.getHTML()).toBe('<div data-link-card="https://example.com/a"></div><p></p>');
   editor.destroy();
@@ -342,5 +342,53 @@ test("a YouTube link pasted on an empty line is still the video, not a card", ()
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).toContain('data-embed="youtube"');
   expect(editor.getHTML()).not.toContain("data-link-card");
+  editor.destroy();
+});
+
+test("the same link pasted twice fills each card from its own reading", async () => {
+  const answers: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> =
+    [];
+  mockIPC(
+    () =>
+      new Promise((resolve, reject) => {
+        answers.push({ resolve, reject });
+      }),
+  );
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://example.com/a");
+  pasteText(editor, "https://example.com/a");
+  await vi.waitFor(() => {
+    expect(answers).toHaveLength(2);
+  });
+  answers[0]?.reject({ kind: "link", message: "timed out" });
+  answers[1]?.resolve({ title: "海の記事", imageUrl: null });
+  await vi.waitFor(() => {
+    expect(editor.getHTML()).toBe(
+      '<div data-link-card="https://example.com/a"></div><div data-link-card="https://example.com/a" data-title="海の記事"></div><p></p>',
+    );
+  });
+  editor.destroy();
+});
+
+test("a card taken away by undo before its page is read comes back filled on redo", async () => {
+  const answers: Array<(value: unknown) => void> = [];
+  mockIPC(
+    () =>
+      new Promise((resolve) => {
+        answers.push(resolve);
+      }),
+  );
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://example.com/r");
+  editor.commands.undo();
+  expect(editor.getHTML()).not.toContain("data-link-card");
+  for (const answer of answers) answer({ title: "戻った記事", imageUrl: null });
+  // Lets the reading settle.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  editor.commands.redo();
+  expect(editor.getHTML()).toContain('data-title="戻った記事"');
+  expect(editor.getJSON().content?.[0]?.attrs?.pending).toBeNull();
   editor.destroy();
 });

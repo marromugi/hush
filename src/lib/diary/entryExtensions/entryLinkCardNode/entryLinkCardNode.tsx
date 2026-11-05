@@ -1,4 +1,5 @@
 import { Plugin } from "@tiptap/pm/state";
+import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Node, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import type { Editor, ReactNodeViewProps } from "@tiptap/react";
 
@@ -30,7 +31,7 @@ function EntryLinkCardView({ node, selected }: ReactNodeViewProps) {
           url={url}
           title={typeof node.attrs.title === "string" ? node.attrs.title : null}
           image={typeof node.attrs.image === "string" ? node.attrs.image : null}
-          loading={node.attrs.loading === true}
+          loading={typeof node.attrs.pending === "string"}
           selected={selected}
         />
       )}
@@ -71,8 +72,8 @@ export const EntryLinkCardNode = Node.create({
       },
       title: optional("title", TITLE_ATTRIBUTE),
       image: optional("image", IMAGE_ATTRIBUTE),
-      // Only while the page is read after pasting; never written to the entry.
-      loading: { default: false, rendered: false, parseHTML: () => false },
+      // The paste a card is waiting on, while its page is read; never written to the entry.
+      pending: { default: null, rendered: false, parseHTML: () => null },
     };
   },
 
@@ -106,35 +107,53 @@ export const EntryLinkCardNode = Node.create({
             }
             const url = parseCardLink(event.clipboardData?.getData("text/plain") ?? "");
             if (url === null) return false;
-            insertAtomBlock(editor, { type: NAME, attrs: { url, loading: true } });
-            void fillLinkCards(editor, url);
+            const pending = crypto.randomUUID();
+            insertAtomBlock(editor, { type: NAME, attrs: { url, pending } });
+            void readPasted(editor, url, pending);
             return true;
           },
         },
+        // A card brought back by redo after its page was read is filled here.
+        appendTransaction: (_transactions, _old, state) =>
+          editor.isEditable ? fillSettled(state) : null,
       }),
     ];
   },
 });
 
 /**
- * Reads the page `url` points at and puts what it gives into each card for
- * `url` still being read. A card whose page cannot be read keeps only its
- * link, and a toast says why. The filling is not a step of its own in undo.
+ * What each paste's page gave, by the paste. Kept for as long as the app
+ * runs, since undo and redo can take a card away and bring it back.
  */
-async function fillLinkCards(editor: Editor, url: string): Promise<void> {
+const settled = new Map<string, LinkCardContent>();
+
+/**
+ * Reads the page `url` points at for the card pasted as `pending`, and fills
+ * the card. A page that cannot be read leaves the card with only its link,
+ * and a toast says why.
+ */
+async function readPasted(editor: Editor, url: string, pending: string): Promise<void> {
   let content: LinkCardContent = { title: null, image: null };
   try {
     content = await fetchLinkCard(url);
   } catch (failure) {
     toastError(`リンク先を読み込めませんでした。${failureText(failure)}`);
   }
-  // The editor is gone once the day changes or the vault locks; a saved picture stays unused.
-  if (editor.isDestroyed) return;
-  const { tr } = editor.state;
-  editor.state.doc.descendants((node, pos) => {
-    if (node.type.name === NAME && node.attrs.loading === true && node.attrs.url === url) {
-      tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...content, loading: false });
-    }
+  settled.set(pending, content);
+  // Gone once the day changes; read-only while locking. A saved picture stays unused.
+  if (editor.isDestroyed || !editor.isEditable) return;
+  const tr = fillSettled(editor.state);
+  if (tr) editor.view.dispatch(tr);
+}
+
+/** Fills each card in `state` whose page has been read. Not a step of its own in undo. */
+function fillSettled(state: EditorState): Transaction | null {
+  if (settled.size === 0) return null;
+  const { tr } = state;
+  state.doc.descendants((node, pos) => {
+    if (node.type.name !== NAME || typeof node.attrs.pending !== "string") return;
+    const content = settled.get(node.attrs.pending);
+    if (content) tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...content, pending: null });
   });
-  if (tr.docChanged) editor.view.dispatch(tr.setMeta("addToHistory", false));
+  return tr.docChanged ? tr.setMeta("addToHistory", false) : null;
 }
