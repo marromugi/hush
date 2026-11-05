@@ -79,6 +79,7 @@ targets:
       - framework: libapp.a
         embed: false
       - sdk: CoreGraphics.framework
+      - sdk: MediaPlayer.framework
       - sdk: Metal.framework
       - sdk: MetalKit.framework
       - sdk: QuartzCore.framework

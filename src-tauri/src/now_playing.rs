@@ -1,9 +1,10 @@
 //! What the Music app is playing, shown in a corner of the diary screen.
-//! Only Apple's Music app can be read: macOS no longer lets other apps see
-//! what any app is playing. Nothing here starts the Music app. Reading the
-//! Music app's answer is built only where it is asked, and for the tests.
+//! Only Apple's Music app can be read: neither macOS nor iOS lets other apps
+//! see what any app is playing. Nothing here starts the Music app. On macOS
+//! the Music app is asked through `osascript`; on iOS, through the system
+//! music player, which needs the person's leave to read the media library.
 
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", test))]
 use base64ct::{Base64, Encoding};
 use serde::Serialize;
 use tauri::AppHandle;
@@ -28,7 +29,7 @@ const MAX_ARTWORK: usize = 1024 * 1024;
 
 /// A `data:` URL for an image, typed by its first bytes; None for anything
 /// that is not a PNG or a JPEG, which the page could not show.
-#[cfg(any(target_os = "macos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", test))]
 fn data_url(bytes: &[u8]) -> Option<String> {
     let mime = if bytes.starts_with(b"\x89PNG") {
         "image/png"
@@ -282,15 +283,186 @@ return ""
     }
 }
 
-/// What plays now in the Music app; nothing while it is paused, stopped, or closed.
+#[cfg(target_os = "ios")]
+mod ios {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    use block2::RcBlock;
+    use objc2::rc::Retained;
+    use objc2::runtime::NSObject;
+    use objc2::{AllocAnyThread, DefinedClass, define_class, msg_send, sel};
+    use objc2_core_foundation::CGSize;
+    use objc2_foundation::{NSNotification, NSNotificationCenter};
+    use objc2_media_player::{
+        MPMediaLibrary, MPMediaLibraryAuthorizationStatus, MPMusicPlaybackState,
+        MPMusicPlayerController, MPMusicPlayerControllerNowPlayingItemDidChangeNotification,
+        MPMusicPlayerControllerPlaybackStateDidChangeNotification,
+    };
+    use objc2_ui_kit::UIImage;
+    use tauri::{AppHandle, Emitter};
+
+    use super::{NOW_PLAYING_CHANGED, NowPlaying, data_url};
+
+    /// The size the album art is drawn at: twice the card's 48pt, for the screen's pixels.
+    const ARTWORK_SIZE: CGSize = CGSize {
+        width: 96.0,
+        height: 96.0,
+    };
+
+    /// Set once the diary screen has asked what plays; until then the
+    /// changes the player sends are not read, as on macOS.
+    static ASKED: AtomicBool = AtomicBool::new(false);
+
+    /// What plays now, read on the main thread, where the player must be
+    /// used. The first time, iOS asks the person whether Hush may read the
+    /// media library; once they allow it, the song is sent as a change.
+    pub fn read(app: &AppHandle) -> Option<NowPlaying> {
+        ASKED.store(true, Ordering::Relaxed);
+        let (answer, answered) = mpsc::channel();
+        let asking = app.clone();
+        app.run_on_main_thread(move || {
+            let _ = answer.send(read_or_ask(&asking));
+        })
+        .ok()?;
+        answered.recv_timeout(Duration::from_secs(5)).ok().flatten()
+    }
+
+    fn read_or_ask(app: &AppHandle) -> Option<NowPlaying> {
+        // SAFETY: plain class methods of MPMediaLibrary.
+        match unsafe { MPMediaLibrary::authorizationStatus() } {
+            MPMediaLibraryAuthorizationStatus::Authorized => read_here(),
+            MPMediaLibraryAuthorizationStatus::NotDetermined => {
+                let app = app.clone();
+                let answered = RcBlock::new(move |status: MPMediaLibraryAuthorizationStatus| {
+                    if status != MPMediaLibraryAuthorizationStatus::Authorized {
+                        return;
+                    }
+                    // The answer comes on another thread; the player is read on the main one.
+                    let sending = app.clone();
+                    let _ = app.run_on_main_thread(move || {
+                        let _ = sending.emit(NOW_PLAYING_CHANGED, read_here());
+                    });
+                });
+                // SAFETY: the block takes the status, as the method expects, and
+                // the method copies it.
+                unsafe { MPMediaLibrary::requestAuthorization(&answered) };
+                None
+            }
+            _ => None,
+        }
+    }
+
+    /// What the system music player plays; call only on the main thread, with leave to read.
+    fn read_here() -> Option<NowPlaying> {
+        // SAFETY: the system player and its item are read on the main thread,
+        // and every getter here takes no arguments.
+        unsafe {
+            let player = MPMusicPlayerController::systemMusicPlayer();
+            if player.playbackState() != MPMusicPlaybackState::Playing {
+                return None;
+            }
+            let item = player.nowPlayingItem()?;
+            let artwork = item.artwork().and_then(|artwork| {
+                // Bound for UIKit only by hand: the crate builds `imageWithSize:` for AppKit.
+                let image: Option<Retained<UIImage>> =
+                    msg_send![&artwork, imageWithSize: ARTWORK_SIZE];
+                let jpeg = image?.jpeg_representation(0.8)?;
+                data_url(&jpeg.to_vec())
+            });
+            Some(NowPlaying {
+                title: item
+                    .title()
+                    .map(|title| title.to_string())
+                    .unwrap_or_default(),
+                artist: item
+                    .artist()
+                    .map(|artist| artist.to_string())
+                    .unwrap_or_default(),
+                artwork,
+            })
+        }
+    }
+
+    define_class!(
+        /// Receives the player's notices of a change of song or of playing
+        /// and pausing, on the main thread, and sends the frontend what plays.
+        #[unsafe(super(NSObject))]
+        #[name = "HushNowPlaying"]
+        #[ivars = AppHandle]
+        struct Watcher;
+
+        impl Watcher {
+            #[unsafe(method(changed:))]
+            fn changed(&self, _notification: &NSNotification) {
+                if !ASKED.load(Ordering::Relaxed) {
+                    return;
+                }
+                // SAFETY: plain class method of MPMediaLibrary.
+                if unsafe { MPMediaLibrary::authorizationStatus() }
+                    != MPMediaLibraryAuthorizationStatus::Authorized
+                {
+                    return;
+                }
+                let _ = self.ivars().emit(NOW_PLAYING_CHANGED, read_here());
+            }
+        }
+    );
+
+    impl Watcher {
+        fn new(app: AppHandle) -> Retained<Self> {
+            let this = Self::alloc().set_ivars(app);
+            // SAFETY: NSObject's init on a freshly allocated instance.
+            unsafe { msg_send![super(this), init] }
+        }
+    }
+
+    /// Asks the system player to post its notices, and emits
+    /// `NOW_PLAYING_CHANGED` on each once the diary screen has asked. Runs
+    /// in the app's setup, on the main thread. The observer lives as long
+    /// as the app, since the centre does not retain it.
+    pub fn watch(app: &AppHandle) {
+        let watcher = Watcher::new(app.clone());
+        // SAFETY: called on the main thread; `watcher` implements `changed:`
+        // taking one notification, and is kept alive below for the rest of the process.
+        unsafe {
+            let player = MPMusicPlayerController::systemMusicPlayer();
+            player.beginGeneratingPlaybackNotifications();
+            let centre = NSNotificationCenter::defaultCenter();
+            for name in [
+                MPMusicPlayerControllerNowPlayingItemDidChangeNotification,
+                MPMusicPlayerControllerPlaybackStateDidChangeNotification,
+            ] {
+                centre.addObserver_selector_name_object(
+                    &watcher,
+                    sel!(changed:),
+                    Some(name),
+                    Some(&player),
+                );
+            }
+        }
+        std::mem::forget(watcher);
+    }
+}
+
+/// What plays now in the Music app; nothing while it is paused, stopped, or
+/// closed, and before the person has let Hush read it.
 #[cfg(target_os = "macos")]
-pub fn read() -> Option<NowPlaying> {
+pub fn read(_app: &AppHandle) -> Option<NowPlaying> {
     macos::read()
 }
 
-/// Other platforms cannot read it yet.
-#[cfg(not(target_os = "macos"))]
-pub fn read() -> Option<NowPlaying> {
+/// What plays now in the Music app; nothing while it is paused, stopped, or
+/// closed, and before the person has let Hush read it.
+#[cfg(target_os = "ios")]
+pub fn read(app: &AppHandle) -> Option<NowPlaying> {
+    ios::read(app)
+}
+
+/// Other platforms cannot read it.
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+pub fn read(_app: &AppHandle) -> Option<NowPlaying> {
     None
 }
 
@@ -301,8 +473,15 @@ pub fn watch(app: &AppHandle) {
     macos::watch(app);
 }
 
-/// Other platforms send nothing yet.
-#[cfg(not(target_os = "macos"))]
+/// Emits `NOW_PLAYING_CHANGED` whenever the Music app changes song or starts
+/// or stops playing, once the diary screen has asked what plays.
+#[cfg(target_os = "ios")]
+pub fn watch(app: &AppHandle) {
+    ios::watch(app);
+}
+
+/// Other platforms send nothing.
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub fn watch(_app: &AppHandle) {}
 
 #[cfg(test)]

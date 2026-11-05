@@ -1,8 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::State;
 use tauri::async_runtime::spawn_blocking;
 use tauri::ipc::{InvokeBody, Request, Response};
+use tauri::{AppHandle, State};
 use zeroize::Zeroizing;
 
 use crate::app_error::AppError;
@@ -145,6 +145,6 @@ pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Respon
 
 /// What the Music app plays now; later changes come as `NOW_PLAYING_CHANGED`.
 #[tauri::command]
-pub async fn now_playing() -> Result<Option<NowPlaying>, AppError> {
-    Ok(spawn_blocking(now_playing::read).await?)
+pub async fn now_playing(app: AppHandle) -> Result<Option<NowPlaying>, AppError> {
+    Ok(spawn_blocking(move || now_playing::read(&app)).await?)
 }
