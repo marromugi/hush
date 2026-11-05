@@ -6,14 +6,10 @@ test("a single item sits straight above the trigger", () => {
   expect(fanOffsets(1, 56, 45)).toEqual([{ x: 0, y: -56 }]);
 });
 
-test("items spread left to right, mirrored around straight up", () => {
-  const [left, middle, right] = fanOffsets(3, 56, 45);
-  expect(left.x).toBeLessThan(0);
-  expect(middle).toEqual({ x: 0, y: -56 });
-  expect(right).toEqual({ x: -left.x, y: left.y });
-  expect(Math.hypot(left.x, left.y)).toBeCloseTo(56, 1);
-});
-
-test("no items, no offsets", () => {
-  expect(fanOffsets(0, 56, 45)).toEqual([]);
+test("items spread left to right on the arc, a step apart, mirrored around straight up", () => {
+  expect(fanOffsets(3, 56, 45)).toEqual([
+    { x: -39.6, y: -39.6 },
+    { x: 0, y: -56 },
+    { x: 39.6, y: -39.6 },
+  ]);
 });

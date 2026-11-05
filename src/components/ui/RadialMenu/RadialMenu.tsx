@@ -28,7 +28,16 @@ const STEP = 45;
 function RadialMenuBody({ label, children, defaultOpen = false }: RadialMenuProps) {
   const [open, setOpen] = useState(defaultOpen);
   const nodeId = useFloatingNodeId();
-  const { refs, context } = useFloating({ nodeId, open, onOpenChange: setOpen });
+  const { refs, context } = useFloating({
+    nodeId,
+    open,
+    onOpenChange: (next, _event, reason) => {
+      setOpen(next);
+      // Escape may close it while an item has the focus, which would fall to the page with it.
+      const trigger = refs.domReference.current;
+      if (!next && reason === "escape-key" && trigger instanceof HTMLElement) trigger.focus();
+    },
+  });
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useClick(context),
     useDismiss(context, { capture: { escapeKey: true } }),
@@ -41,23 +50,28 @@ function RadialMenuBody({ label, children, defaultOpen = false }: RadialMenuProp
   const styles = radialMenu();
 
   return (
-    <div className="relative">
-      <button
-        ref={setReference}
-        type="button"
-        aria-label={label}
-        className={styles.trigger()}
-        {...getReferenceProps()}
-      >
-        <motion.span animate={{ rotate: open ? 45 : 0 }} className="inline-flex">
-          <Icon icon={PlusIcon} size="md" />
-        </motion.span>
-      </button>
-      <FloatingNode id={nodeId}>
-        <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex">
+        <button
+          ref={setReference}
+          type="button"
+          aria-label={label}
+          className={styles.trigger()}
+          {...getReferenceProps()}
+        >
+          <motion.span animate={{ rotate: open ? 45 : 0 }} className="inline-flex">
+            <Icon icon={PlusIcon} size="md" />
+          </motion.span>
+        </button>
+        <FloatingNode id={nodeId}>
           <AnimatePresence>
             {open ? (
-              <div ref={setFloating} className={styles.fan()} {...getFloatingProps()}>
+              <div
+                ref={setFloating}
+                aria-label={label}
+                className={styles.fan()}
+                {...getFloatingProps()}
+              >
                 {items.map((item, index) => (
                   <motion.div
                     key={index}
@@ -78,9 +92,9 @@ function RadialMenuBody({ label, children, defaultOpen = false }: RadialMenuProp
               </div>
             ) : null}
           </AnimatePresence>
-        </MotionConfig>
-      </FloatingNode>
-    </div>
+        </FloatingNode>
+      </div>
+    </MotionConfig>
   );
 }
 
