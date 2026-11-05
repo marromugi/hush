@@ -1493,32 +1493,46 @@ checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
 name = "hush"
 version = "0.1.0"
 dependencies = [
- "argon2",
  "base64ct",
  "block2",
- "chacha20poly1305",
- "core-foundation 0.10.1",
- "encoding_rs",
- "getrandom 0.4.3",
- "keyring",
+ "hush-core",
  "objc2",
  "objc2-app-kit",
  "objc2-core-foundation",
  "objc2-core-motion",
  "objc2-foundation",
- "objc2-local-authentication",
  "objc2-media-player",
  "objc2-ui-kit",
- "reqwest",
- "security-framework 3.7.0",
- "security-framework-sys",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-haptics",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "hush-core"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "base64ct",
+ "chacha20poly1305",
+ "core-foundation 0.10.1",
+ "encoding_rs",
+ "getrandom 0.4.3",
+ "keyring",
+ "objc2-foundation",
+ "objc2-local-authentication",
+ "reqwest",
+ "security-framework 3.7.0",
+ "security-framework-sys",
+ "serde",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "tokio",
  "zeroize",
 ]
 

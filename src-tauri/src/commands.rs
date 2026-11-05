@@ -5,13 +5,15 @@ use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, State};
 use zeroize::Zeroizing;
 
+use hush_core::app_state::AppState;
+use hush_core::core_error::CoreError;
+use hush_core::embed_pages;
+use hush_core::entry::EntryFont;
+use hush_core::link_page::{self, LinkPage};
+use hush_core::session::{self, BiometryStatus, EntryView, VaultStatus};
+
 use crate::app_error::AppError;
-use crate::app_state::AppState;
-use crate::embed_pages;
-use crate::entry::EntryFont;
-use crate::link_page::{self, LinkPage};
 use crate::music::{self, Playlists};
-use crate::session::{self, BiometryStatus, EntryView, VaultStatus};
 
 fn now_ms() -> u64 {
     let since_epoch = SystemTime::now()
@@ -54,7 +56,7 @@ pub async fn unlock_vault(
         store.unlock(&passphrase, secret_key.as_deref().map(String::as_str))
     })
     .await??;
-    session::finish_unlock(&state, pending, key)
+    Ok(session::finish_unlock(&state, pending, key)?)
 }
 
 /// Asks for Touch ID or Face ID, showing `reason` where the system has room
@@ -68,22 +70,22 @@ pub async fn unlock_with_biometry(
     let store = pending.store.clone();
     // The prompt waits for the person, so it must not hold an async thread.
     let key = spawn_blocking(move || store.unlock_with_biometry(&reason)).await??;
-    session::finish_unlock(&state, pending, key)
+    Ok(session::finish_unlock(&state, pending, key)?)
 }
 
 #[tauri::command]
 pub async fn biometry_status(state: State<'_, AppState>) -> Result<BiometryStatus, AppError> {
-    session::biometry_status(&state)
+    Ok(session::biometry_status(&state)?)
 }
 
 #[tauri::command]
 pub async fn turn_on_biometry(state: State<'_, AppState>) -> Result<(), AppError> {
-    session::turn_on_biometry(&state)
+    Ok(session::turn_on_biometry(&state)?)
 }
 
 #[tauri::command]
 pub async fn turn_off_biometry(state: State<'_, AppState>) -> Result<(), AppError> {
-    session::turn_off_biometry(&state)
+    Ok(session::turn_off_biometry(&state)?)
 }
 
 #[tauri::command]
@@ -97,7 +99,7 @@ pub async fn read_entry(
     date: String,
     state: State<'_, AppState>,
 ) -> Result<Option<EntryView>, AppError> {
-    session::read_entry(&state, date)
+    Ok(session::read_entry(&state, date)?)
 }
 
 #[tauri::command]
@@ -107,23 +109,23 @@ pub async fn save_entry(
     font: Option<EntryFont>,
     state: State<'_, AppState>,
 ) -> Result<EntryView, AppError> {
-    session::save_entry(&state, date, body, font, now_ms())
+    Ok(session::save_entry(&state, date, body, font, now_ms())?)
 }
 
 #[tauri::command]
 pub async fn list_entry_dates(state: State<'_, AppState>) -> Result<Vec<String>, AppError> {
-    session::entry_dates(&state)
+    Ok(session::entry_dates(&state)?)
 }
 
 #[tauri::command]
 pub async fn embed_pages_origin(state: State<'_, AppState>) -> Result<String, AppError> {
-    embed_pages::origin(&state)
+    Ok(embed_pages::origin(&state)?)
 }
 
 /// The Secret Key as text, for the person to keep again.
 #[tauri::command]
 pub async fn show_secret_key(state: State<'_, AppState>) -> Result<String, AppError> {
-    session::secret_key_text(&state)
+    Ok(session::secret_key_text(&state)?)
 }
 
 /// The picture is the request's raw body, a JPEG, PNG, or GIF. Returns the new image's id.
@@ -133,9 +135,9 @@ pub async fn save_image(
     state: State<'_, AppState>,
 ) -> Result<String, AppError> {
     let InvokeBody::Raw(bytes) = request.body() else {
-        return Err(AppError::UnsupportedPicture);
+        return Err(CoreError::UnsupportedPicture.into());
     };
-    session::save_image(&state, bytes.clone())
+    Ok(session::save_image(&state, bytes.clone())?)
 }
 
 /// The picture saved as `id`, as raw bytes.
@@ -147,7 +149,7 @@ pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Respon
 /// The title and picture of the page `url` points at, for a card in an entry.
 #[tauri::command]
 pub async fn link_page(url: String) -> Result<LinkPage, AppError> {
-    link_page::fetch_page(&url).await
+    Ok(link_page::fetch_page(&url).await?)
 }
 
 /// The picture at `url`, as raw bytes in whatever format the site sent.

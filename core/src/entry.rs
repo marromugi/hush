@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize, de};
 
-use crate::app_error::AppError;
 use crate::b64;
+use crate::core_error::CoreError;
 use crate::crypto::{self, NONCE_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
 
@@ -114,7 +114,7 @@ struct EntryFile {
 }
 
 /// Encrypts `entry` and returns the text of its entry file.
-pub fn seal(key: &VaultKey, entry: &Entry) -> Result<String, AppError> {
+pub fn seal(key: &VaultKey, entry: &Entry) -> Result<String, CoreError> {
     let plaintext = serde_json::to_vec(entry).expect("entry fields are plain strings and numbers");
     let Sealed { nonce, ciphertext } =
         crypto::encrypt(key, entry.date.path().as_bytes(), &plaintext)?;
@@ -131,17 +131,17 @@ pub fn seal(key: &VaultKey, entry: &Entry) -> Result<String, AppError> {
 /// version is read first, so a file written by a newer app asks for an
 /// update instead of being reported as broken. A version 1 file opens with
 /// no font.
-pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppError> {
-    let version = read_version(text).map_err(AppError::BrokenEntry)?;
+pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, CoreError> {
+    let version = read_version(text).map_err(CoreError::BrokenEntry)?;
     if version > ENTRY_VERSION {
-        return Err(AppError::NewerEntryVersion(version));
+        return Err(CoreError::NewerEntryVersion(version));
     }
     if version == 0 {
-        return Err(AppError::BrokenEntry(de::Error::custom(format!(
+        return Err(CoreError::BrokenEntry(de::Error::custom(format!(
             "unknown version {version}"
         ))));
     }
-    let file: EntryFile = serde_json::from_str(text).map_err(AppError::BrokenEntry)?;
+    let file: EntryFile = serde_json::from_str(text).map_err(CoreError::BrokenEntry)?;
     let plaintext = crypto::decrypt(
         key,
         date.path().as_bytes(),
@@ -158,12 +158,12 @@ pub fn open(key: &VaultKey, date: &EntryDate, text: &str) -> Result<Entry, AppEr
         serde_json::from_slice::<Entry>(&plaintext)
     };
     let entry = entry.map_err(|_| {
-        AppError::BrokenEntry(de::Error::custom(
+        CoreError::BrokenEntry(de::Error::custom(
             "decrypted entry is not in the entry format",
         ))
     })?;
     if entry.date != *date {
-        return Err(AppError::BrokenEntry(de::Error::custom(format!(
+        return Err(CoreError::BrokenEntry(de::Error::custom(format!(
             "entry for {} found at {}",
             entry.date.0,
             date.path()
@@ -246,7 +246,7 @@ mod tests {
         let text = seal(&key, &entry("2026-10-29")).unwrap();
         assert!(matches!(
             open(&key, &date("2026-10-30"), &text),
-            Err(AppError::Decryption)
+            Err(CoreError::Decryption)
         ));
     }
 
@@ -292,7 +292,7 @@ mod tests {
         });
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::NewerEntryVersion(v)) if v == ENTRY_VERSION + 1
+            Err(CoreError::NewerEntryVersion(v)) if v == ENTRY_VERSION + 1
         ));
     }
 
@@ -301,7 +301,7 @@ mod tests {
         let text = file_with(|v| v["mood"] = "sunny".into());
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -310,7 +310,7 @@ mod tests {
         let text = file_with(|v| v["nonce"] = "AAAA".into());
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -319,7 +319,7 @@ mod tests {
         let text = file_with(|v| v["version"] = 0.into());
         assert!(matches!(
             open(&key("correct horse"), &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -361,7 +361,7 @@ mod tests {
         let text = file_containing(&key, "2026-10-29", inner);
         assert!(matches!(
             open(&key, &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -373,7 +373,7 @@ mod tests {
         let text = file_containing(&key, "2026-10-29", inner);
         assert!(matches!(
             open(&key, &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -384,7 +384,12 @@ mod tests {
         inner["created_at_ms"] = "secret words".into();
         let text = file_containing(&key, "2026-10-29", inner);
         let error = open(&key, &date("2026-10-29"), &text).unwrap_err();
-        let message = serde_json::to_value(&error).unwrap()["message"].to_string();
+        let mut message = error.to_string();
+        let mut source = std::error::Error::source(&error);
+        while let Some(cause) = source {
+            message.push_str(&cause.to_string());
+            source = cause.source();
+        }
         assert!(!message.contains("secret words"), "{message}");
     }
 
@@ -396,7 +401,7 @@ mod tests {
         let text = file_containing(&key, "2026-10-29", inner);
         assert!(matches!(
             open(&key, &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -408,7 +413,7 @@ mod tests {
         let text = file_of_version(1, &key, "2026-10-29", inner);
         assert!(matches!(
             open(&key, &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 
@@ -421,7 +426,7 @@ mod tests {
         let text = file_containing(&key, "2026-10-29", inner);
         assert!(matches!(
             open(&key, &date("2026-10-29"), &text),
-            Err(AppError::BrokenEntry(_))
+            Err(CoreError::BrokenEntry(_))
         ));
     }
 

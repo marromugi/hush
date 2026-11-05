@@ -7,7 +7,7 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::redirect::Policy;
 use serde::Serialize;
 
-use crate::app_error::AppError;
+use crate::core_error::CoreError;
 
 /// How long one request may take, from connecting to the last byte.
 const REQUEST_DEADLINE: Duration = Duration::from_secs(10);
@@ -33,7 +33,7 @@ pub struct LinkPage {
 }
 
 /// Reads the page at `url` for its title and picture.
-pub async fn fetch_page(url: &str) -> Result<LinkPage, AppError> {
+pub async fn fetch_page(url: &str) -> Result<LinkPage, CoreError> {
     let url = web_url(url)?;
     let response = client()?.get(url).send().await?.error_for_status()?;
     let base = response.url().clone();
@@ -50,25 +50,25 @@ pub async fn fetch_page(url: &str) -> Result<LinkPage, AppError> {
 /// The picture at `url`, as the site sent it. Fails when it is larger than
 /// 10 MB, or when it, or a redirect on the way, is on this machine or its
 /// local network: the page chose the address, not the person.
-pub async fn fetch_image(url: &str) -> Result<Vec<u8>, AppError> {
+pub async fn fetch_image(url: &str) -> Result<Vec<u8>, CoreError> {
     let url = web_url(url)?;
     if is_inside(&url) {
-        return Err(AppError::UnreadableLink);
+        return Err(CoreError::UnreadableLink);
     }
     let response = image_client()?.get(url).send().await?.error_for_status()?;
     // A redirect stopped above leaves its 3xx answer, which is no picture.
     if response.status().is_redirection() {
-        return Err(AppError::UnreadableLink);
+        return Err(CoreError::UnreadableLink);
     }
     let (bytes, whole) = read_body(response, MAX_IMAGE_BYTES).await?;
     if !whole {
-        return Err(AppError::UnreadableLink);
+        return Err(CoreError::UnreadableLink);
     }
     Ok(bytes)
 }
 
 /// A client that follows no redirect into this machine or its local network.
-fn image_client() -> Result<reqwest::Client, AppError> {
+fn image_client() -> Result<reqwest::Client, CoreError> {
     client_with(Policy::custom(|attempt| {
         if is_inside(attempt.url()) {
             attempt.stop()
@@ -78,11 +78,11 @@ fn image_client() -> Result<reqwest::Client, AppError> {
     }))
 }
 
-fn client() -> Result<reqwest::Client, AppError> {
+fn client() -> Result<reqwest::Client, CoreError> {
     client_with(Policy::default())
 }
 
-fn client_with(redirects: Policy) -> Result<reqwest::Client, AppError> {
+fn client_with(redirects: Policy) -> Result<reqwest::Client, CoreError> {
     Ok(reqwest::Client::builder()
         .redirect(redirects)
         .timeout(REQUEST_DEADLINE)
@@ -91,12 +91,12 @@ fn client_with(redirects: Policy) -> Result<reqwest::Client, AppError> {
 }
 
 /// `text` as a URL, when it is an `http` or `https` one.
-fn web_url(text: &str) -> Result<Url, AppError> {
-    let url = Url::parse(text).map_err(|_| AppError::UnreadableLink)?;
+fn web_url(text: &str) -> Result<Url, CoreError> {
+    let url = Url::parse(text).map_err(|_| CoreError::UnreadableLink)?;
     if url.scheme() == "http" || url.scheme() == "https" {
         Ok(url)
     } else {
-        Err(AppError::UnreadableLink)
+        Err(CoreError::UnreadableLink)
     }
 }
 
@@ -137,7 +137,7 @@ fn is_inside_v6(ip: Ipv6Addr) -> bool {
 async fn read_body(
     mut response: reqwest::Response,
     limit: usize,
-) -> Result<(Vec<u8>, bool), AppError> {
+) -> Result<(Vec<u8>, bool), CoreError> {
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await? {
         if bytes.len() + chunk.len() > limit {
@@ -588,7 +588,11 @@ mod tests {
         let (start, _) = one_answer(format!(
             "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:{inside}/a.png\r\nContent-Length: 0\r\n\r\n"
         ));
-        let status = tauri::async_runtime::block_on(async {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let status = runtime.block_on(async {
             image_client()
                 .unwrap()
                 .get(format!("http://127.0.0.1:{start}/"))
@@ -607,11 +611,11 @@ mod tests {
         assert!(web_url("http://example.com").is_ok());
         assert!(matches!(
             web_url("file:///etc/passwd"),
-            Err(AppError::UnreadableLink)
+            Err(CoreError::UnreadableLink)
         ));
         assert!(matches!(
             web_url("not a url"),
-            Err(AppError::UnreadableLink)
+            Err(CoreError::UnreadableLink)
         ));
     }
 }

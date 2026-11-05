@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Cargo's build output
+target/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

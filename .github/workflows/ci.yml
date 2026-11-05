@@ -53,9 +53,6 @@ jobs:
 
   rust:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src-tauri
     steps:
       - uses: actions/checkout@v7
       # System libraries Tauri needs to compile on Linux.
@@ -66,8 +63,6 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize, de};
 
-use crate::app_error::AppError;
 use crate::b64;
+use crate::core_error::CoreError;
 use crate::crypto::{self, NONCE_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
 
@@ -29,9 +29,9 @@ const GIF_START: &[u8] = b"GIF8";
 pub struct ImageId(String);
 
 impl ImageId {
-    pub fn new() -> Result<Self, AppError> {
+    pub fn new() -> Result<Self, CoreError> {
         let mut bytes = [0; IMAGE_ID_LEN];
-        getrandom::fill(&mut bytes).map_err(AppError::Random)?;
+        getrandom::fill(&mut bytes).map_err(CoreError::Random)?;
         Ok(ImageId(bytes.iter().map(|b| format!("{b:02x}")).collect()))
     }
 
@@ -89,11 +89,11 @@ impl PictureFormat {
 pub struct Picture(Vec<u8>);
 
 impl TryFrom<Vec<u8>> for Picture {
-    type Error = AppError;
+    type Error = CoreError;
 
     fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
         if PictureFormat::of(&bytes).is_none() {
-            return Err(AppError::UnsupportedPicture);
+            return Err(CoreError::UnsupportedPicture);
         }
         Ok(Picture(bytes))
     }
@@ -117,7 +117,7 @@ struct ImageFile {
 }
 
 /// Encrypts `picture` and returns the text of its image file at `id`.
-pub fn seal(key: &VaultKey, id: &ImageId, picture: &Picture) -> Result<String, AppError> {
+pub fn seal(key: &VaultKey, id: &ImageId, picture: &Picture) -> Result<String, CoreError> {
     let Sealed { nonce, ciphertext } = crypto::encrypt(key, id.path().as_bytes(), &picture.0)?;
     let file = ImageFile {
         version: IMAGE_VERSION,
@@ -131,17 +131,17 @@ pub fn seal(key: &VaultKey, id: &ImageId, picture: &Picture) -> Result<String, A
 /// Decrypts the image file `text` that was read from `id`'s path. The
 /// version is read first, so a file written by a newer app asks for an
 /// update instead of being reported as broken.
-pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Picture, AppError> {
-    let version = read_version(text).map_err(AppError::BrokenImage)?;
+pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Picture, CoreError> {
+    let version = read_version(text).map_err(CoreError::BrokenImage)?;
     if version > IMAGE_VERSION {
-        return Err(AppError::NewerImageVersion(version));
+        return Err(CoreError::NewerImageVersion(version));
     }
     if version == 0 {
-        return Err(AppError::BrokenImage(de::Error::custom(format!(
+        return Err(CoreError::BrokenImage(de::Error::custom(format!(
             "unknown version {version}"
         ))));
     }
-    let file: ImageFile = serde_json::from_str(text).map_err(AppError::BrokenImage)?;
+    let file: ImageFile = serde_json::from_str(text).map_err(CoreError::BrokenImage)?;
     let plaintext = crypto::decrypt(
         key,
         id.path().as_bytes(),
@@ -151,7 +151,7 @@ pub fn open(key: &VaultKey, id: &ImageId, text: &str) -> Result<Picture, AppErro
         },
     )?;
     Picture::try_from(plaintext).map_err(|_| {
-        AppError::BrokenImage(de::Error::custom("decrypted image is not a known picture"))
+        CoreError::BrokenImage(de::Error::custom("decrypted image is not a known picture"))
     })
 }
 
@@ -195,7 +195,7 @@ mod tests {
         let other = id("fedcba9876543210fedcba9876543210");
         assert!(matches!(
             open(&key, &other, &text),
-            Err(AppError::Decryption)
+            Err(CoreError::Decryption)
         ));
     }
 
@@ -244,7 +244,7 @@ mod tests {
         ] {
             assert!(matches!(
                 Picture::try_from(bytes),
-                Err(AppError::UnsupportedPicture)
+                Err(CoreError::UnsupportedPicture)
             ));
         }
     }
@@ -267,7 +267,7 @@ mod tests {
         let text = r#"{"version":3,"nonce":"","ciphertext":"","mediaType":"image/webp"}"#;
         assert!(matches!(
             open(&key(1), &id(ID), text),
-            Err(AppError::NewerImageVersion(3))
+            Err(CoreError::NewerImageVersion(3))
         ));
     }
 
@@ -276,7 +276,7 @@ mod tests {
         let text = r#"{"version":0}"#;
         assert!(matches!(
             open(&key(1), &id(ID), text),
-            Err(AppError::BrokenImage(_))
+            Err(CoreError::BrokenImage(_))
         ));
     }
 
@@ -292,7 +292,7 @@ mod tests {
         .unwrap();
         assert!(matches!(
             open(&key, &id(ID), &text),
-            Err(AppError::BrokenImage(_))
+            Err(CoreError::BrokenImage(_))
         ));
     }
 }

@@ -1,0 +1,44 @@
+[package]
+name = "hush-core"
+version = "0.1.0"
+description = "The diary's vault, entries, and pictures, without a window"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chacha20poly1305 = { version = "0.11.0", features = ["zeroize"] }
+thiserror = "2.0.21"
+argon2 = { version = "0.6.0", features = ["zeroize"] }
+zeroize = { version = "1.9.1", features = ["derive"] }
+base64ct = { version = "1.8.3", features = ["alloc"] }
+getrandom = "0.4.3"
+keyring = { version = "3.6.3", features = ["apple-native"] }
+# Reads the page a pasted link points at, for its card. TLS through the
+# system's own, so iOS needs no C toolchain for it.
+reqwest = { version = "0.13.5", default-features = false, features = [
+  "native-tls",
+  "http2",
+  "gzip",
+] }
+encoding_rs = "0.8.35"
+
+# The vault key kept behind Touch ID or Face ID.
+[target.'cfg(target_os = "ios")'.dependencies]
+core-foundation = "0.10.1"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSString",
+] }
+objc2-local-authentication = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "LAContext",
+  "LABiometryType",
+] }
+security-framework = "3.7.0"
+security-framework-sys = "2.17.0"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+# Runs the link client in tests; the app brings its own runtime.
+tokio = { version = "1.54.1", features = ["rt"] }

@@ -18,42 +18,14 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+hush-core = { path = "../core" }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-chacha20poly1305 = { version = "0.11.0", features = ["zeroize"] }
 thiserror = "2.0.21"
-argon2 = { version = "0.6.0", features = ["zeroize"] }
-zeroize = { version = "1.9.1", features = ["derive"] }
+zeroize = "1.9.1"
 base64ct = { version = "1.8.3", features = ["alloc"] }
-getrandom = "0.4.3"
-keyring = { version = "3.6.3", features = ["apple-native"] }
-# Reads the page a pasted link points at, for its card. TLS through the
-# system's own, so iOS needs no C toolchain for it.
-reqwest = { version = "0.13.5", default-features = false, features = [
-  "native-tls",
-  "http2",
-  "gzip",
-] }
-encoding_rs = "0.8.35"
 # Taps felt while pinching the text sample; a no-op on the desktop.
 tauri-plugin-haptics = "2.4.2"
-
-
-# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
-[profile.release]
-codegen-units = 1
-lto = true
-opt-level = 3
-panic = "abort"
-strip = true
-
-# Key derivation is deliberately heavy; unoptimized it takes over a second per unlock in `tauri dev`.
-[profile.dev.package.argon2]
-opt-level = 3
-
-[profile.dev.package.blake2]
-opt-level = 3
 
 # System notifications that lock the vault: sleep and screen lock.
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -67,10 +39,9 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSString",
 ] }
 
-# The webview, fitted to the screen and kept above the keyboard; the vault
-# key kept behind Touch ID or Face ID; the playlist played in the Music app.
+# The webview, fitted to the screen and kept above the keyboard; the phone's
+# shake; the playlist played in the Music app.
 [target.'cfg(target_os = "ios")'.dependencies]
-core-foundation = "0.10.1"
 objc2 = "0.6.5"
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
@@ -101,11 +72,6 @@ objc2-ui-kit = { version = "0.3.2", default-features = false, features = [
   "UIView",
   "UIWindow",
 ] }
-objc2-local-authentication = { version = "0.3.2", default-features = false, features = [
-  "std",
-  "LAContext",
-  "LABiometryType",
-] }
 objc2-media-player = { version = "0.3.2", default-features = false, features = [
   "std",
   "block2",
@@ -120,8 +86,6 @@ objc2-media-player = { version = "0.3.2", default-features = false, features = [
   "MPMusicPlayerController",
 ] }
 block2 = "0.6.2"
-security-framework = "3.7.0"
-security-framework-sys = "2.17.0"
 
 [dev-dependencies]
-tempfile = "3.27.0"
+serde_json = "1"
