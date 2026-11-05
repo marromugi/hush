@@ -15,6 +15,14 @@ const SavedFontShape = v.object({
 
 const noFont = v.fallback(v.nullable(SavedFontShape), null);
 
+/** The playlist played from the diary screen, with its artwork kept to show without asking the Music app. */
+const SavedPlaylistShape = v.object({
+  id: v.string(),
+  name: v.string(),
+  /** A small `data:` URL; null when the playlist has none. */
+  artwork: v.nullable(v.string()),
+});
+
 /**
  * How the entry's text can be set: its size in px, and the space between
  * lines and between letters as multiples of that size. The defaults are how
@@ -64,6 +72,8 @@ const SettingsShape = v.object({
     lineHeight: TEXT_RANGES.lineHeight.initial,
     letterSpacing: TEXT_RANGES.letterSpacing.initial,
   }),
+  /** The playlist the diary screen plays; `null` for none. Its id is this device's. */
+  playlist: v.fallback(v.nullable(SavedPlaylistShape), null),
 });
 
 export type Settings = v.InferOutput<typeof SettingsShape>;
@@ -71,6 +81,8 @@ export type Settings = v.InferOutput<typeof SettingsShape>;
 export type Language = Settings["language"];
 
 export type TextSettings = Settings["text"];
+
+export type SavedPlaylist = NonNullable<Settings["playlist"]>;
 
 const listeners = new Set<() => void>();
 let read: { raw: string | null; settings: Settings } | null = null;

@@ -130,23 +130,26 @@ export function listenKeyboardMoves(onMove: () => void): Promise<UnlistenFn> {
   return listen(KEYBOARD_MOVED, () => onMove());
 }
 
-/** A song the Music app plays (`now_playing::NowPlaying`). */
-export type NowPlaying = {
-  title: string;
-  artist: string;
-  /** The album art as a `data:` URL; null when the song has none. */
-  artwork: string | null;
-};
+/** One of the person's playlists in the Music app (`music::Playlist`). `id` differs between devices. */
+export type Playlist = { id: string; name: string };
 
-/** What the Music app plays now; null while it is paused, stopped, or closed, and on platforms that cannot tell. */
-export function nowPlaying(): Promise<NowPlaying | null> {
-  return call("now_playing");
+/** What the settings can offer (`music::Playlists`). */
+export type Playlists =
+  | { status: "unsupported" }
+  | { status: "denied" }
+  | { status: "listed"; playlists: Playlist[] };
+
+/** The person's playlists. The first time, the system asks whether Hush may use the Music app. */
+export function musicPlaylists(): Promise<Playlists> {
+  return call("music_playlists");
 }
 
-/** Sent by the Rust side (`now_playing::NOW_PLAYING_CHANGED`) whenever the Music app changes song or starts or stops playing. */
-const NOW_PLAYING_CHANGED = "now-playing-changed";
+/** The playlist's artwork as a small `data:` URL; null when it has none. */
+export function playlistArtwork(id: string): Promise<string | null> {
+  return call("playlist_artwork", { id });
+}
 
-/** Calls `onChange` with what plays each time the Music app changes. */
-export function listenNowPlaying(onChange: (song: NowPlaying | null) => void): Promise<UnlistenFn> {
-  return listen<NowPlaying | null>(NOW_PLAYING_CHANGED, (event) => onChange(event.payload));
+/** Starts the playlist in the Music app, shuffled. */
+export function playPlaylist(id: string): Promise<void> {
+  return call("play_playlist", { id });
 }

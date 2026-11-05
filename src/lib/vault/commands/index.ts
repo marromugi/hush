@@ -4,10 +4,11 @@ export {
   embedPagesOrigin,
   listenKeyboardMoves,
   listenLockRequests,
-  listenNowPlaying,
   listEntryDates,
   lockVault,
-  nowPlaying,
+  musicPlaylists,
+  playlistArtwork,
+  playPlaylist,
   readEntry,
   readImage,
   saveEntry,
@@ -19,4 +20,11 @@ export {
   unlockWithBiometry,
   vaultStatus,
 } from "./commands";
-export type { Biometry, BiometryStatus, EntryView, NowPlaying, VaultStatus } from "./commands";
+export type {
+  Biometry,
+  BiometryStatus,
+  EntryView,
+  Playlist,
+  Playlists,
+  VaultStatus,
+} from "./commands";

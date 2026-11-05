@@ -60,13 +60,14 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
 ] }
 
 # The webview, fitted to the screen and kept above the keyboard; the vault
-# key kept behind Touch ID or Face ID; the song the Music app plays.
+# key kept behind Touch ID or Face ID; the playlist played in the Music app.
 [target.'cfg(target_os = "ios")'.dependencies]
 core-foundation = "0.10.1"
 objc2 = "0.6.5"
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "std",
+  "NSArray",
   "NSData",
   "NSDictionary",
   "NSNotification",
@@ -93,7 +94,11 @@ objc2-media-player = { version = "0.3.2", default-features = false, features = [
   "objc2-core-foundation",
   "MPMediaEntity",
   "MPMediaItem",
+  "MPMediaItemCollection",
   "MPMediaLibrary",
+  "MPMediaPlayback",
+  "MPMediaPlaylist",
+  "MPMediaQuery",
   "MPMusicPlayerController",
 ] }
 block2 = "0.6.2"

@@ -5,6 +5,7 @@ export const SECTIONS = [
   { id: "language", label: "言語" },
   { id: "font", label: "フォント" },
   { id: "text", label: "文字" },
+  { id: "music", label: "音楽" },
   { id: "lock", label: "ロック" },
 ] as const;
 

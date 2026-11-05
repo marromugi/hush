@@ -12,7 +12,7 @@ pub mod image;
 pub mod keychain;
 pub mod local_store;
 pub mod lock_signals;
-pub mod now_playing;
+pub mod music;
 pub mod secret_key;
 pub mod session;
 pub mod vault;
@@ -40,7 +40,6 @@ pub fn run() {
             inner.embed_pages = embed_pages::start().ok();
             app.manage(AppState::new(inner));
             lock_signals::watch(app.handle());
-            now_playing::watch(app.handle());
             full_screen::extend(app)?;
             Ok(())
         })
@@ -61,7 +60,9 @@ pub fn run() {
             commands::show_secret_key,
             commands::save_image,
             commands::read_image,
-            commands::now_playing,
+            commands::music_playlists,
+            commands::playlist_artwork,
+            commands::play_playlist,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
