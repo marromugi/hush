@@ -2,7 +2,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
-import { readSettings } from "@/lib/settings/settings";
+import { readSettings, writeSettings } from "@/lib/settings/settings";
 
 import { MusicSection } from "./MusicSection";
 
@@ -64,4 +64,25 @@ test("without leave to use the Music app, it says so and offers no choice", asyn
   render(<MusicSection />);
   await screen.findByText(/ミュージックを使う許可がありません/);
   expect(screen.queryByRole("radio")).toBeNull();
+});
+
+test("a chosen playlist the Music app no longer lists is still shown as chosen", async () => {
+  writeSettings({ playlist: { id: "GONE", name: "昔", artwork: null } });
+  mockIPC((command) => {
+    if (command === "music_playlists") return LISTED;
+    throw new Error(`unexpected command ${command}`);
+  });
+  render(<MusicSection />);
+  const gone = await screen.findByLabelText<HTMLInputElement>("昔（ミュージックに見つかりません）");
+  expect(gone.checked).toBe(true);
+  expect(screen.getByLabelText<HTMLInputElement>("流さない").checked).toBe(false);
+});
+
+test("when the Music app cannot be asked, it says so", async () => {
+  mockIPC((command) => {
+    if (command === "music_playlists") throw { kind: "tauri", message: "" };
+    throw new Error(`unexpected command ${command}`);
+  });
+  render(<MusicSection />);
+  expect(await screen.findByText("ミュージックのプレイリストを読めませんでした。")).toBeTruthy();
 });

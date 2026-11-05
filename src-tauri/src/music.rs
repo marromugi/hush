@@ -34,7 +34,7 @@ pub enum Playlists {
 
 /// The size the artwork is kept at, in pixels: three times the 48pt it is
 /// shown at, and small enough to keep in the settings.
-#[cfg(any(target_os = "macos", target_os = "ios"))]
+#[cfg(target_os = "macos")]
 const ARTWORK_SIDE: u32 = 144;
 
 /// A `data:` URL for an image, typed by its first bytes; None for anything
@@ -129,11 +129,13 @@ mod macos {
     // `item`, cannot name variables or be used on lists; the id is read
     // before it.
 
-    /// Folders, the library, and the Music app's own lists are left out.
+    /// The person's own playlists and the Apple Music ones added to the
+    /// library, which the dictionary keeps apart. Folders, the library, and
+    /// the Music app's own lists are left out.
     const LIST: &str = r#"
 tell application "Music"
   set out to {}
-  repeat with thePlaylist in (every user playlist whose special kind is none)
+  repeat with thePlaylist in ((every user playlist whose special kind is none) & (every subscription playlist))
     set end of out to name of thePlaylist
     set end of out to persistent ID of thePlaylist
   end repeat
@@ -146,7 +148,7 @@ end tell
 on run argv
   set theID to item 1 of argv
   tell application "Music"
-    set thePlaylist to first user playlist whose persistent ID is theID
+    set thePlaylist to first playlist whose persistent ID is theID
     try
       return raw data of artwork 1 of thePlaylist
     end try
@@ -163,19 +165,23 @@ on run argv
   set theID to item 1 of argv
   tell application "Music"
     set shuffle enabled to true
-    play (first user playlist whose persistent ID is theID)
+    play (first playlist whose persistent ID is theID)
   end tell
 end run
 "#;
 
-    /// How long the Music app may take to answer, its opening and Hush's
-    /// permission prompt included, before the question is dropped.
+    /// How long the Music app may take to answer, its opening included,
+    /// before the question is dropped.
     const ANSWER_WITHIN: Duration = Duration::from_secs(20);
+
+    /// The first list may wait on macOS's permission prompt, which the
+    /// person may take a while to answer.
+    const LIST_WITHIN: Duration = Duration::from_secs(120);
 
     /// The person's playlists. The first time, macOS asks whether Hush may
     /// control the Music app, and the Music app opens if it is closed.
     pub fn playlists() -> Playlists {
-        match run(LIST, &[], ANSWER_WITHIN).and_then(|out| parse_playlists(&out)) {
+        match run(LIST, &[], LIST_WITHIN).and_then(|out| parse_playlists(&out)) {
             Some(playlists) => Playlists::Listed { playlists },
             // Not allowed, or not answered in time: either way the person is told to allow it.
             None => Playlists::Denied,
@@ -363,7 +369,11 @@ mod ios {
     use objc2_ui_kit::UIImage;
     use tauri::AppHandle;
 
-    use super::{ARTWORK_SIDE, AppError, Playlist, Playlists, data_url};
+    use super::{AppError, Playlist, Playlists, data_url};
+
+    /// The size the artwork is drawn at, in points: the 48pt it is shown at.
+    /// The JPEG holds it at the screen's scale, up to three times as many pixels.
+    const ARTWORK_POINTS: f64 = 48.0;
 
     /// How long the person may take to answer iOS's question before the
     /// settings say Hush is not allowed.
@@ -445,11 +455,10 @@ mod ios {
             let collections = query_for(id)?.collections()?;
             let item = collections.firstObject()?.representativeItem()?;
             let art = item.artwork()?;
-            let side = f64::from(ARTWORK_SIDE);
             // Bound for UIKit only by hand: the crate builds `imageWithSize:` for AppKit.
             let image: Option<Retained<UIImage>> = msg_send![
                 &art,
-                imageWithSize: CGSize { width: side, height: side }
+                imageWithSize: CGSize { width: ARTWORK_POINTS, height: ARTWORK_POINTS }
             ];
             data_url(&image?.jpeg_representation(0.8)?.to_vec())
         }

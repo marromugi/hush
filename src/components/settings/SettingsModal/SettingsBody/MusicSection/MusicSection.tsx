@@ -10,7 +10,9 @@ export function MusicSection() {
   return (
     <fieldset className="flex flex-col gap-3">
       <legend className="mb-1 font-semibold">音楽</legend>
-      {playlists === null ? null : playlists.status === "unsupported" ? (
+      {playlists === null ? null : playlists.status === "failed" ? (
+        <p className="text-sm opacity-70">ミュージックのプレイリストを読めませんでした。</p>
+      ) : playlists.status === "unsupported" ? (
         <p className="text-sm opacity-70">この端末では、ミュージックのプレイリストを流せません。</p>
       ) : playlists.status === "denied" ? (
         <p className="text-sm opacity-70">
@@ -30,6 +32,16 @@ export function MusicSection() {
             disabled={section.busy}
             onChange={() => section.choose(null)}
           />
+          {section.missing ? (
+            <Radio
+              name="playlist"
+              value={section.missing.id}
+              label={`${section.missing.name}（ミュージックに見つかりません）`}
+              checked
+              disabled={section.busy}
+              onChange={() => undefined}
+            />
+          ) : null}
           {playlists.playlists.map((playlist) => (
             <Radio
               key={playlist.id}
@@ -41,7 +53,7 @@ export function MusicSection() {
               onChange={() => section.choose(playlist)}
             />
           ))}
-          {playlists.playlists.length === 0 ? (
+          {playlists.playlists.length === 0 && section.missing === null ? (
             <p className="text-sm opacity-70">ミュージックにプレイリストがありません。</p>
           ) : null}
         </>

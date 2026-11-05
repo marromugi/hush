@@ -91,6 +91,6 @@ test("a chosen playlist is kept with its artwork, and one stored broken reads as
   const playlist = { id: "D80B3F7BD6DE16F3", name: "夜", artwork: "data:image/jpeg;base64,/9j/" };
   writeSettings({ playlist });
   expect(readSettings().playlist).toEqual(playlist);
-  localStorage.setItem("hush.settings", JSON.stringify({ playlist: { id: 3 } }));
-  expect(readSettings().playlist).toBeNull();
+  localStorage.setItem("hush.settings", JSON.stringify({ language: "en", playlist: { id: 3 } }));
+  expect(readSettings()).toEqual({ ...DEFAULTS, language: "en", playlist: null });
 });
