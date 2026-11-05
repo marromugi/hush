@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { DiaryEditor } from "@/components/diary/DiaryEditor";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Drawer } from "@/components/ui/Drawer";
-import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
+import { DiceIcon, GearIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { optionList, optionRow } from "@/components/ui/Options";
 import { Popover } from "@/components/ui/Popover";
@@ -170,8 +170,18 @@ export function DiaryScreen() {
             open={screen.configMenu.isOpen}
             onOpenChange={screen.configMenu.setOpen}
             trigger={
-              <button ref={config} className="cursor-pointer">
-                config
+              <button
+                ref={config}
+                aria-label="config"
+                className={clsx(
+                  // layout: the padding widens the tap area past the glyph; the negative margin keeps it in place
+                  "-m-2 cursor-pointer p-2",
+                  // motion: the gear turns under the pointer and back when it leaves
+                  "[&>svg]:transition-transform [&>svg]:duration-600 [&>svg]:ease-in-out hover:[&>svg]:rotate-240",
+                  "motion-reduce:[&>svg]:transition-none",
+                )}
+              >
+                <Icon icon={GearIcon} size="lg" />
               </button>
             }
           >
