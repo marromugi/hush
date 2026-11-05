@@ -157,7 +157,12 @@ export function DiaryScreen() {
             open={screen.configMenu.isOpen}
             onOpenChange={screen.configMenu.setOpen}
             trigger={
-              <button ref={config} aria-label="config" className="cursor-pointer">
+              <button
+                ref={config}
+                aria-label="config"
+                // The padding widens the tap area past the glyph; the negative margin keeps it in place.
+                className="-m-2 cursor-pointer p-2"
+              >
                 <Icon icon={GearIcon} size="lg" />
               </button>
             }
