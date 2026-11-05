@@ -71,12 +71,22 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "NSData",
   "NSDictionary",
   "NSNotification",
+  "NSOperation",
   "NSString",
   "NSValue",
+] }
+objc2-core-motion = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "block2",
+  "CMAccelerometer",
+  "CMDeviceMotion",
+  "CMLogItem",
+  "CMMotionManager",
 ] }
 objc2-ui-kit = { version = "0.3.2", default-features = false, features = [
   "std",
   "objc2-core-foundation",
+  "UIApplication",
   "UIGeometry",
   "UIImage",
   "UIResponder",

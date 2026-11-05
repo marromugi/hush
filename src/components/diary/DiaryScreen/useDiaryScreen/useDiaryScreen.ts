@@ -31,6 +31,8 @@ export type UseDiaryScreen = {
   settingsModal: Disclosure;
   /** Closes the config menu and shows the settings. */
   openSettings: () => void;
+  /** True while the settings, the Secret Key, or the days are shown over the diary. */
+  covered: boolean;
   /** Closes the config menu and locks, saving what is being written first. */
   lockFromConfig: () => void;
   /**
@@ -84,6 +86,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
       configMenu.close();
       settingsModal.open();
     },
+    covered: datesDrawer.isOpen || secretKeyModal.isOpen || settingsModal.isOpen,
     lockFromConfig: () => {
       configMenu.close();
       void lock();

@@ -15,6 +15,7 @@ pub mod lock_signals;
 pub mod music;
 pub mod secret_key;
 pub mod session;
+pub mod shake;
 pub mod vault;
 
 use std::sync::Arc;
@@ -41,6 +42,7 @@ pub fn run() {
             app.manage(AppState::new(inner));
             lock_signals::watch(app.handle());
             full_screen::extend(app)?;
+            shake::watch(app.handle())?;
             Ok(())
         })
         .on_window_event(lock_signals::on_window_event)
