@@ -8,6 +8,7 @@ import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { optionList, optionRow } from "@/components/ui/Options";
 import { Popover } from "@/components/ui/Popover";
+import { RadialMenu } from "@/components/ui/RadialMenu";
 import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
@@ -181,7 +182,7 @@ export function DiaryScreen() {
           </Popover>
         </div>
         {screen.showsToday ? (
-          <div className="flex flex-col items-center gap-2">
+          <RadialMenu label="メニュー">
             <IconButton
               icon={DiceIcon}
               label="フォントを変える"
@@ -189,9 +190,9 @@ export function DiaryScreen() {
               disabled={dice.rolling || today.locking || today.loading}
               onClick={() => void dice.roll()}
             />
-          </div>
+          </RadialMenu>
         ) : null}
-        {/* Its own column, so it stays at the right when the dice are not shown. */}
+        {/* Its own column, so it stays at the right when the menu is not shown. */}
         <div className="col-start-3 flex justify-end">
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
