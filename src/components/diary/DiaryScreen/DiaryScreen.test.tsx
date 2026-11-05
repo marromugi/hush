@@ -43,6 +43,13 @@ function fakeVault(log: string[] = []) {
   );
 }
 
+/** The dice, from the menu at the foot of today's entry, opening the menu if it is closed. */
+async function findDice() {
+  const menu = await screen.findByRole("button", { name: "メニュー" });
+  if (menu.getAttribute("aria-expanded") !== "true") fireEvent.click(menu);
+  return screen.findByRole("button", { name: "フォントを変える" });
+}
+
 /**
  * Opens 2020-01-01 from the days in `scope`: back to the years, then 2020,
  * January, the 1st. January is looked for inside 2020, since today's year
@@ -150,7 +157,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
       <DiaryScreen />
     </UnlockedSession>,
   );
-  const dice = await screen.findByRole("button", { name: "フォントを変える" });
+  const dice = await findDice();
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   await act(async () => {
     fireEvent.click(dice);
@@ -163,9 +170,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
 
   await openNewYear2020(within(document.body));
   await screen.findByText("この日の日記はありません。");
-  await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
-  );
+  await waitFor(() => expect(screen.queryByRole("button", { name: "メニュー" })).toBeNull());
 });
 
 test("the dice cannot be pressed until today's entry has been read", async () => {
@@ -182,7 +187,7 @@ test("the dice cannot be pressed until today's entry has been read", async () =>
       <DiaryScreen />
     </UnlockedSession>,
   );
-  const dice = await screen.findByRole("button", { name: "フォントを変える" });
+  const dice = await findDice();
   expect(dice).toHaveProperty("disabled", true);
 });
 
@@ -221,7 +226,7 @@ test("the dice's font is saved with today's entry", async () => {
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+    fireEvent.click(await findDice());
   });
   await waitFor(() =>
     expect(fontsSent).toEqual([
@@ -252,7 +257,7 @@ test("choosing English in the settings makes the dice pick among Latin fonts", a
   });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+    fireEvent.click(await findDice());
   });
   expect(lists).toHaveBeenCalledWith("latin");
 });
@@ -281,7 +286,7 @@ test("today's entry is in the default font until the dice picks another", async 
   ]);
   vi.spyOn(fonts, "fontDetails").mockResolvedValue({ stylesheet: "css/zen", complete: true });
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+    fireEvent.click(await findDice());
   });
   await waitFor(() =>
     expect(
@@ -317,7 +322,7 @@ test("past entries are in the default font too", async () => {
       <DiaryScreen />
     </UnlockedSession>,
   );
-  await screen.findByRole("button", { name: "フォントを変える" });
+  await screen.findByRole("button", { name: "メニュー" });
   await openNewYear2020(within(document.body));
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   expect(document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily).toBe(
@@ -351,7 +356,7 @@ test("today's entry is blurred while the dice loads a font, and clear once it ha
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   expect(content()?.classList.contains("blur-sm")).toBe(false);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "フォントを変える" }));
+    fireEvent.click(await findDice());
   });
   await waitFor(() => expect(content()?.classList.contains("blur-sm")).toBe(true));
   await act(async () => {
@@ -418,7 +423,7 @@ test("the header shows the day that is open, as year.month.day", async () => {
       <DiaryScreen />
     </UnlockedSession>,
   );
-  await screen.findByRole("button", { name: "フォントを変える" });
+  await screen.findByRole("button", { name: "メニュー" });
   await openNewYear2020(within(document.body));
   const shown = document.querySelector("header time");
   expect(shown?.getAttribute("datetime")).toBe("2020-01-01");
