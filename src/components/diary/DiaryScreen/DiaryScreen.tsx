@@ -93,6 +93,18 @@ export function DiaryScreen() {
             </output>
           ) : null}
         </div>
+        {/* The entry fades and blurs into the header as it passes under it. Its height is repeated in useKeepClear. */}
+        <div
+          aria-hidden
+          className={clsx(
+            // layout
+            "pointer-events-none absolute inset-x-0 top-full h-8",
+            // color: the page's color at the top, clear at the bottom
+            "bg-linear-to-b from-page to-transparent",
+            // blur: strongest at the top, gone at the bottom
+            "mask-b-from-0% backdrop-blur-sm",
+          )}
+        />
       </header>
       <div
         className={clsx(
