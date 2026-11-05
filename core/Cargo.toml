@@ -26,10 +26,7 @@ encoding_rs = "0.8.35"
 # The vault key kept behind Touch ID or Face ID.
 [target.'cfg(target_os = "ios")'.dependencies]
 core-foundation = "0.10.1"
-objc2-foundation = { version = "0.3.2", default-features = false, features = [
-  "std",
-  "NSString",
-] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString"] }
 objc2-local-authentication = { version = "0.3.2", default-features = false, features = [
   "std",
   "LAContext",
