@@ -1,8 +1,10 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
 use encoding_rs::{Encoding, UTF_8};
 use reqwest::Url;
 use reqwest::header::CONTENT_TYPE;
+use reqwest::redirect::Policy;
 use serde::Serialize;
 
 use crate::app_error::AppError;
@@ -45,10 +47,19 @@ pub async fn fetch_page(url: &str) -> Result<LinkPage, AppError> {
     Ok(read_page(&html, &base))
 }
 
-/// The picture at `url`, as the site sent it. Fails when it is larger than 10 MB.
+/// The picture at `url`, as the site sent it. Fails when it is larger than
+/// 10 MB, or when it, or a redirect on the way, is on this machine or its
+/// local network: the page chose the address, not the person.
 pub async fn fetch_image(url: &str) -> Result<Vec<u8>, AppError> {
     let url = web_url(url)?;
-    let response = client()?.get(url).send().await?.error_for_status()?;
+    if is_inside(&url) {
+        return Err(AppError::UnreadableLink);
+    }
+    let response = image_client()?.get(url).send().await?.error_for_status()?;
+    // A redirect stopped above leaves its 3xx answer, which is no picture.
+    if response.status().is_redirection() {
+        return Err(AppError::UnreadableLink);
+    }
     let (bytes, whole) = read_body(response, MAX_IMAGE_BYTES).await?;
     if !whole {
         return Err(AppError::UnreadableLink);
@@ -56,8 +67,24 @@ pub async fn fetch_image(url: &str) -> Result<Vec<u8>, AppError> {
     Ok(bytes)
 }
 
+/// A client that follows no redirect into this machine or its local network.
+fn image_client() -> Result<reqwest::Client, AppError> {
+    client_with(Policy::custom(|attempt| {
+        if is_inside(attempt.url()) {
+            attempt.stop()
+        } else {
+            Policy::default().redirect(attempt)
+        }
+    }))
+}
+
 fn client() -> Result<reqwest::Client, AppError> {
+    client_with(Policy::default())
+}
+
+fn client_with(redirects: Policy) -> Result<reqwest::Client, AppError> {
     Ok(reqwest::Client::builder()
+        .redirect(redirects)
         .timeout(REQUEST_DEADLINE)
         .user_agent(USER_AGENT)
         .build()?)
@@ -71,6 +98,39 @@ fn web_url(text: &str) -> Result<Url, AppError> {
     } else {
         Err(AppError::UnreadableLink)
     }
+}
+
+/// Whether `url` names this machine or an address on a local network by
+/// itself. A name that a DNS server turns into such an address is not caught.
+fn is_inside(url: &Url) -> bool {
+    let Some(host) = url.host_str() else {
+        return true;
+    };
+    match host.trim_matches(['[', ']']).parse::<IpAddr>() {
+        Ok(IpAddr::V4(ip)) => is_inside_v4(ip),
+        Ok(IpAddr::V6(ip)) => is_inside_v6(ip),
+        Err(_) => {
+            let name = host.trim_end_matches('.').to_ascii_lowercase();
+            name == "localhost" || name.ends_with(".localhost") || name.ends_with(".local")
+        }
+    }
+}
+
+fn is_inside_v4(ip: Ipv4Addr) -> bool {
+    ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_unspecified()
+        || ip.is_broadcast()
+        // 100.64.0.0/10, shared by a carrier among its customers.
+        || (ip.octets()[0] == 100 && ip.octets()[1] & 0xc0 == 64)
+}
+
+fn is_inside_v6(ip: Ipv6Addr) -> bool {
+    if let Some(v4) = ip.to_ipv4_mapped() {
+        return is_inside_v4(v4);
+    }
+    ip.is_loopback() || ip.is_unspecified() || ip.is_unique_local() || ip.is_unicast_link_local()
 }
 
 /// Up to `limit` bytes of the body, and whether that was all of it.
@@ -472,6 +532,73 @@ mod tests {
             read_page(html, &base()).image_url.as_deref(),
             Some("https://example.com/t.png")
         );
+    }
+
+    #[test]
+    fn addresses_on_this_machine_or_a_local_network_are_inside() {
+        for inside in [
+            "http://localhost/a.png",
+            "http://LOCALHOST./a.png",
+            "http://printer.local/a.png",
+            "http://127.0.0.1/a.png",
+            "http://10.0.0.1/a.png",
+            "http://172.16.5.4/a.png",
+            "http://192.168.1.1/a.png",
+            "http://169.254.169.254/a.png",
+            "http://100.64.0.1/a.png",
+            "http://0.0.0.0/a.png",
+            "http://[::1]/a.png",
+            "http://[fd00::1]/a.png",
+            "http://[fe80::1]/a.png",
+            "http://[::ffff:192.168.1.1]/a.png",
+        ] {
+            assert!(is_inside(&Url::parse(inside).unwrap()), "{inside}");
+        }
+        for outside in [
+            "https://example.com/a.png",
+            "https://8.8.8.8/a.png",
+            "https://100.128.0.1/a.png",
+            "https://[2001:db8::1]/a.png",
+            "https://local.example.com/a.png",
+        ] {
+            assert!(!is_inside(&Url::parse(outside).unwrap()), "{outside}");
+        }
+    }
+
+    /// A server on the loopback address that answers one request with
+    /// `answer`, and tells whether a request came.
+    fn one_answer(answer: String) -> (u16, std::sync::mpsc::Receiver<()>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (came, heard) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let _ = came.send(());
+                let _ = stream.read(&mut [0; 1024]);
+                let _ = stream.write_all(answer.as_bytes());
+            }
+        });
+        (port, heard)
+    }
+
+    #[test]
+    fn a_picture_is_not_followed_into_the_local_network() {
+        let (inside, reached) = one_answer("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n".into());
+        let (start, _) = one_answer(format!(
+            "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:{inside}/a.png\r\nContent-Length: 0\r\n\r\n"
+        ));
+        let status = tauri::async_runtime::block_on(async {
+            image_client()
+                .unwrap()
+                .get(format!("http://127.0.0.1:{start}/"))
+                .send()
+                .await
+                .unwrap()
+                .status()
+        });
+        assert_eq!(status, 302);
+        assert!(reached.try_recv().is_err());
     }
 
     #[test]
