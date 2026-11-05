@@ -104,6 +104,14 @@ pub enum AppError {
     #[error("the music app did not play the playlist")]
     Music,
 
+    /// The link's site could not be reached, did not answer in time, or answered with an error.
+    #[error("link could not be fetched")]
+    Link(#[from] reqwest::Error),
+
+    /// Not an `http` or `https` link, or its picture is too large.
+    #[error("link cannot be read")]
+    UnreadableLink,
+
     #[error("file access failed")]
     Io(#[from] std::io::Error),
 
@@ -146,6 +154,8 @@ impl AppError {
             Self::Locked => "locked",
             Self::EmbedPages => "embedPages",
             Self::Music => "music",
+            Self::Link(_) => "link",
+            Self::UnreadableLink => "unreadableLink",
             Self::Io(_) => "io",
             Self::Tauri(_) => "tauri",
         }
@@ -197,6 +207,7 @@ mod tests {
             (AppError::VaultExists, "vaultExists"),
             (AppError::Locked, "locked"),
             (AppError::Music, "music"),
+            (AppError::UnreadableLink, "unreadableLink"),
             (AppError::InvalidDate(String::new()), "invalidDate"),
             (AppError::NewerVaultVersion(2), "newerVaultVersion"),
             (AppError::NewerEntryVersion(2), "newerEntryVersion"),

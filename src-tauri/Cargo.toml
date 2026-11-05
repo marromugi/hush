@@ -28,6 +28,14 @@ zeroize = { version = "1.9.1", features = ["derive"] }
 base64ct = { version = "1.8.3", features = ["alloc"] }
 getrandom = "0.4.3"
 keyring = { version = "3.6.3", features = ["apple-native"] }
+# Reads the page a pasted link points at, for its card. TLS through the
+# system's own, so iOS needs no C toolchain for it.
+reqwest = { version = "0.13.5", default-features = false, features = [
+  "native-tls",
+  "http2",
+  "gzip",
+] }
+encoding_rs = "0.8.35"
 # Taps felt while pinching the text sample; a no-op on the desktop.
 tauri-plugin-haptics = "2.4.2"
 
