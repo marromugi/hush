@@ -97,6 +97,24 @@ export function readImage(id: string): Promise<ArrayBuffer> {
   return call("read_image", { id });
 }
 
+/** What a card shows of the page a link points at (`link_page::LinkPage`). */
+export type LinkPage = {
+  /** `null` when the page names no title. */
+  title: string | null;
+  /** The page's picture, as an absolute URL; `null` when it names none. */
+  imageUrl: string | null;
+};
+
+/** Reads the page at `url`, an `http` or `https` link, for its title and picture. */
+export function linkPage(url: string): Promise<LinkPage> {
+  return call("link_page", { url });
+}
+
+/** The picture at `url`, in whatever format the site sent it. */
+export function linkImage(url: string): Promise<ArrayBuffer> {
+  return call("link_image", { url });
+}
+
 /** The vault's Secret Key as text, from this device's keychain. Only while unlocked. */
 export function showSecretKey(): Promise<string> {
   return call("show_secret_key");

@@ -27,6 +27,8 @@ export const HUSH_ERROR_KINDS = [
   "unsupportedPicture",
   "embedPages",
   "music",
+  "link",
+  "unreadableLink",
   "decryption",
   "encryption",
   "keyDerivation",
