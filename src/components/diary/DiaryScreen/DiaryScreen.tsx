@@ -160,8 +160,13 @@ export function DiaryScreen() {
               <button
                 ref={config}
                 aria-label="config"
-                // The padding widens the tap area past the glyph; the negative margin keeps it in place.
-                className="-m-2 cursor-pointer p-2"
+                className={clsx(
+                  // layout: the padding widens the tap area past the glyph; the negative margin keeps it in place
+                  "-m-2 cursor-pointer p-2",
+                  // motion: the gear turns under the pointer and back when it leaves
+                  "[&>svg]:transition-transform [&>svg]:duration-600 [&>svg]:ease-in-out hover:[&>svg]:rotate-240",
+                  "motion-reduce:[&>svg]:transition-none",
+                )}
               >
                 <Icon icon={GearIcon} size="lg" />
               </button>
