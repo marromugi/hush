@@ -9,6 +9,7 @@ use crate::app_error::AppError;
 use crate::app_state::AppState;
 use crate::embed_pages;
 use crate::entry::EntryFont;
+use crate::link_page::{self, LinkPage};
 use crate::music::{self, Playlists};
 use crate::session::{self, BiometryStatus, EntryView, VaultStatus};
 
@@ -141,6 +142,18 @@ pub async fn save_image(
 #[tauri::command]
 pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Response, AppError> {
     Ok(Response::new(session::read_image(&state, id)?))
+}
+
+/// The title and picture of the page `url` points at, for a card in an entry.
+#[tauri::command]
+pub async fn link_page(url: String) -> Result<LinkPage, AppError> {
+    link_page::fetch_page(&url).await
+}
+
+/// The picture at `url`, as raw bytes in whatever format the site sent.
+#[tauri::command]
+pub async fn link_image(url: String) -> Result<Response, AppError> {
+    Ok(Response::new(link_page::fetch_image(&url).await?))
 }
 
 /// The playlists the settings can offer. The first time, the system asks

@@ -10,6 +10,7 @@ pub mod file_version;
 pub mod full_screen;
 pub mod image;
 pub mod keychain;
+pub mod link_page;
 pub mod local_store;
 pub mod lock_signals;
 pub mod music;
@@ -62,6 +63,8 @@ pub fn run() {
             commands::show_secret_key,
             commands::save_image,
             commands::read_image,
+            commands::link_page,
+            commands::link_image,
             commands::music_playlists,
             commands::playlist_artwork,
             commands::play_playlist,

@@ -1,5 +1,6 @@
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { Editor } from "@tiptap/react";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { entryExtensions } from "./entryExtensions";
 import {
@@ -222,15 +223,13 @@ test("a pasted link to a post on X becomes the post", () => {
   editor.destroy();
 });
 
-test("a pasted link to another site, or a link among other words, stays text", () => {
-  for (const text of ["https://example.com/", "見て https://youtu.be/dQw4w9WgXcQ"]) {
-    const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
-    editor.commands.setTextSelection(1);
-    pasteText(editor, text);
-    expect(editor.getHTML()).not.toContain("data-embed");
-    expect(editor.getText()).toBe(text);
-    editor.destroy();
-  }
+test("a link among other words stays text", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "見て https://youtu.be/dQw4w9WgXcQ");
+  expect(editor.getHTML()).not.toContain("data-embed");
+  expect(editor.getText()).toBe("見て https://youtu.be/dQw4w9WgXcQ");
+  editor.destroy();
 });
 
 test("a link pasted over selected words links those words instead of becoming an embed", () => {
@@ -262,5 +261,134 @@ test("a link pasted into inline code stays text in the code", () => {
   editor.commands.setTextSelection(3);
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).toBe("<p><code>abhttps://youtu.be/dQw4w9WgXcQc</code></p>");
+  editor.destroy();
+});
+
+afterEach(() => {
+  clearMocks();
+});
+
+test("a link card in an entry's HTML is read back and written as the same HTML", () => {
+  const body =
+    '<p>読んだ。</p><div data-link-card="https://example.com/a" data-title="海の記事" data-image="0123456789abcdef0123456789abcdef"></div><div data-link-card="https://example.com/b"></div><p>また。</p>';
+  const editor = new Editor({ extensions: entryExtensions, content: body });
+  expect(editor.getHTML()).toBe(body);
+  editor.destroy();
+});
+
+test("a link card whose link is not a web link is not kept", () => {
+  const editor = new Editor({
+    extensions: entryExtensions,
+    content: '<p>a</p><div data-link-card="javascript:alert(1)" data-title="x"></div>',
+  });
+  expect(editor.getHTML()).toBe("<p>a</p>");
+  editor.destroy();
+});
+
+test("a link pasted alone on an empty line becomes a card, filled with the page's title", async () => {
+  mockIPC((command) => {
+    if (command === "link_page") return { title: "海の記事", imageUrl: null };
+    throw new Error(`unexpected ${command}`);
+  });
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p><p></p>" });
+  editor.commands.setTextSelection(4);
+  pasteText(editor, "https://example.com/a");
+  // While the page is read, the card holds only the link.
+  expect(editor.getHTML()).toBe(
+    '<p>海</p><div data-link-card="https://example.com/a"></div><p></p>',
+  );
+  await vi.waitFor(() => {
+    expect(editor.getHTML()).toBe(
+      '<p>海</p><div data-link-card="https://example.com/a" data-title="海の記事"></div><p></p>',
+    );
+  });
+  editor.destroy();
+});
+
+test("a card whose page cannot be read keeps only its link", async () => {
+  const failures: Array<(reason: unknown) => void> = [];
+  mockIPC(
+    () =>
+      new Promise((_, reject) => {
+        failures.push(reject);
+      }),
+  );
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://example.com/a");
+  await vi.waitFor(() => {
+    expect(failures).toHaveLength(1);
+  });
+  for (const fail of failures) fail({ kind: "link", message: "link could not be fetched" });
+  await vi.waitFor(() => {
+    expect(editor.getJSON().content?.[0]?.attrs?.pending).toBeNull();
+  });
+  expect(editor.getHTML()).toBe('<div data-link-card="https://example.com/a"></div><p></p>');
+  editor.destroy();
+});
+
+test("a link pasted on a line that has words stays text", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p>見て</p>" });
+  editor.commands.setTextSelection(3);
+  pasteText(editor, "https://example.com/a");
+  expect(editor.getHTML()).not.toContain("data-link-card");
+  expect(editor.getText()).toBe("見てhttps://example.com/a");
+  editor.destroy();
+});
+
+test("a YouTube link pasted on an empty line is still the video, not a card", () => {
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
+  expect(editor.getHTML()).toContain('data-embed="youtube"');
+  expect(editor.getHTML()).not.toContain("data-link-card");
+  editor.destroy();
+});
+
+test("the same link pasted twice fills each card from its own reading", async () => {
+  const answers: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> =
+    [];
+  mockIPC(
+    () =>
+      new Promise((resolve, reject) => {
+        answers.push({ resolve, reject });
+      }),
+  );
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://example.com/a");
+  pasteText(editor, "https://example.com/a");
+  await vi.waitFor(() => {
+    expect(answers).toHaveLength(2);
+  });
+  answers[0]?.reject({ kind: "link", message: "timed out" });
+  answers[1]?.resolve({ title: "海の記事", imageUrl: null });
+  await vi.waitFor(() => {
+    expect(editor.getHTML()).toBe(
+      '<div data-link-card="https://example.com/a"></div><div data-link-card="https://example.com/a" data-title="海の記事"></div><p></p>',
+    );
+  });
+  editor.destroy();
+});
+
+test("a card taken away by undo before its page is read comes back filled on redo", async () => {
+  const answers: Array<(value: unknown) => void> = [];
+  mockIPC(
+    () =>
+      new Promise((resolve) => {
+        answers.push(resolve);
+      }),
+  );
+  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  editor.commands.setTextSelection(1);
+  pasteText(editor, "https://example.com/r");
+  editor.commands.undo();
+  expect(editor.getHTML()).not.toContain("data-link-card");
+  for (const answer of answers) answer({ title: "戻った記事", imageUrl: null });
+  // Lets the reading settle.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  editor.commands.redo();
+  expect(editor.getHTML()).toContain('data-title="戻った記事"');
+  expect(editor.getJSON().content?.[0]?.attrs?.pending).toBeNull();
   editor.destroy();
 });
