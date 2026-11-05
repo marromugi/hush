@@ -213,6 +213,46 @@ test("shaking the phone shows today's entry in another font, and does nothing on
   expect(picks).toHaveBeenCalledTimes(picksBefore);
 });
 
+test("shaking the phone does nothing until today's entry has been read", async () => {
+  mockIPC(
+    (command) => {
+      if (command === "read_entry") return new Promise(() => {});
+      if (command === "list_entry_dates") return [];
+      throw new Error(`unexpected command ${command}`);
+    },
+    { shouldMockEvents: true },
+  );
+  const lists = vi.spyOn(fonts, "listFonts").mockResolvedValue([]);
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await screen.findByRole("button", { name: "メニュー" });
+  await act(async () => {
+    await emit("shaken");
+  });
+  expect(lists).not.toHaveBeenCalled();
+});
+
+test("shaking the phone does nothing while the settings are shown over the diary", async () => {
+  fakeVault();
+  const lists = vi.spyOn(fonts, "listFonts").mockResolvedValue([]);
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+  );
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "config" }));
+  fireEvent.click(await screen.findByRole("button", { name: "設定" }));
+  await screen.findByRole("dialog", { name: "設定" });
+  await act(async () => {
+    await emit("shaken");
+  });
+  expect(lists).not.toHaveBeenCalled();
+});
+
 test("the dice cannot be pressed until today's entry has been read", async () => {
   mockIPC(
     (command) => {

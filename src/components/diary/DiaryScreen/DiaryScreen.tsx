@@ -32,7 +32,8 @@ export function DiaryScreen() {
   const keepClear = useKeepClear();
   // The dice rolls from its button or, on iOS, from a shake, once today's entry is ready for it.
   const diceReady = !dice.rolling && !today.locking && !today.loading;
-  useShakeToRoll(() => void dice.roll(), screen.showsToday && diceReady);
+  // Not while something covers the entry, where the change could not be seen.
+  useShakeToRoll(() => void dice.roll(), screen.showsToday && !screen.covered && diceReady);
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.

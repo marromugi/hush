@@ -144,8 +144,15 @@ mod tests {
     }
 
     #[test]
-    fn a_single_bump_is_not_a_shake() {
-        assert!(shakes(&[(0.0, 3.0), (0.02, 3.0), (0.04, 0.1)]).is_empty());
+    fn a_single_bump_held_above_the_line_is_not_a_shake() {
+        let bump = [
+            (0.0, 3.0),
+            (0.02, 3.0),
+            (0.04, 3.0),
+            (0.06, 3.0),
+            (0.08, 0.1),
+        ];
+        assert!(shakes(&bump).is_empty());
     }
 
     #[test]
