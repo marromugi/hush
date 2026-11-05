@@ -17,17 +17,25 @@ export function SettingsBody() {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[10rem_1fr] md:gap-6">
-      <nav aria-label="設定の項目" className="min-w-0">
+      <nav
+        aria-label="設定の項目"
+        className={clsx(
+          // layout
+          "min-w-0 md:self-start",
+          // shape: the frame keeps its padding while the row inside it scrolls
+          "rounded-container container-p-1 around-control-py-2",
+          // typography; the corners are worked out from this line height
+          "text-sm font-semibold",
+          // color: a shade off the modal, lighter in dark and darker in light
+          "bg-edge/40",
+        )}
+      >
         <ul
           className={clsx(
             // layout
             "flex gap-1 overflow-x-auto md:flex-col md:overflow-visible",
-            // shape
-            "rounded-container container-p-1 around-control-py-2",
-            // typography; the corners are worked out from this line height
-            "text-sm font-semibold",
-            // color: a shade off the modal, lighter in dark and darker in light
-            "bg-edge/40",
+            // shape: what scrolls out is cut along the tabs' own corners
+            "rounded-control",
             // scroll
             "[scrollbar-width:none]",
           )}
@@ -39,7 +47,7 @@ export function SettingsBody() {
                 aria-current={settings.section === section.id ? "page" : undefined}
                 className={clsx(
                   // layout
-                  "w-full cursor-pointer px-2 text-center whitespace-nowrap md:px-3 md:text-left",
+                  "w-full cursor-pointer px-4 text-center whitespace-nowrap md:px-3 md:text-left",
                   // shape
                   "rounded-control control-py-2",
                   // color: the chosen section is filled in, the rest stay quiet until hovered
