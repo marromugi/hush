@@ -1,13 +1,10 @@
 import { quickMoveTiming } from "@/lib/ui/quickMove";
+import { reducesMotion } from "@/lib/ui/reducesMotion";
 
 /** How long a menu keeps sliding after it was told to: the move plus a little. */
 const SLIDE_WINDOW_MS = quickMoveTiming.duration + 40;
 
 const slideEnds = new WeakMap<HTMLElement, number>();
-
-function reducesMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * Fades `menu` in while it rises 4px into place. Started as the menu is put
