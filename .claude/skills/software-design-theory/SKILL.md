@@ -31,7 +31,12 @@ before any code exists.
   another is also a claim that the old one no longer happens.
   A run settles a claim only for the kinds of case it exercised. Before one
   passing case counts, name the kinds the claim covers and run one where it
-  could fail. What holds in one environment (a browser, a test double,
+  could fail. List the kinds from the source, not from the ones in mind: a
+  claim to take in all of something lists everything the source defines
+  under it, such as every subtype, and reads each name for what the source
+  says it covers. An empty result cannot show that something is missing.
+  Two pieces meant to show the same thing are run on the same case and
+  compared. What holds in one environment (a browser, a test double,
   another platform, an earlier version of the same tool) is a guess in
   another until run there.
   Anything taken from a source is checked against its full text, not a
