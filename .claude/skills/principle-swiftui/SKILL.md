@@ -37,8 +37,15 @@ Why: once computation creeps into `body`, the line between screen and logic disa
 
 Why: with Observation, a view updates only when a property it read in `body` changes, not when anything in the model does. One mechanism also means one set of rules to remember.
 
-**`@State` is `private`, and is set up where it is declared, never from an `init` argument.**
-Why: `@State` keeps its first value for the life of the view. A value passed in later is silently ignored, so a view that seeds `@State` from a parameter shows stale data. To start over for a new input, give the view a new `.id` (see Identity).
+**`@State` is `private`. It is seeded from an `init` argument only when that argument never changes for the life of the view, such as the entrance to the Rust core.**
+
+```swift
+init(core: Core) {
+    _model = State(initialValue: UnlockModel(core: core))
+}
+```
+
+Why: `@State` keeps its first value for the life of the view. A value passed in later is silently ignored, so a view that seeds `@State` from a changing input shows stale data. A dependency that never changes loses nothing. To start over for a new input, give the view a new `.id` (see Identity).
 
 **Derive, don't copy.** A value that can be computed from other state is a computed property, never a second stored property kept in step.
 Why: two stored copies drift apart the first time one path forgets to update both.
@@ -52,7 +59,7 @@ Why: two stored copies drift apart the first time one path forgets to update bot
 | A value can be computed from other state | A computed property on the model | `onChange` updates a copy one pass late, and the copy can drift |
 | Something should happen because the user did something | Call the model's method in the action | It must happen once, for that action, not again when the view reappears |
 | One state change should lead to several others | Make all of them in the model's method | Chained `onChange`s add an update per link and are hard to follow |
-| A view's state should reset when an input changes | Give the view `.id(input)` | SwiftUI treats each id as a new view and starts its state fresh |
+| A view's state should reset when an input changes | Give the view `.id(input)`, unless the web editor is inside it | SwiftUI treats each id as a new view and starts its state fresh |
 | A parent should learn about a child's change | Call the parent's closure in the same action, or move the state up | The parent hears after the screen has already updated |
 
 `task` is the right tool when:
@@ -85,7 +92,7 @@ Why: `AnyView` hides the type SwiftUI uses to tell views apart, so it rebuilds w
 ## View shape
 
 **Split a large `body` into separate `View` structs, not into computed properties or functions that return views.**
-Why: a struct with its own inputs updates only when those inputs change. A computed property is part of the parent's `body` and reruns with it. A struct also gets its own `#Preview`.
+Why: a struct's `body` keeps track of the model properties it reads on its own, so a change to one of them reruns that struct and not the whole screen. A computed property is part of the parent's `body` and reruns with everything in it. A struct also gets its own `#Preview`.
 
 **A view takes the values it shows, and closures for its actions. It takes a model only when it is the screen that owns that model.**
 Why: a view that takes plain values can be previewed and reused anywhere. One that takes a model can only appear where that model exists.
@@ -96,8 +103,9 @@ Why: the same as `principle-react`. Every mode flag doubles the combinations a r
 
 ## iOS and macOS
 
-**One view serves both platforms. Layout follows the width (`horizontalSizeClass`, or the size given by the layout), not the platform.**
-Why: a narrow Mac window and an iPad in Split View need the phone's layout. Branching on the platform gets both wrong.
+**One view serves both platforms. Layout follows the width the view is given (`ViewThatFits`, `onGeometryChange`), not the platform and not `horizontalSizeClass`.**
+Why: a narrow Mac window and an iPad in Split View need the phone's layout. Branching on the platform gets both wrong. On macOS the size class is always regular, so a layout read from it never narrows there.
+([horizontalSizeClass](https://developer.apple.com/documentation/swiftui/environmentvalues/horizontalsizeclass))
 
 **`#if os(...)` is only for an API that exists on one platform, and stays in a small view or modifier at the leaf.**
 Why: a screen sprinkled with `#if` reads as two screens folded into one, and the half not being built is never compiled or seen.
@@ -110,6 +118,12 @@ Why: the page inside follows WebKit's rules, not the app's. One entrance keeps t
 
 **`updateUIView` / `updateNSView` changes only what changed. It never reloads the page or resets its content.**
 Why: SwiftUI calls it on every update of the parent. A reload there throws away what the person was typing.
+
+**The editor's view keeps one identity for as long as it is on screen.** No `.id` on it or on a view around it changes while it is shown; new content goes in as a message.
+Why: a new identity makes a new `WKWebView`, which loads the page again and loses the cursor.
+
+**The script message handler is removed in `dismantleUIView` / `dismantleNSView`.**
+Why: `WKUserContentController` holds its handlers strongly. A handler left in place keeps the coordinator, and through it the web view, alive after the screen is gone.
 
 ## Look and accessibility
 
