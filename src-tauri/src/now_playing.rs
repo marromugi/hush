@@ -121,17 +121,19 @@ mod macos {
 
     use super::{NOW_PLAYING_CHANGED, NowPlaying, parse};
 
-    /// Asks the Music app only if it is already open, since `tell` would open it.
+    /// Asks the Music app only if it is already open, since `tell` would open
+    /// it. Inside `tell`, names the Music app uses itself, such as `song`,
+    /// cannot name variables.
     const SCRIPT: &str = r#"
 if application "Music" is running then
   tell application "Music"
     if player state is playing then
-      set song to current track
-      set art to missing value
+      set theTrack to current track
+      set theArt to missing value
       try
-        set art to raw data of artwork 1 of song
+        set theArt to raw data of artwork 1 of theTrack
       end try
-      return {name of song, artist of song, art}
+      return {name of theTrack, artist of theTrack, theArt}
     end if
   end tell
 end if
@@ -245,6 +247,22 @@ return ""
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn the_question_to_the_music_app_compiles() {
+            // Compiling reads the Music app's dictionary without opening it.
+            let compiled =
+                std::env::temp_dir().join(format!("hush-now-playing-{}.scpt", std::process::id()));
+            let status = Command::new("osacompile")
+                .arg("-o")
+                .arg(&compiled)
+                .args(["-e", SCRIPT])
+                .stderr(Stdio::null())
+                .status()
+                .unwrap();
+            let _ = std::fs::remove_file(&compiled);
+            assert!(status.success());
+        }
 
         #[test]
         fn a_long_answer_is_read_whole() {
