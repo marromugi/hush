@@ -35,7 +35,8 @@
       "icons/icon.ico"
     ],
     "iOS": {
-      "developmentTeam": "Q4DFD98D9R"
+      "developmentTeam": "Q4DFD98D9R",
+      "frameworks": ["MediaPlayer"]
     }
   }
 }

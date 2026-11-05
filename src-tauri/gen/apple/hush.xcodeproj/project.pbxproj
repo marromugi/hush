@@ -10,6 +10,7 @@
 		02D8C5EE4E3D6FDECAAFC9B5 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 292D522A0AB64ABF4092D191 /* main.mm */; };
 		24DC61D3E2192377C7CCCC7A /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A585093120E7C3F48E700C05 /* WebKit.framework */; };
 		278363DB65F2A1B9D46FCE3D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C60524DD67233705F38F29ED /* Security.framework */; };
+		A1B2C3D4E5F60718293A4B5C /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C4B3A2918070F6E5D4C3B2A /* MediaPlayer.framework */; };
 		354404F8C84C6E22A4628572 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 82E1B61BA1516B7730883BAC /* assets */; };
 		784D82862AD06F2C356DD59F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 78A17943051B2657C7B7A184 /* Assets.xcassets */; };
 		A21E057934D4C59D693D75AD /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21DC3BD3EA1C5C58F2F8E4EF /* UIKit.framework */; };
@@ -51,6 +52,7 @@
 		BC323DBF96FD12D0B6C089EC /* hush_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = hush_iOS.entitlements; sourceTree = "<group>"; };
 		C3BF9BEB39A42FAEF39D6821 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C60524DD67233705F38F29ED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		5C4B3A2918070F6E5D4C3B2A /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
 		CD6F4A30807F4E849068550A /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		DFD252EC06BE12228776B4AD /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
 		E2FE401BED12953167E0785D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 				F2B5604F51ED988F520D2844 /* MetalKit.framework in Frameworks */,
 				E8B45E5B746606D64C69658B /* QuartzCore.framework in Frameworks */,
 				278363DB65F2A1B9D46FCE3D /* Security.framework in Frameworks */,
+				A1B2C3D4E5F60718293A4B5C /* MediaPlayer.framework in Frameworks */,
 				A21E057934D4C59D693D75AD /* UIKit.framework in Frameworks */,
 				24DC61D3E2192377C7CCCC7A /* WebKit.framework in Frameworks */,
 			);
@@ -108,6 +111,7 @@
 				183D8B77F40708A7725BD09A /* MetalKit.framework */,
 				CD6F4A30807F4E849068550A /* QuartzCore.framework */,
 				C60524DD67233705F38F29ED /* Security.framework */,
+				5C4B3A2918070F6E5D4C3B2A /* MediaPlayer.framework */,
 				21DC3BD3EA1C5C58F2F8E4EF /* UIKit.framework */,
 				A585093120E7C3F48E700C05 /* WebKit.framework */,
 			);

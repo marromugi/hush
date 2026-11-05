@@ -8,5 +8,7 @@
   <array>
     <string>UIInterfaceOrientationPortrait</string>
   </array>
+  <key>NSAppleMusicUsageDescription</key>
+  <string>ミュージックで再生中の曲を、日記の画面の隅に出すために使います。</string>
 </dict>
 </plist>
