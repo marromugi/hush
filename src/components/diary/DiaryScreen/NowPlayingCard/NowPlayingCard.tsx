@@ -13,9 +13,11 @@ export function NowPlayingCard({ song }: { song: NowPlaying }) {
           alt=""
           className={clsx(
             // shape: a print laid on the desk, slightly askew
-            "size-12 rotate-6 rounded-sm border-2 border-white object-cover",
-            // color
-            "shadow-float",
+            "size-12 rotate-6 rounded-sm border-2 object-cover",
+            // color: the frame is the raised surface's, white in light and dark grey in dark
+            "border-surface-raised",
+            // depth: a soft shadow under it and a tighter one at its edge, in the scheme's shadow color
+            "shadow-[0_6px_16px_-4px_var(--shadow-float-color),0_1px_3px_var(--shadow-float-color)]",
           )}
         />
       ) : (
