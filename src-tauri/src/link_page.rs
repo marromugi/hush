@@ -92,13 +92,13 @@ async fn read_body(
 /// The page's text, in the charset the server named, else the one the page
 /// names in a `<meta>` tag, else UTF-8.
 fn decode(bytes: &[u8], header_charset: Option<&str>) -> String {
-    let named = header_charset.map(str::to_owned).or_else(|| {
-        // A page names its charset near the start, in ASCII whatever the charset.
-        let head = String::from_utf8_lossy(&bytes[..bytes.len().min(4096)]);
-        meta_charset(&head)
-    });
-    let encoding = named
+    let encoding = header_charset
         .and_then(|label| Encoding::for_label(label.as_bytes()))
+        .or_else(|| {
+            // A page names its charset near the start, in ASCII whatever the charset.
+            let head = String::from_utf8_lossy(&bytes[..bytes.len().min(4096)]);
+            meta_charset(&head).and_then(|label| Encoding::for_label(label.as_bytes()))
+        })
         .unwrap_or(UTF_8);
     encoding.decode(bytes).0.into_owned()
 }
@@ -129,6 +129,7 @@ fn meta_charset(html: &str) -> Option<String> {
 
 /// The title and picture `html` names, with the picture's URL resolved against `base`.
 pub fn read_page(html: &str, base: &Url) -> LinkPage {
+    let html = &without_hidden(html);
     let mut og_title = None;
     let mut twitter_title = None;
     let mut og_image = None;
@@ -148,7 +149,7 @@ pub fn read_page(html: &str, base: &Url) -> LinkPage {
             "twitter:image" | "twitter:image:src" => &mut twitter_image,
             _ => continue,
         };
-        if slot.is_none() {
+        if slot.is_none() && !content.trim().is_empty() {
             *slot = Some(content.to_owned());
         }
     }
@@ -165,6 +166,33 @@ pub fn read_page(html: &str, base: &Url) -> LinkPage {
             matches!(url.scheme(), "http" | "https").then(|| url.to_string())
         });
     LinkPage { title, image_url }
+}
+
+/// Pairs that open and close markup a page does not show: tags written
+/// there are not the page's own.
+const HIDDEN: [(&str, &str); 3] = [
+    ("<!--", "-->"),
+    ("<script", "</script"),
+    ("<style", "</style"),
+];
+
+/// `html` without its comments, scripts, and stylesheets.
+fn without_hidden(html: &str) -> String {
+    let lower = html.to_ascii_lowercase();
+    let mut kept = String::with_capacity(html.len());
+    let mut at = 0;
+    while let Some((start, close)) = HIDDEN
+        .iter()
+        .filter_map(|(open, close)| Some((at + lower[at..].find(open)?, *close)))
+        .min_by_key(|(start, _)| *start)
+    {
+        kept.push_str(&html[at..start]);
+        at = lower[start..]
+            .find(close)
+            .map_or(html.len(), |end| start + end + close.len());
+    }
+    kept.push_str(&html[at..]);
+    kept
 }
 
 /// The text inside `<title>…</title>`.
@@ -364,7 +392,10 @@ mod tests {
     #[test]
     fn a_page_with_nothing_gives_nothing() {
         assert_eq!(
-            read_page("<p>hi</p><metadata>", &base()),
+            read_page(
+                r#"<p>hi</p><metadata property="og:title" content="x">"#,
+                &base()
+            ),
             LinkPage {
                 title: None,
                 image_url: None
@@ -387,14 +418,60 @@ mod tests {
     }
 
     #[test]
-    fn the_charset_the_server_names_wins() {
-        let (bytes, _, _) = encoding_rs::EUC_JP.encode("<title>日記</title>");
+    fn the_charset_the_server_names_wins_over_the_pages_own() {
+        let (bytes, _, _) =
+            encoding_rs::EUC_JP.encode(r#"<meta charset="Shift_JIS"><title>日記</title>"#);
         assert_eq!(
             charset_of("text/html; charset=\"EUC-JP\"").as_deref(),
             Some("EUC-JP")
         );
         let html = decode(&bytes, Some("EUC-JP"));
         assert_eq!(read_page(&html, &base()).title.as_deref(), Some("日記"));
+    }
+
+    #[test]
+    fn a_charset_the_server_names_wrongly_leaves_the_pages_own() {
+        let (bytes, _, _) =
+            encoding_rs::SHIFT_JIS.encode(r#"<meta charset="Shift_JIS"><title>日記</title>"#);
+        let html = decode(&bytes, Some("no-such-charset"));
+        assert_eq!(read_page(&html, &base()).title.as_deref(), Some("日記"));
+    }
+
+    #[test]
+    fn tags_in_comments_and_scripts_are_not_the_pages() {
+        let html = r#"<!-- <meta property="og:title" content="old"> -->
+            <script>document.write('<meta property="og:image" content="/x.jpg">')</script>
+            <meta property="og:title" content="new">
+            <meta property="og:image" content="/new.jpg">"#;
+        assert_eq!(
+            read_page(html, &base()),
+            LinkPage {
+                title: Some("new".into()),
+                image_url: Some("https://example.com/new.jpg".into()),
+            }
+        );
+    }
+
+    #[test]
+    fn an_unclosed_comment_hides_the_rest() {
+        let html = r#"<meta property="og:title" content="a"><!-- <meta property="og:image" content="/x.jpg">"#;
+        assert_eq!(
+            read_page(html, &base()),
+            LinkPage {
+                title: Some("a".into()),
+                image_url: None
+            }
+        );
+    }
+
+    #[test]
+    fn an_empty_picture_falls_back_to_the_next() {
+        let html =
+            r#"<meta property="og:image" content=""><meta name="twitter:image" content="/t.png">"#;
+        assert_eq!(
+            read_page(html, &base()).image_url.as_deref(),
+            Some("https://example.com/t.png")
+        );
     }
 
     #[test]
