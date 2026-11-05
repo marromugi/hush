@@ -1,5 +1,4 @@
 import type { Body } from "@/components/diary/DiaryScreen/weekdayBody";
-import { reducesMotion } from "@/lib/ui/reducesMotion";
 
 import fragmentSource from "./body.frag?raw";
 import vertexSource from "./body.vert?raw";
@@ -51,18 +50,27 @@ function prepare(gl: WebGLRenderingContext, canvas: HTMLCanvasElement, body: Bod
   gl.enableVertexAttribArray(position);
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-  // The backing store matches the screen's pixels, so the body stays sharp.
-  const size = canvas.getBoundingClientRect();
-  canvas.width = Math.max(1, Math.round(size.width * window.devicePixelRatio));
-  canvas.height = Math.max(1, Math.round(size.height * window.devicePixelRatio));
-  gl.viewport(0, 0, canvas.width, canvas.height);
-
   gl.uniform1f(gl.getUniformLocation(program, "uBody"), bodyIndex[body]);
-  gl.uniform1f(gl.getUniformLocation(program, "uPixel"), 2 / canvas.width);
+  const pixel = gl.getUniformLocation(program, "uPixel");
   const time = gl.getUniformLocation(program, "uTime");
+
+  // The backing store follows the screen's pixels, so the body stays sharp
+  // when the window moves to a display with another pixel ratio.
+  const fit = () => {
+    const size = canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.round(size.width * window.devicePixelRatio));
+    const height = Math.max(1, Math.round(size.height * window.devicePixelRatio));
+    if (canvas.width === width && canvas.height === height) return;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+    gl.uniform1f(pixel, 2 / width);
+  };
+  canvas.width = 0;
 
   return {
     draw(seconds) {
+      fit();
       gl.uniform1f(time, seconds);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -78,20 +86,20 @@ function prepare(gl: WebGLRenderingContext, canvas: HTMLCanvasElement, body: Bod
 }
 
 /**
- * Draws `body` on `canvas` and keeps it turning, or still when the person
- * asked for less motion. Returns the function that stops it.
+ * Draws `body` on `canvas` and keeps it turning, or once and still when
+ * `still` is set. Returns the function that stops it.
  *
- * Without WebGL the canvas stays empty and a warning says why: the body only
- * decorates the date, so the diary goes on without it.
+ * When WebGL is missing or the shaders fail, the canvas stays empty and a
+ * warning says why: the body only decorates the date, so the diary goes on
+ * without it.
  */
-export function drawBody(canvas: HTMLCanvasElement, body: Body): () => void {
+export function drawBody(canvas: HTMLCanvasElement, body: Body, still: boolean): () => void {
   const gl = canvas.getContext("webgl", { premultipliedAlpha: true, antialias: false });
   if (!gl) {
     console.warn(`the ${body} is not drawn: this webview gives no WebGL context`);
     return () => {};
   }
 
-  const still = reducesMotion();
   let drawing: Drawing | null = null;
   let frame = 0;
   let last = -Infinity;
@@ -102,15 +110,22 @@ export function drawBody(canvas: HTMLCanvasElement, body: Body): () => void {
     last = now;
     drawing?.draw(now / 1000);
   };
-  const start = () => {
-    drawing = prepare(gl, canvas, body);
-    if (still) drawing.draw(0);
-    else frame = requestAnimationFrame(tick);
-  };
   const stop = () => {
     cancelAnimationFrame(frame);
     drawing?.dispose();
     drawing = null;
+  };
+  const start = () => {
+    // A restore can arrive while a loop already runs; only one may.
+    stop();
+    try {
+      drawing = prepare(gl, canvas, body);
+    } catch (error) {
+      console.warn(`the ${body} is not drawn:`, error);
+      return;
+    }
+    if (still) drawing.draw(0);
+    else frame = requestAnimationFrame(tick);
   };
 
   // The system may take the context back, as iOS does in the background.

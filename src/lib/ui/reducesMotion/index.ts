@@ -1,1 +1,1 @@
-export { reducesMotion } from "./reducesMotion";
+export { REDUCED_MOTION_QUERY, reducesMotion } from "./reducesMotion";

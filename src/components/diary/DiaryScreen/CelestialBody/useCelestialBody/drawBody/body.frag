@@ -143,7 +143,7 @@ vec3 jupiterSurface(vec3 q) {
   // The Great Red Spot, south of the equator.
   vec3 spot = q - normalize(vec3(0.9, -0.36, 0.3));
   spot.y *= 2.2;
-  return mix(color, vec3(0.8, 0.4, 0.27), smoothstep(0.24, 0.14, length(spot)));
+  return mix(color, vec3(0.8, 0.4, 0.27), 1.0 - smoothstep(0.14, 0.24, length(spot)));
 }
 
 vec3 saturnSurface(vec3 q) {
