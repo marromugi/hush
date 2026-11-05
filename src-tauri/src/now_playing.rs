@@ -285,6 +285,7 @@ return ""
 
 #[cfg(target_os = "ios")]
 mod ios {
+    use std::sync::Once;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::mpsc;
     use std::time::Duration;
@@ -292,7 +293,7 @@ mod ios {
     use block2::RcBlock;
     use objc2::rc::Retained;
     use objc2::runtime::NSObject;
-    use objc2::{AllocAnyThread, DefinedClass, define_class, msg_send, sel};
+    use objc2::{AllocAnyThread, DefinedClass, MainThreadMarker, define_class, msg_send, sel};
     use objc2_core_foundation::CGSize;
     use objc2_foundation::{NSNotification, NSNotificationCenter};
     use objc2_media_player::{
@@ -311,29 +312,44 @@ mod ios {
         height: 96.0,
     };
 
-    /// Set once the diary screen has asked what plays; until then the
-    /// changes the player sends are not read, as on macOS.
-    static ASKED: AtomicBool = AtomicBool::new(false);
+    /// How long the main thread may take to read the player before the page
+    /// is answered with nothing; the song is then sent as a change once read.
+    const ANSWER_WITHIN: Duration = Duration::from_secs(5);
+
+    /// The player is first touched when the diary screen asks, not at launch,
+    /// so nothing about it can come up over the lock screen.
+    static WATCHING: Once = Once::new();
+
+    /// Set once Hush has asked for leave to read the media library, so a
+    /// second question while the first is open is not asked again.
+    static REQUESTED: AtomicBool = AtomicBool::new(false);
 
     /// What plays now, read on the main thread, where the player must be
     /// used. The first time, iOS asks the person whether Hush may read the
     /// media library; once they allow it, the song is sent as a change.
     pub fn read(app: &AppHandle) -> Option<NowPlaying> {
-        ASKED.store(true, Ordering::Relaxed);
         let (answer, answered) = mpsc::channel();
         let asking = app.clone();
         app.run_on_main_thread(move || {
-            let _ = answer.send(read_or_ask(&asking));
+            let song = read_or_ask(&asking);
+            // Too late for the question: the page gets it as a change instead.
+            if let Err(mpsc::SendError(song)) = answer.send(song) {
+                let _ = asking.emit(NOW_PLAYING_CHANGED, song);
+            }
         })
         .ok()?;
-        answered.recv_timeout(Duration::from_secs(5)).ok().flatten()
+        answered.recv_timeout(ANSWER_WITHIN).ok().flatten()
     }
 
+    /// Call only on the main thread.
     fn read_or_ask(app: &AppHandle) -> Option<NowPlaying> {
+        WATCHING.call_once(|| watch(app));
         // SAFETY: plain class methods of MPMediaLibrary.
         match unsafe { MPMediaLibrary::authorizationStatus() } {
             MPMediaLibraryAuthorizationStatus::Authorized => read_here(),
-            MPMediaLibraryAuthorizationStatus::NotDetermined => {
+            MPMediaLibraryAuthorizationStatus::NotDetermined
+                if !REQUESTED.swap(true, Ordering::Relaxed) =>
+            {
                 let app = app.clone();
                 let answered = RcBlock::new(move |status: MPMediaLibraryAuthorizationStatus| {
                     if status != MPMediaLibraryAuthorizationStatus::Authorized {
@@ -387,7 +403,7 @@ mod ios {
 
     define_class!(
         /// Receives the player's notices of a change of song or of playing
-        /// and pausing, on the main thread, and sends the frontend what plays.
+        /// and pausing, and sends the frontend what plays.
         #[unsafe(super(NSObject))]
         #[name = "HushNowPlaying"]
         #[ivars = AppHandle]
@@ -396,16 +412,22 @@ mod ios {
         impl Watcher {
             #[unsafe(method(changed:))]
             fn changed(&self, _notification: &NSNotification) {
-                if !ASKED.load(Ordering::Relaxed) {
-                    return;
-                }
                 // SAFETY: plain class method of MPMediaLibrary.
                 if unsafe { MPMediaLibrary::authorizationStatus() }
                     != MPMediaLibraryAuthorizationStatus::Authorized
                 {
                     return;
                 }
-                let _ = self.ivars().emit(NOW_PLAYING_CHANGED, read_here());
+                let app = self.ivars();
+                if MainThreadMarker::new().is_some() {
+                    let _ = app.emit(NOW_PLAYING_CHANGED, read_here());
+                    return;
+                }
+                // Apple does not say which thread these notices come on.
+                let sending = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    let _ = sending.emit(NOW_PLAYING_CHANGED, read_here());
+                });
             }
         }
     );
@@ -419,27 +441,21 @@ mod ios {
     }
 
     /// Asks the system player to post its notices, and emits
-    /// `NOW_PLAYING_CHANGED` on each once the diary screen has asked. Runs
-    /// in the app's setup, on the main thread. The observer lives as long
-    /// as the app, since the centre does not retain it.
-    pub fn watch(app: &AppHandle) {
+    /// `NOW_PLAYING_CHANGED` on each. Call only on the main thread. The
+    /// observer lives as long as the app, since the centre does not retain it.
+    fn watch(app: &AppHandle) {
         let watcher = Watcher::new(app.clone());
-        // SAFETY: called on the main thread; `watcher` implements `changed:`
-        // taking one notification, and is kept alive below for the rest of the process.
+        // SAFETY: on the main thread; `watcher` implements `changed:` taking
+        // one notification, and is kept alive below for the rest of the process.
         unsafe {
-            let player = MPMusicPlayerController::systemMusicPlayer();
-            player.beginGeneratingPlaybackNotifications();
+            MPMusicPlayerController::systemMusicPlayer().beginGeneratingPlaybackNotifications();
             let centre = NSNotificationCenter::defaultCenter();
             for name in [
                 MPMusicPlayerControllerNowPlayingItemDidChangeNotification,
                 MPMusicPlayerControllerPlaybackStateDidChangeNotification,
             ] {
-                centre.addObserver_selector_name_object(
-                    &watcher,
-                    sel!(changed:),
-                    Some(name),
-                    Some(&player),
-                );
+                // From any sender: the names alone are the player's.
+                centre.addObserver_selector_name_object(&watcher, sel!(changed:), Some(name), None);
             }
         }
         std::mem::forget(watcher);
@@ -473,12 +489,10 @@ pub fn watch(app: &AppHandle) {
     macos::watch(app);
 }
 
-/// Emits `NOW_PLAYING_CHANGED` whenever the Music app changes song or starts
-/// or stops playing, once the diary screen has asked what plays.
+/// On iOS the player is watched from the diary screen's first question
+/// (`read`), so nothing is done at launch.
 #[cfg(target_os = "ios")]
-pub fn watch(app: &AppHandle) {
-    ios::watch(app);
-}
+pub fn watch(_app: &AppHandle) {}
 
 /// Other platforms send nothing.
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]

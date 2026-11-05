@@ -42,5 +42,7 @@
 	<string>Secret Key の QR コードを読み取るために、カメラを使います。</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>日記帳を Face ID で開くために使います。</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>ミュージックで再生中の曲を、日記の画面の隅に出すために使います。</string>
 </dict>
 </plist>
