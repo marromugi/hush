@@ -129,3 +129,24 @@ const KEYBOARD_MOVED = "keyboard-moved";
 export function listenKeyboardMoves(onMove: () => void): Promise<UnlistenFn> {
   return listen(KEYBOARD_MOVED, () => onMove());
 }
+
+/** A song the Music app plays (`now_playing::NowPlaying`). */
+export type NowPlaying = {
+  title: string;
+  artist: string;
+  /** The album art as a `data:` URL; null when the song has none. */
+  artwork: string | null;
+};
+
+/** What the Music app plays now; null while it is paused, stopped, or closed, and on platforms that cannot tell. */
+export function nowPlaying(): Promise<NowPlaying | null> {
+  return call("now_playing");
+}
+
+/** Sent by the Rust side (`now_playing::NOW_PLAYING_CHANGED`) whenever the Music app changes song or starts or stops playing. */
+const NOW_PLAYING_CHANGED = "now-playing-changed";
+
+/** Calls `onChange` with what plays each time the Music app changes. */
+export function listenNowPlaying(onChange: (song: NowPlaying | null) => void): Promise<UnlistenFn> {
+  return listen<NowPlaying | null>(NOW_PLAYING_CHANGED, (event) => onChange(event.payload));
+}
