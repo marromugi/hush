@@ -4,8 +4,8 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::app_error::AppError;
 use crate::biometry::{Biometry, NoBiometry, VaultKeyStore};
+use crate::core_error::CoreError;
 use crate::crypto::VaultKey;
 use crate::entry::{self, Entry, EntryDate, EntryFont};
 use crate::image::{self, ImageId, Picture};
@@ -60,38 +60,38 @@ impl LocalStore {
     /// when two calls race, so only the keys of the vault actually on disk
     /// are ever returned. The Secret Key is stored first: a vault this device
     /// cannot open is never written.
-    pub fn create_vault(&self, passphrase: &str) -> Result<(VaultKey, SecretKey), AppError> {
+    pub fn create_vault(&self, passphrase: &str) -> Result<(VaultKey, SecretKey), CoreError> {
         if passphrase.is_empty() {
-            return Err(AppError::EmptyPassphrase);
+            return Err(CoreError::EmptyPassphrase);
         }
         if self.has_vault() {
-            return Err(AppError::VaultExists);
+            return Err(CoreError::VaultExists);
         }
         let (vault, key, secret_key) = Vault::create(passphrase)?;
         self.secret_keys.set(&vault.id(), &secret_key)?;
         match write_new(&self.vault_path(), vault.to_json().as_bytes()) {
             Ok(()) => Ok((key, secret_key)),
-            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Err(AppError::VaultExists),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => Err(CoreError::VaultExists),
             Err(e) => Err(e.into()),
         }
     }
 
-    fn read_vault(&self) -> Result<Vault, AppError> {
+    fn read_vault(&self) -> Result<Vault, CoreError> {
         let text = match fs::read_to_string(self.vault_path()) {
             Ok(text) => text,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(AppError::NoVault),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(CoreError::NoVault),
             Err(e) => return Err(e.into()),
         };
         Vault::parse(&text)
     }
 
     /// Whether this device's keychain holds the vault's Secret Key.
-    pub fn has_secret_key(&self) -> Result<bool, AppError> {
+    pub fn has_secret_key(&self) -> Result<bool, CoreError> {
         Ok(self.secret_key()?.is_some())
     }
 
     /// The vault's Secret Key from this device's keychain, if it is there.
-    pub fn secret_key(&self) -> Result<Option<SecretKey>, AppError> {
+    pub fn secret_key(&self) -> Result<Option<SecretKey>, CoreError> {
         let vault = self.read_vault()?;
         self.secret_keys.get(&vault.id())
     }
@@ -109,7 +109,7 @@ impl LocalStore {
         &self,
         passphrase: &str,
         typed_secret_key: Option<&str>,
-    ) -> Result<VaultKey, AppError> {
+    ) -> Result<VaultKey, CoreError> {
         let vault = self.read_vault()?;
         let key = self.unlock_with_passphrase(&vault, passphrase, typed_secret_key)?;
         if self.vault_keys.is_on(&vault.id()).unwrap_or(false) {
@@ -123,15 +123,15 @@ impl LocalStore {
         vault: &Vault,
         passphrase: &str,
         typed_secret_key: Option<&str>,
-    ) -> Result<VaultKey, AppError> {
+    ) -> Result<VaultKey, CoreError> {
         let Some(typed) = typed_secret_key else {
             let secret_key = self
                 .secret_keys
                 .get(&vault.id())?
-                .ok_or(AppError::NoSecretKey)?;
+                .ok_or(CoreError::NoSecretKey)?;
             // The keychain's key is this vault's, so only the passphrase can be wrong.
             return vault.unlock(passphrase, &secret_key).map_err(|e| match e {
-                AppError::WrongPassphraseOrSecretKey => AppError::WrongPassphrase,
+                CoreError::WrongPassphraseOrSecretKey => CoreError::WrongPassphrase,
                 other => other,
             });
         };
@@ -147,18 +147,18 @@ impl LocalStore {
     }
 
     /// Whether the vault opens with Touch ID or Face ID on this device.
-    pub fn keeps_vault_key(&self) -> Result<bool, AppError> {
+    pub fn keeps_vault_key(&self) -> Result<bool, CoreError> {
         let vault = self.read_vault()?;
         self.vault_keys.is_on(&vault.id())
     }
 
     /// Keeps `key`, the open vault's, behind Touch ID or Face ID.
-    pub fn keep_vault_key(&self, key: &VaultKey) -> Result<(), AppError> {
+    pub fn keep_vault_key(&self, key: &VaultKey) -> Result<(), CoreError> {
         let vault = self.read_vault()?;
         self.vault_keys.set(&vault.id(), key)
     }
 
-    pub fn forget_vault_key(&self) -> Result<(), AppError> {
+    pub fn forget_vault_key(&self) -> Result<(), CoreError> {
         let vault = self.read_vault()?;
         self.vault_keys.remove(&vault.id())
     }
@@ -167,20 +167,20 @@ impl LocalStore {
     /// for it with `reason`. When no key comes out, or it does not open the
     /// vault, the person goes back to the passphrase, which keeps the key
     /// again.
-    pub fn unlock_with_biometry(&self, reason: &str) -> Result<VaultKey, AppError> {
+    pub fn unlock_with_biometry(&self, reason: &str) -> Result<VaultKey, CoreError> {
         let vault = self.read_vault()?;
         let key = self
             .vault_keys
             .get(&vault.id(), reason)?
-            .ok_or(AppError::NoKeptKey)?;
+            .ok_or(CoreError::NoKeptKey)?;
         vault.check(key).map_err(|e| match e {
-            AppError::Decryption => AppError::NoKeptKey,
+            CoreError::Decryption => CoreError::NoKeptKey,
             other => other,
         })
     }
 
     /// The entry for `date`, or `None` if nothing has been written that day.
-    pub fn read_entry(&self, key: &VaultKey, date: &EntryDate) -> Result<Option<Entry>, AppError> {
+    pub fn read_entry(&self, key: &VaultKey, date: &EntryDate) -> Result<Option<Entry>, CoreError> {
         let text = match fs::read_to_string(self.entry_path(date)) {
             Ok(text) => text,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -199,7 +199,7 @@ impl LocalStore {
         body: String,
         font: Option<EntryFont>,
         now_ms: u64,
-    ) -> Result<Entry, AppError> {
+    ) -> Result<Entry, CoreError> {
         let created_at_ms = self
             .read_entry(key, date)?
             .map_or(now_ms, |existing| existing.created_at_ms);
@@ -216,7 +216,7 @@ impl LocalStore {
 
     /// Encrypts `picture` into a new image file and returns its id. Each call
     /// makes a new file under a new id; no image file is ever replaced.
-    pub fn save_image(&self, key: &VaultKey, picture: &Picture) -> Result<ImageId, AppError> {
+    pub fn save_image(&self, key: &VaultKey, picture: &Picture) -> Result<ImageId, CoreError> {
         let id = ImageId::new()?;
         write_new(
             &self.image_path(&id),
@@ -226,10 +226,10 @@ impl LocalStore {
     }
 
     /// The picture saved as `id`.
-    pub fn read_image(&self, key: &VaultKey, id: &ImageId) -> Result<Picture, AppError> {
+    pub fn read_image(&self, key: &VaultKey, id: &ImageId) -> Result<Picture, CoreError> {
         let text = match fs::read_to_string(self.image_path(id)) {
             Ok(text) => text,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(AppError::NoImage),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Err(CoreError::NoImage),
             Err(e) => return Err(e.into()),
         };
         image::open(key, id, &text)
@@ -238,7 +238,7 @@ impl LocalStore {
     /// Every date that has an entry file, oldest first. A file counts only
     /// at the path `read_entry` reads for its date, so temporaries and
     /// stray files are not dates. The files are not opened.
-    pub fn entry_dates(&self) -> Result<Vec<EntryDate>, AppError> {
+    pub fn entry_dates(&self) -> Result<Vec<EntryDate>, CoreError> {
         let years = match fs::read_dir(self.dir.join("entries")) {
             Ok(years) => years,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -407,7 +407,7 @@ mod tests {
         let id = ImageId::new().unwrap();
         assert!(matches!(
             store.read_image(&key, &id),
-            Err(AppError::NoImage)
+            Err(CoreError::NoImage)
         ));
     }
 
@@ -429,7 +429,7 @@ mod tests {
             );
             for (passphrase, result) in &results {
                 if *passphrase != *winner {
-                    assert!(matches!(result, Err(AppError::VaultExists)));
+                    assert!(matches!(result, Err(CoreError::VaultExists)));
                 }
             }
             assert_eq!(files_in(dir.path()), ["vault.json"]);
@@ -503,7 +503,7 @@ mod tests {
         assert!(!device.has_secret_key().unwrap());
         assert!(matches!(
             device.unlock("correct horse", None),
-            Err(AppError::NoSecretKey)
+            Err(CoreError::NoSecretKey)
         ));
         device
             .unlock("correct horse", Some(&secret_key.to_text()))
@@ -518,7 +518,7 @@ mod tests {
         let store = LocalStore::new(dir.path().to_path_buf(), Arc::new(BrokenKeychain));
         assert!(matches!(
             store.create_vault("correct horse"),
-            Err(AppError::Keychain(_))
+            Err(CoreError::Keychain(_))
         ));
         assert!(!store.has_vault());
     }
@@ -543,11 +543,11 @@ mod tests {
         let wrong = SecretKey::generate().unwrap();
         assert!(matches!(
             device.unlock("correct horse", Some(&wrong.to_text())),
-            Err(AppError::WrongPassphraseOrSecretKey)
+            Err(CoreError::WrongPassphraseOrSecretKey)
         ));
         assert!(matches!(
             device.unlock("correct horse", Some("not a key")),
-            Err(AppError::InvalidSecretKey)
+            Err(CoreError::InvalidSecretKey)
         ));
         assert!(!device.has_secret_key().unwrap());
     }
@@ -558,7 +558,7 @@ mod tests {
         store.create_vault("correct horse").unwrap();
         assert!(matches!(
             store.unlock("wrong horse", None),
-            Err(AppError::WrongPassphrase)
+            Err(CoreError::WrongPassphrase)
         ));
     }
 
@@ -568,7 +568,7 @@ mod tests {
         store.create_vault("correct horse").unwrap();
         assert!(matches!(
             store.create_vault("another"),
-            Err(AppError::VaultExists)
+            Err(CoreError::VaultExists)
         ));
         assert!(store.unlock("correct horse", None).is_ok());
     }
@@ -578,7 +578,7 @@ mod tests {
         let (_dir, store) = store();
         assert!(matches!(
             store.create_vault(""),
-            Err(AppError::EmptyPassphrase)
+            Err(CoreError::EmptyPassphrase)
         ));
         assert!(!store.has_vault());
     }
@@ -588,7 +588,7 @@ mod tests {
         let (_dir, store) = store();
         assert!(matches!(
             store.unlock("correct horse", None),
-            Err(AppError::NoVault)
+            Err(CoreError::NoVault)
         ));
     }
 
@@ -604,7 +604,7 @@ mod tests {
         fs::write(&path, &newer).unwrap();
 
         let result = store.save_entry(&key, &date("2026-10-29"), "b".to_string(), None, 2_000);
-        assert!(matches!(result, Err(AppError::NewerEntryVersion(v)) if v == version));
+        assert!(matches!(result, Err(CoreError::NewerEntryVersion(v)) if v == version));
         assert_eq!(fs::read_to_string(&path).unwrap(), newer);
     }
 
@@ -649,7 +649,7 @@ mod tests {
         assert!(!store.keeps_vault_key().unwrap());
         assert!(matches!(
             store.unlock_with_biometry("open"),
-            Err(AppError::NoKeptKey)
+            Err(CoreError::NoKeptKey)
         ));
     }
 
@@ -661,7 +661,7 @@ mod tests {
         keys.refuse.store(true, std::sync::atomic::Ordering::SeqCst);
         assert!(matches!(
             store.unlock_with_biometry("open"),
-            Err(AppError::BiometryCancelled)
+            Err(CoreError::BiometryCancelled)
         ));
         assert!(store.keeps_vault_key().unwrap());
     }
@@ -674,7 +674,7 @@ mod tests {
         keys.plant(&vault_id(&store), &[7; crate::crypto::KEY_LEN]);
         assert!(matches!(
             store.unlock_with_biometry("open"),
-            Err(AppError::NoKeptKey)
+            Err(CoreError::NoKeptKey)
         ));
         assert!(store.keeps_vault_key().unwrap());
 
@@ -690,7 +690,7 @@ mod tests {
         keys.invalidate(&vault_id(&store));
         assert!(matches!(
             store.unlock_with_biometry("open"),
-            Err(AppError::NoKeptKey)
+            Err(CoreError::NoKeptKey)
         ));
         assert!(store.keeps_vault_key().unwrap());
 

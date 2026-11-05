@@ -1,31 +1,18 @@
 pub mod app_error;
-pub mod app_state;
-pub mod b64;
-pub mod biometry;
 pub mod commands;
-pub mod crypto;
-pub mod embed_pages;
-pub mod entry;
-pub mod file_version;
 pub mod full_screen;
-pub mod image;
-pub mod keychain;
-pub mod link_page;
-pub mod local_store;
 pub mod lock_signals;
 pub mod music;
-pub mod secret_key;
-pub mod session;
 pub mod shake;
-pub mod vault;
 
 use std::sync::Arc;
 
 use tauri::Manager;
 
-use crate::app_state::{AppState, AppStateInner};
-use crate::keychain::Keychain;
-use crate::local_store::LocalStore;
+use hush_core::app_state::{AppState, AppStateInner};
+use hush_core::embed_pages;
+use hush_core::keychain::Keychain;
+use hush_core::local_store::LocalStore;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,7 +23,7 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             let store = LocalStore::new(dir, Arc::new(Keychain));
             #[cfg(target_os = "ios")]
-            let store = store.with_vault_keys(Arc::new(biometry::BiometricKeychain));
+            let store = store.with_vault_keys(Arc::new(hush_core::biometry::BiometricKeychain));
             let mut inner = AppStateInner::new(store);
             // Without it the diary still works; only YouTube videos cannot play.
             inner.embed_pages = embed_pages::start().ok();

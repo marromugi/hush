@@ -7,8 +7,8 @@ use chacha20poly1305::aead::{Aead, Generate, KeyInit, Payload};
 use serde::{Deserialize, Serialize};
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
-use crate::app_error::AppError;
 use crate::b64;
+use crate::core_error::CoreError;
 use crate::secret_key::SecretKey;
 
 pub const KEY_LEN: usize = 32;
@@ -69,9 +69,9 @@ pub struct Sealed {
     pub ciphertext: Vec<u8>,
 }
 
-pub fn new_salt() -> Result<[u8; SALT_LEN], AppError> {
+pub fn new_salt() -> Result<[u8; SALT_LEN], CoreError> {
     let mut salt = [0; SALT_LEN];
-    getrandom::fill(&mut salt).map_err(AppError::Random)?;
+    getrandom::fill(&mut salt).map_err(CoreError::Random)?;
     Ok(salt)
 }
 
@@ -96,8 +96,8 @@ pub fn derive_key(
     secret_key: &SecretKey,
     salt: &[u8; SALT_LEN],
     params: &KdfParams,
-) -> Result<VaultKey, AppError> {
-    let params = argon2_params(params).map_err(AppError::KeyDerivation)?;
+) -> Result<VaultKey, CoreError> {
+    let params = argon2_params(params).map_err(CoreError::KeyDerivation)?;
     // Argon2's working memory holds the key's direct preimage, so it is
     // allocated here and wiped on drop instead of being freed as is.
     let mut blocks = Zeroizing::new(vec![Block::default(); params.block_count()]);
@@ -108,17 +108,17 @@ pub fn derive_key(
         Version::V0x13,
         params,
     )
-    .map_err(AppError::KeyDerivation)?
+    .map_err(CoreError::KeyDerivation)?
     .hash_password_into_with_memory(passphrase.as_bytes(), salt, &mut key.0[..], &mut *blocks)
-    .map_err(AppError::KeyDerivation)?;
+    .map_err(CoreError::KeyDerivation)?;
     Ok(key)
 }
 
 /// Encrypts `plaintext` under a fresh random nonce. `aad` is authenticated but
 /// not encrypted; Hush passes the entry's file path so a file moved to another
 /// path fails to decrypt.
-pub fn encrypt(key: &VaultKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed, AppError> {
-    let nonce = XNonce::try_generate().map_err(AppError::Random)?;
+pub fn encrypt(key: &VaultKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed, CoreError> {
+    let nonce = XNonce::try_generate().map_err(CoreError::Random)?;
     let ciphertext = cipher(key)
         .encrypt(
             &nonce,
@@ -127,14 +127,14 @@ pub fn encrypt(key: &VaultKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed, A
                 aad,
             },
         )
-        .map_err(|_| AppError::Encryption)?;
+        .map_err(|_| CoreError::Encryption)?;
     Ok(Sealed {
         nonce: nonce.into(),
         ciphertext,
     })
 }
 
-pub fn decrypt(key: &VaultKey, aad: &[u8], sealed: &Sealed) -> Result<Vec<u8>, AppError> {
+pub fn decrypt(key: &VaultKey, aad: &[u8], sealed: &Sealed) -> Result<Vec<u8>, CoreError> {
     cipher(key)
         .decrypt(
             &XNonce::from(sealed.nonce),
@@ -143,7 +143,7 @@ pub fn decrypt(key: &VaultKey, aad: &[u8], sealed: &Sealed) -> Result<Vec<u8>, A
                 aad,
             },
         )
-        .map_err(|_| AppError::Decryption)
+        .map_err(|_| CoreError::Decryption)
 }
 
 fn cipher(key: &VaultKey) -> XChaCha20Poly1305 {
@@ -186,7 +186,7 @@ mod tests {
     fn wrong_passphrase_fails() {
         let sealed = encrypt(&key("correct horse"), PATH, b"diary").unwrap();
         let err = decrypt(&key("wrong horse"), PATH, &sealed).unwrap_err();
-        assert!(matches!(err, AppError::Decryption));
+        assert!(matches!(err, CoreError::Decryption));
     }
 
     #[test]

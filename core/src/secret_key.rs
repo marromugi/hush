@@ -2,7 +2,7 @@ use std::fmt;
 
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
-use crate::app_error::AppError;
+use crate::core_error::CoreError;
 
 pub const SECRET_KEY_LEN: usize = 16;
 
@@ -33,9 +33,9 @@ impl fmt::Debug for SecretKey {
 }
 
 impl SecretKey {
-    pub fn generate() -> Result<Self, AppError> {
+    pub fn generate() -> Result<Self, CoreError> {
         let mut key = SecretKey(Box::new([0; SECRET_KEY_LEN]));
-        getrandom::fill(&mut key.0[..]).map_err(AppError::Random)?;
+        getrandom::fill(&mut key.0[..]).map_err(CoreError::Random)?;
         Ok(key)
     }
 
@@ -86,7 +86,7 @@ impl SecretKey {
     /// Reads the text form. Case, spaces, and hyphens do not matter, and the
     /// letters people mistake for digits (O, I, L) read as those digits,
     /// in the prefix too.
-    pub fn parse(text: &str) -> Result<Self, AppError> {
+    pub fn parse(text: &str) -> Result<Self, CoreError> {
         // Sized up front: a buffer that grows leaves unwiped copies behind.
         let mut cleaned = Zeroizing::new(String::with_capacity(text.len()));
         for c in text.chars().filter(|c| !c.is_whitespace() && *c != '-') {
@@ -99,7 +99,7 @@ impl SecretKey {
         let body = cleaned
             .strip_prefix(TEXT_PREFIX)
             .filter(|body| body.len() == SYMBOLS)
-            .ok_or(AppError::InvalidSecretKey)?;
+            .ok_or(CoreError::InvalidSecretKey)?;
         let mut key = SecretKey(Box::new([0; SECRET_KEY_LEN]));
         let mut buffer: u16 = 0;
         let mut bits = 0;
@@ -108,7 +108,7 @@ impl SecretKey {
             let value = ALPHABET
                 .iter()
                 .position(|&symbol| char::from(symbol) == c)
-                .ok_or(AppError::InvalidSecretKey)?;
+                .ok_or(CoreError::InvalidSecretKey)?;
             buffer = (buffer << 5) | u16::try_from(value).expect("an alphabet index is below 32");
             bits += 5;
             if bits >= 8 {
@@ -120,7 +120,7 @@ impl SecretKey {
         // The last symbol carries 2 bits of padding; text from `to_text`
         // always has them zero.
         if buffer & ((1 << bits) - 1) != 0 {
-            return Err(AppError::InvalidSecretKey);
+            return Err(CoreError::InvalidSecretKey);
         }
         Ok(key)
     }
@@ -182,7 +182,7 @@ mod tests {
             "H1-ZZZZZ-ZZZZZ-ZZZZZ-ZZZZZ-ZZZZZZ",
         ] {
             assert!(
-                matches!(SecretKey::parse(text), Err(AppError::InvalidSecretKey)),
+                matches!(SecretKey::parse(text), Err(CoreError::InvalidSecretKey)),
                 "{text:?} was accepted"
             );
         }

@@ -1,6 +1,6 @@
 ---
 name: principle-rust
-description: "How Rust code is written in this repo (src-tauri/): Result for expected failures and panic only for bugs, one AppError sent to the frontend as kind and message, thin async Tauri commands, state behind a type alias, versioned file formats, and modules grouped by use. Use whenever writing, changing, or reviewing Rust under src-tauri/, adding a Tauri command, an error variant, app state, or a file format."
+description: "How Rust code is written in this repo (core/ and src-tauri/): a core crate that never depends on Tauri and a Tauri app crate over it, Result for expected failures and panic only for bugs, one error type per crate with the app's AppError sent to the frontend as kind and message, thin async Tauri commands, state behind a type alias, versioned file formats, and modules grouped by use. Use whenever writing, changing, or reviewing Rust under core/ or src-tauri/, adding a Tauri command, an error variant, app state, or a file format, or deciding which crate code belongs in."
 ---
 
 # Principle: Rust
@@ -8,6 +8,20 @@ description: "How Rust code is written in this repo (src-tauri/): Result for exp
 Each rule carries its reason. A rule whose reason no longer holds for Hush should be changed, not followed.
 
 Handling secrets in memory and in error text (wiping keys, keeping tokens out of messages) is not decided yet. It will be settled with the encryption work.
+
+## Crates
+
+**Rust is two crates in one Cargo workspace at the repository root: the core, `hush-core` in `core/`, and the Tauri app, `hush` in `src-tauri/`. The core never depends on Tauri.**
+
+| Crate | Holds |
+|---|---|
+| `core/` | What runs without a window and both apps call: the vault, entries, pictures, the Secret Key, the keychain, the key kept behind Touch ID or Face ID, link pages, the server for video pages |
+| `src-tauri/` | Tauri commands, the app's start, and what reacts to the window or the device through Tauri: lock signals, full screen, shake, music |
+
+Why: the screens are moving to a Swift app that calls the same core, while the Tauri app keeps working. A core that named Tauri would pull Tauri and its webview into the Swift app. The compiler holds the line: a crate can only `use` what its manifest lists, and `core/Cargo.toml` lists no Tauri.
+
+**The workspace has one `Cargo.lock` and one `target/`, both at the root. Profiles are set in the root `Cargo.toml`.**
+Why: both apps then build the core with the same dependency versions. Cargo reads profiles only from the workspace root and ignores them in a member's manifest.
 
 ## Failure: Result or panic
 
@@ -17,13 +31,13 @@ When using `expect`, the message says why it cannot fail. Tests may `unwrap` fre
 Why: in a diary app, typos and network failures are everyday events, and an app that crashes on them can't be used. A bug that keeps running may save corrupted data, so stopping is safer.
 (Microsoft `M-PANIC-IS-STOP`, `M-PANIC-ON-BUG`)
 
-## One error type
+## One error type per crate
 
-**The app has one error type, `AppError`, built with `thiserror`. Each kind of failure is its own variant, and an error from another crate is kept as the variant's source.**
+**Each crate has one error type, built with `thiserror`: `CoreError` in the core, `AppError` in the Tauri app. Each kind of failure is its own variant, and an error from another crate is kept as the variant's source.**
 
 ```rust
 #[derive(Debug, thiserror::Error)]
-pub enum AppError {
+pub enum CoreError {
     #[error("wrong passphrase")]
     WrongPassphrase,
 
@@ -38,11 +52,30 @@ pub enum AppError {
 }
 ```
 
-Use `#[from]` only when every error of that foreign type means the same kind of failure, as with `reqwest::Error` here. When one foreign type can mean several kinds (a `serde_json::Error` from an entry versus from `vault.json`), use `#[source]` and pick the variant with `map_err` where the error happens: `.map_err(AppError::BrokenEntry)?`.
+Use `#[from]` only when every error of that foreign type means the same kind of failure, as with `reqwest::Error` here. When one foreign type can mean several kinds (a `serde_json::Error` from an entry versus from `vault.json`), use `#[source]` and pick the variant with `map_err` where the error happens: `.map_err(CoreError::BrokenEntry)?`.
 Why: two `#[from]` for the same type do not compile (conflicting `From` impls), and folding them into one variant loses the difference the frontend needs.
 
-Why: the frontend reacts differently to each kind of failure (red input, retry button, "can't open this day"), so the kinds must be separate in the type. Tauri also requires a command's error to be `Serialize`, which `anyhow::Error` is not. One type means commands never convert between error types. Split it only if it grows too many variants to read.
+Why: the frontend reacts differently to each kind of failure (red input, retry button, "can't open this day"), so the kinds must be separate in the type. Tauri also requires a command's error to be `Serialize`, which `anyhow::Error` is not.
 (Microsoft `M-APP-ERROR` recommends `anyhow` for apps; Hush takes `thiserror` for the two reasons above. `M-FROM-ERROR` for `#[from]`.)
+
+**`AppError` holds a `CoreError` as one transparent variant, and adds only the failures the Tauri app itself has.**
+
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error(transparent)]
+    Core(#[from] CoreError),
+
+    #[error("the music app did not play the playlist")]
+    Music,
+
+    #[error("app runtime failed")]
+    Tauri(#[from] tauri::Error),
+}
+```
+
+A command turns a core error into an `AppError` with `?`. `transparent` keeps the core error's text and its source chain as they are.
+Why: the core cannot name `tauri::Error`, and a failure only the app produces does not belong in the core's type. Rust also forbids writing `From<tauri::Error> for CoreError` in the app crate, since both types are foreign there.
 
 ## Tauri commands
 
@@ -51,7 +84,7 @@ Why: the frontend reacts differently to each kind of failure (red input, retry b
 ```rust
 #[tauri::command]
 pub async fn read_entry(date: String, state: State<'_, AppState>) -> Result<String, AppError> {
-    entry::read(&state, &date) // entry::read takes &AppState, not State
+    Ok(entry::read(&state, &date)?) // entry::read is in the core and takes &AppState, not State
 }
 ```
 
@@ -90,6 +123,9 @@ impl AppError {
 Why: the frontend branches on the kind. Rust error text can carry file paths or URLs and is not meant to be shown to people. What may appear in `message` once tokens are involved is decided with the secrets work.
 ([Tauri: Calling Rust, Error Handling](https://v2.tauri.app/develop/calling-rust/))
 
+**The kinds live in the Tauri app. `kind` names every `CoreError` variant in its `match`, with no `_` arm.**
+Why: the kind strings are what the web frontend reads, so they belong to the app that serves it. Without a wildcard, a new core variant does not compile until its kind is chosen.
+
 **Every command is an `async fn`.**
 Why: a command without `async` runs on the main thread, and a slow one freezes the window. Making all of them async removes the need to judge each one. Because every command returns `Result`, borrowed arguments such as `State<'_, _>` work in async commands.
 ([Tauri: Calling Rust, Async Commands](https://v2.tauri.app/develop/calling-rust/))
@@ -100,7 +136,7 @@ Why: a command without `async` runs on the main thread, and a slow one freezes t
 let key = tauri::async_runtime::spawn_blocking(move || crypto::derive_key(&passphrase)).await??;
 ```
 
-The first `?` is the blocking task failing (`tauri::Error`, so `AppError` has a `#[from] tauri::Error` variant); the second is `derive_key`'s own error.
+The first `?` is the blocking task failing (`tauri::Error`, so `AppError` has a `#[from] tauri::Error` variant); the second is `derive_key`'s own `CoreError`, which becomes `AppError::Core`.
 Why: async commands share a few threads meant for waiting on I/O. Half a second of hashing on one of them delays everything else, such as GitHub requests.
 (Tauri source `async_runtime.rs`; leonardomso/rust-skills `async-spawn-blocking`)
 
@@ -119,7 +155,7 @@ Why: using the wrong type in `State<...>` is not a compile error; the command fa
 ```rust
 let token = {
     let inner = state.lock().expect("state lock is only poisoned by an earlier panic");
-    inner.session.as_ref().ok_or(AppError::Locked)?.token.clone()
+    inner.session.as_ref().ok_or(CoreError::Locked)?.token.clone()
 }; // lock released here
 github::put_entry(&token, entry).await?;
 ```
@@ -142,11 +178,11 @@ struct VersionOnly {
     version: u32,
 }
 
-let VersionOnly { version } = serde_json::from_str(text).map_err(AppError::BrokenVault)?;
+let VersionOnly { version } = serde_json::from_str(text).map_err(CoreError::BrokenVault)?;
 if version > VAULT_VERSION {
-    return Err(AppError::NewerVaultVersion(version));
+    return Err(CoreError::NewerVaultVersion(version));
 }
-let vault: Vault = serde_json::from_str(text).map_err(AppError::BrokenVault)?;
+let vault: Vault = serde_json::from_str(text).map_err(CoreError::BrokenVault)?;
 ```
 
 `VersionOnly` has no `deny_unknown_fields`, so it reads the version from any file.
@@ -171,7 +207,7 @@ Why: a bare number says nothing about what it is and can't be searched for when 
 
 ## Modules
 
-**Group modules by use, and name each after its main item: `AppError` in `app_error.rs`, vault format in `vault.rs`, GitHub client in `github.rs`.** `commands.rs` is the one exception and holds every command.
+**Group modules by use, and name each after its main item: `CoreError` in `core_error.rs`, vault format in `vault.rs`, GitHub client in `github.rs`.** `commands.rs` is the one exception and holds every command.
 Why: the name tells where a thing is. Commands are kept together because their names share one namespace, so a clash is visible in one file.
 (BeautifulRust §9)
 
@@ -188,5 +224,5 @@ Why: the test sits next to the code, the same as on the frontend (`principle-str
 ## Not taken
 
 - Stricter clippy sets (`pedantic`, `restriction`), recommended by Microsoft `M-STATIC-VERIFICATION` and BeautifulRust: Hush keeps clippy's defaults with `-D warnings`. Raising it is a lint change of its own.
-- Library and API-design rules (Rust API Guidelines, Microsoft `libs/*`, `M-SINGLE-ITEM-PATH`): they concern items published to other crates. Hush is one application crate.
+- Library and API-design rules (Rust API Guidelines, Microsoft `libs/*`, `M-SINGLE-ITEM-PATH`): they concern items published for other people's crates. Hush's two crates are used only by its own apps.
 - `unsafe`, FFI, macros, and performance tuning: nothing in Hush needs them yet.

@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::Serialize;
 
-use crate::app_error::AppError;
+use crate::core_error::CoreError;
 use crate::crypto::VaultKey;
 
 /// How this device recognizes its owner.
@@ -25,16 +25,16 @@ pub trait VaultKeyStore: fmt::Debug + Send + Sync {
     /// `None` when the device has none.
     fn biometry(&self) -> Option<Biometry>;
     /// Whether the person has turned it on for the vault. Asks for nothing.
-    fn is_on(&self, vault_id: &str) -> Result<bool, AppError>;
+    fn is_on(&self, vault_id: &str) -> Result<bool, CoreError>;
     /// Keeps `key`, replacing any kept before, so that only the fingers or
     /// face set up right now can take it out again; then turns it on.
-    fn set(&self, vault_id: &str, key: &VaultKey) -> Result<(), AppError>;
+    fn set(&self, vault_id: &str, key: &VaultKey) -> Result<(), CoreError>;
     /// Asks for Touch ID or Face ID, showing `reason` where the system has
     /// room for it. `None` when nothing comes out: no key was kept, or iOS
     /// no longer gives it out.
-    fn get(&self, vault_id: &str, reason: &str) -> Result<Option<VaultKey>, AppError>;
+    fn get(&self, vault_id: &str, reason: &str) -> Result<Option<VaultKey>, CoreError>;
     /// Forgets the key and turns it off.
-    fn remove(&self, vault_id: &str) -> Result<(), AppError>;
+    fn remove(&self, vault_id: &str) -> Result<(), CoreError>;
 }
 
 /// A device without Touch ID or Face ID: nothing is ever kept.
@@ -46,19 +46,19 @@ impl VaultKeyStore for NoBiometry {
         None
     }
 
-    fn is_on(&self, _: &str) -> Result<bool, AppError> {
+    fn is_on(&self, _: &str) -> Result<bool, CoreError> {
         Ok(false)
     }
 
-    fn set(&self, _: &str, _: &VaultKey) -> Result<(), AppError> {
-        Err(AppError::NoBiometry)
+    fn set(&self, _: &str, _: &VaultKey) -> Result<(), CoreError> {
+        Err(CoreError::NoBiometry)
     }
 
-    fn get(&self, _: &str, _: &str) -> Result<Option<VaultKey>, AppError> {
+    fn get(&self, _: &str, _: &str) -> Result<Option<VaultKey>, CoreError> {
         Ok(None)
     }
 
-    fn remove(&self, _: &str) -> Result<(), AppError> {
+    fn remove(&self, _: &str) -> Result<(), CoreError> {
         Ok(())
     }
 }
@@ -95,19 +95,19 @@ impl VaultKeyStore for MemoryVaultKeys {
         Some(Biometry::TouchId)
     }
 
-    fn is_on(&self, vault_id: &str) -> Result<bool, AppError> {
+    fn is_on(&self, vault_id: &str) -> Result<bool, CoreError> {
         Ok(self.on.lock().unwrap().contains(vault_id))
     }
 
-    fn set(&self, vault_id: &str, key: &VaultKey) -> Result<(), AppError> {
+    fn set(&self, vault_id: &str, key: &VaultKey) -> Result<(), CoreError> {
         self.plant(vault_id, key.as_bytes());
         self.on.lock().unwrap().insert(vault_id.to_string());
         Ok(())
     }
 
-    fn get(&self, vault_id: &str, _: &str) -> Result<Option<VaultKey>, AppError> {
+    fn get(&self, vault_id: &str, _: &str) -> Result<Option<VaultKey>, CoreError> {
         if self.refuse.load(std::sync::atomic::Ordering::SeqCst) {
-            return Err(AppError::BiometryCancelled);
+            return Err(CoreError::BiometryCancelled);
         }
         let keys = self.keys.lock().unwrap();
         Ok(keys
@@ -115,7 +115,7 @@ impl VaultKeyStore for MemoryVaultKeys {
             .and_then(|bytes| VaultKey::from_bytes(bytes)))
     }
 
-    fn remove(&self, vault_id: &str) -> Result<(), AppError> {
+    fn remove(&self, vault_id: &str) -> Result<(), CoreError> {
         self.keys.lock().unwrap().remove(vault_id);
         self.on.lock().unwrap().remove(vault_id);
         Ok(())
@@ -144,7 +144,7 @@ mod ios {
     use security_framework_sys::keychain_item::{SecItemAdd, SecItemCopyMatching, SecItemDelete};
 
     use super::{Biometry, VaultKeyStore};
-    use crate::app_error::AppError;
+    use crate::core_error::CoreError;
     use crate::crypto::VaultKey;
 
     /// The vault key, behind Touch ID or Face ID.
@@ -210,20 +210,20 @@ mod ios {
         (status, result)
     }
 
-    fn add(query: &CFDictionary<CFString, CFType>) -> Result<(), AppError> {
+    fn add(query: &CFDictionary<CFString, CFType>) -> Result<(), CoreError> {
         // SAFETY: `query` is a valid dictionary; no result is asked for.
         match unsafe { SecItemAdd(query.as_concrete_TypeRef(), std::ptr::null_mut()) } {
             SUCCESS => Ok(()),
-            status => Err(AppError::BiometricKeychain(status)),
+            status => Err(CoreError::BiometricKeychain(status)),
         }
     }
 
-    fn delete(service: &str, vault_id: &str) -> Result<(), AppError> {
+    fn delete(service: &str, vault_id: &str) -> Result<(), CoreError> {
         let query = query(service, vault_id, Vec::new());
         // SAFETY: `query` is a valid dictionary.
         match unsafe { SecItemDelete(query.as_concrete_TypeRef()) } {
             SUCCESS | ITEM_NOT_FOUND => Ok(()),
-            status => Err(AppError::BiometricKeychain(status)),
+            status => Err(CoreError::BiometricKeychain(status)),
         }
     }
 
@@ -244,7 +244,7 @@ mod ios {
             }
         }
 
-        fn is_on(&self, vault_id: &str) -> Result<bool, AppError> {
+        fn is_on(&self, vault_id: &str) -> Result<bool, CoreError> {
             let query = query(
                 ON_SERVICE,
                 vault_id,
@@ -256,17 +256,17 @@ mod ios {
             match copy_matching(&query).0 {
                 SUCCESS => Ok(true),
                 ITEM_NOT_FOUND => Ok(false),
-                status => Err(AppError::BiometricKeychain(status)),
+                status => Err(CoreError::BiometricKeychain(status)),
             }
         }
 
-        fn set(&self, vault_id: &str, vault_key: &VaultKey) -> Result<(), AppError> {
+        fn set(&self, vault_id: &str, vault_key: &VaultKey) -> Result<(), CoreError> {
             delete(KEY_SERVICE, vault_id)?;
             let access = SecAccessControl::create_with_protection(
                 Some(ProtectionMode::AccessibleWhenPasscodeSetThisDeviceOnly),
                 AccessControlOptions::BIOMETRY_CURRENT_SET.bits(),
             )
-            .map_err(|e| AppError::BiometricKeychain(e.code()))?;
+            .map_err(|e| CoreError::BiometricKeychain(e.code()))?;
             // The CFData is a copy of the key that is not wiped; it is
             // released at the end of this call.
             add(&query(
@@ -295,7 +295,7 @@ mod ios {
             Ok(())
         }
 
-        fn get(&self, vault_id: &str, reason: &str) -> Result<Option<VaultKey>, AppError> {
+        fn get(&self, vault_id: &str, reason: &str) -> Result<Option<VaultKey>, CoreError> {
             // SAFETY: a fresh context, used on this thread only.
             let context = unsafe { LAContext::new() };
             unsafe {
@@ -316,17 +316,17 @@ mod ios {
                     // An unwiped copy of the key, released when `data` drops here.
                     let data = data
                         .downcast_into::<CFData>()
-                        .ok_or(AppError::BiometricKeychain(SUCCESS))?;
+                        .ok_or(CoreError::BiometricKeychain(SUCCESS))?;
                     Ok(VaultKey::from_bytes(data.bytes()))
                 }
                 (ITEM_NOT_FOUND, _) => Ok(None),
-                (USER_CANCELED, _) => Err(AppError::BiometryCancelled),
-                (AUTH_FAILED, _) => Err(AppError::BiometryFailed),
-                (status, _) => Err(AppError::BiometricKeychain(status)),
+                (USER_CANCELED, _) => Err(CoreError::BiometryCancelled),
+                (AUTH_FAILED, _) => Err(CoreError::BiometryFailed),
+                (status, _) => Err(CoreError::BiometricKeychain(status)),
             }
         }
 
-        fn remove(&self, vault_id: &str) -> Result<(), AppError> {
+        fn remove(&self, vault_id: &str) -> Result<(), CoreError> {
             delete(ON_SERVICE, vault_id)?;
             delete(KEY_SERVICE, vault_id)
         }

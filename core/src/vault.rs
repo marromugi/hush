@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize, de};
 
-use crate::app_error::AppError;
 use crate::b64;
+use crate::core_error::CoreError;
 use crate::crypto::{self, DEFAULT_KDF, KdfParams, SALT_LEN, Sealed, VaultKey};
 use crate::file_version::read_version;
 use crate::secret_key::SecretKey;
@@ -117,10 +117,10 @@ impl StoredKdf {
 impl Vault {
     /// Makes a new vault for `passphrase` and a new Secret Key, and returns
     /// them with the vault's key.
-    pub fn create(passphrase: &str) -> Result<(Vault, VaultKey, SecretKey), AppError> {
+    pub fn create(passphrase: &str) -> Result<(Vault, VaultKey, SecretKey), CoreError> {
         let secret_key = SecretKey::generate()?;
         let mut id = [0; VAULT_ID_LEN];
-        getrandom::fill(&mut id).map_err(AppError::Random)?;
+        getrandom::fill(&mut id).map_err(CoreError::Random)?;
         let kdf = StoredKdf {
             algorithm: KdfAlgorithm::Argon2id,
             memory_kib: DEFAULT_KDF.memory_kib,
@@ -141,20 +141,20 @@ impl Vault {
 
     /// Parses `vault.json`. The version is read first, so a vault written by
     /// a newer app asks for an update instead of being reported as broken.
-    pub fn parse(text: &str) -> Result<Vault, AppError> {
-        let version = read_version(text).map_err(AppError::BrokenVault)?;
+    pub fn parse(text: &str) -> Result<Vault, CoreError> {
+        let version = read_version(text).map_err(CoreError::BrokenVault)?;
         if version > VAULT_VERSION {
-            return Err(AppError::NewerVaultVersion(version));
+            return Err(CoreError::NewerVaultVersion(version));
         }
         if OUTDATED_VERSIONS.contains(&version) {
-            return Err(AppError::OutdatedVault(version));
+            return Err(CoreError::OutdatedVault(version));
         }
         if version < VAULT_VERSION {
-            return Err(AppError::BrokenVault(de::Error::custom(format!(
+            return Err(CoreError::BrokenVault(de::Error::custom(format!(
                 "unknown version {version}"
             ))));
         }
-        serde_json::from_str(text).map_err(AppError::BrokenVault)
+        serde_json::from_str(text).map_err(CoreError::BrokenVault)
     }
 
     /// The id that names this vault in a keychain.
@@ -164,17 +164,17 @@ impl Vault {
 
     /// Derives the key and checks it. A wrong passphrase and a wrong Secret
     /// Key look the same.
-    pub fn unlock(&self, passphrase: &str, secret_key: &SecretKey) -> Result<VaultKey, AppError> {
+    pub fn unlock(&self, passphrase: &str, secret_key: &SecretKey) -> Result<VaultKey, CoreError> {
         let key = crypto::derive_key(passphrase, secret_key, &self.kdf.salt, &self.kdf.params())?;
         self.check(key).map_err(|e| match e {
-            AppError::Decryption => AppError::WrongPassphraseOrSecretKey,
+            CoreError::Decryption => CoreError::WrongPassphraseOrSecretKey,
             other => other,
         })
     }
 
     /// `key` back if it is this vault's, `Decryption` if not. The cipher
     /// authenticates the verifier, so decrypting it at all proves the key.
-    pub fn check(&self, key: VaultKey) -> Result<VaultKey, AppError> {
+    pub fn check(&self, key: VaultKey) -> Result<VaultKey, CoreError> {
         crypto::decrypt(&key, VERIFIER_AAD, &self.verifier)?;
         Ok(key)
     }
@@ -206,11 +206,11 @@ mod tests {
         let (vault, _, secret_key) = Vault::create("correct horse").unwrap();
         assert!(matches!(
             vault.unlock("wrong horse", &secret_key),
-            Err(AppError::WrongPassphraseOrSecretKey)
+            Err(CoreError::WrongPassphraseOrSecretKey)
         ));
         assert!(matches!(
             vault.unlock("correct horse", &secret(1)),
-            Err(AppError::WrongPassphraseOrSecretKey)
+            Err(CoreError::WrongPassphraseOrSecretKey)
         ));
     }
 
@@ -249,7 +249,7 @@ mod tests {
         });
         assert!(matches!(
             Vault::parse(&text),
-            Err(AppError::NewerVaultVersion(3))
+            Err(CoreError::NewerVaultVersion(3))
         ));
     }
 
@@ -258,20 +258,26 @@ mod tests {
         let text = r#"{"version":1,"kdf":{},"verifier":{}}"#;
         assert!(matches!(
             Vault::parse(text),
-            Err(AppError::OutdatedVault(1))
+            Err(CoreError::OutdatedVault(1))
         ));
     }
 
     #[test]
     fn unknown_field_at_the_current_version_is_broken() {
         let text = json_with(|v| v["mood"] = "sunny".into());
-        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+        assert!(matches!(
+            Vault::parse(&text),
+            Err(CoreError::BrokenVault(_))
+        ));
     }
 
     #[test]
     fn version_zero_is_broken() {
         let text = json_with(|v| v["version"] = 0.into());
-        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+        assert!(matches!(
+            Vault::parse(&text),
+            Err(CoreError::BrokenVault(_))
+        ));
     }
 
     #[test]
@@ -283,7 +289,7 @@ mod tests {
         ] {
             let text = json_with(|v| v["kdf"][field] = value.into());
             assert!(
-                matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))),
+                matches!(Vault::parse(&text), Err(CoreError::BrokenVault(_))),
                 "{field} = {value} was accepted"
             );
         }
@@ -302,13 +308,19 @@ mod tests {
     #[test]
     fn a_salt_of_the_wrong_length_is_broken() {
         let text = json_with(|v| v["kdf"]["salt"] = "AAAA".into());
-        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+        assert!(matches!(
+            Vault::parse(&text),
+            Err(CoreError::BrokenVault(_))
+        ));
     }
 
     #[test]
     fn another_algorithm_is_broken() {
         let text = json_with(|v| v["kdf"]["algorithm"] = "scrypt".into());
-        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+        assert!(matches!(
+            Vault::parse(&text),
+            Err(CoreError::BrokenVault(_))
+        ));
     }
 
     #[test]
@@ -316,7 +328,7 @@ mod tests {
         for (field, value) in [("memory_kib", 0), ("iterations", 0), ("parallelism", 0)] {
             let text = json_with(|v| v["kdf"][field] = value.into());
             assert!(
-                matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))),
+                matches!(Vault::parse(&text), Err(CoreError::BrokenVault(_))),
                 "{field} = {value} was accepted"
             );
         }
@@ -324,7 +336,10 @@ mod tests {
             v["kdf"]["memory_kib"] = 8.into();
             v["kdf"]["parallelism"] = 8.into();
         });
-        assert!(matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))));
+        assert!(matches!(
+            Vault::parse(&text),
+            Err(CoreError::BrokenVault(_))
+        ));
     }
 
     #[test]
@@ -332,7 +347,7 @@ mod tests {
         for section in ["kdf", "verifier"] {
             let text = json_with(|v| v[section]["extra"] = 1.into());
             assert!(
-                matches!(Vault::parse(&text), Err(AppError::BrokenVault(_))),
+                matches!(Vault::parse(&text), Err(CoreError::BrokenVault(_))),
                 "extra field in {section} was accepted"
             );
         }

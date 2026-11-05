@@ -2,14 +2,14 @@ use std::fmt;
 
 use zeroize::Zeroizing;
 
-use crate::app_error::AppError;
+use crate::core_error::CoreError;
 use crate::secret_key::SecretKey;
 
 /// Where this device keeps each vault's Secret Key, by vault id.
 pub trait SecretKeyStore: fmt::Debug + Send + Sync {
     /// `None` when this device has no usable Secret Key for the vault.
-    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, AppError>;
-    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), AppError>;
+    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, CoreError>;
+    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), CoreError>;
 }
 
 /// The operating system's keychain: the login keychain on macOS, the
@@ -20,21 +20,21 @@ pub struct Keychain;
 const SERVICE: &str = "dev.marromugi.hush.secret-key";
 
 impl SecretKeyStore for Keychain {
-    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, AppError> {
-        let entry = keyring::Entry::new(SERVICE, vault_id).map_err(AppError::Keychain)?;
+    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, CoreError> {
+        let entry = keyring::Entry::new(SERVICE, vault_id).map_err(CoreError::Keychain)?;
         match entry.get_secret().map(Zeroizing::new) {
             // An item that is not a Secret Key is as good as none: the person
             // types the key, and the typed key replaces it once it opens the vault.
             Ok(bytes) => Ok(SecretKey::from_bytes(&bytes)),
             Err(keyring::Error::NoEntry) => Ok(None),
-            Err(e) => Err(AppError::Keychain(e)),
+            Err(e) => Err(CoreError::Keychain(e)),
         }
     }
 
-    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), AppError> {
+    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), CoreError> {
         keyring::Entry::new(SERVICE, vault_id)
             .and_then(|entry| entry.set_secret(key.as_bytes()))
-            .map_err(AppError::Keychain)
+            .map_err(CoreError::Keychain)
     }
 }
 
@@ -45,14 +45,14 @@ pub struct BrokenKeychain;
 
 #[cfg(test)]
 impl SecretKeyStore for BrokenKeychain {
-    fn get(&self, _: &str) -> Result<Option<SecretKey>, AppError> {
-        Err(AppError::Keychain(keyring::Error::NoStorageAccess(
+    fn get(&self, _: &str) -> Result<Option<SecretKey>, CoreError> {
+        Err(CoreError::Keychain(keyring::Error::NoStorageAccess(
             "denied".into(),
         )))
     }
 
-    fn set(&self, _: &str, _: &SecretKey) -> Result<(), AppError> {
-        Err(AppError::Keychain(keyring::Error::NoStorageAccess(
+    fn set(&self, _: &str, _: &SecretKey) -> Result<(), CoreError> {
+        Err(CoreError::Keychain(keyring::Error::NoStorageAccess(
             "denied".into(),
         )))
     }
@@ -65,14 +65,14 @@ pub struct MemoryKeychain(std::sync::Mutex<std::collections::HashMap<String, Vec
 
 #[cfg(test)]
 impl SecretKeyStore for MemoryKeychain {
-    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, AppError> {
+    fn get(&self, vault_id: &str) -> Result<Option<SecretKey>, CoreError> {
         let keys = self.0.lock().unwrap();
         Ok(keys
             .get(vault_id)
             .map(|bytes| SecretKey::from_bytes(bytes).unwrap()))
     }
 
-    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), AppError> {
+    fn set(&self, vault_id: &str, key: &SecretKey) -> Result<(), CoreError> {
         let mut keys = self.0.lock().unwrap();
         keys.insert(vault_id.to_string(), key.as_bytes().to_vec());
         Ok(())

@@ -2,9 +2,9 @@ use std::sync::MutexGuard;
 
 use serde::Serialize;
 
-use crate::app_error::AppError;
 use crate::app_state::{AppState, AppStateInner};
 use crate::biometry::Biometry;
+use crate::core_error::CoreError;
 use crate::crypto::VaultKey;
 use crate::entry::{Entry, EntryDate, EntryFont};
 use crate::image::{ImageId, Picture};
@@ -90,10 +90,10 @@ pub fn begin_unlock(state: &AppState) -> Pending {
 }
 
 /// Keeps `key` unless the vault was locked while it was being derived.
-pub fn finish_unlock(state: &AppState, pending: Pending, key: VaultKey) -> Result<(), AppError> {
+pub fn finish_unlock(state: &AppState, pending: Pending, key: VaultKey) -> Result<(), CoreError> {
     let mut inner = inner(state);
     if inner.lock_count != pending.lock_count {
-        return Err(AppError::Locked);
+        return Err(CoreError::Locked);
     }
     inner.key = Some(key);
     Ok(())
@@ -105,10 +105,10 @@ pub fn lock(state: &AppState) {
     inner.lock_count += 1;
 }
 
-pub fn read_entry(state: &AppState, date: String) -> Result<Option<EntryView>, AppError> {
+pub fn read_entry(state: &AppState, date: String) -> Result<Option<EntryView>, CoreError> {
     let date = parse_date(date)?;
     let inner = inner(state);
-    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    let key = inner.key.as_ref().ok_or(CoreError::Locked)?;
     Ok(inner.store.read_entry(key, &date)?.map(EntryView::from))
 }
 
@@ -118,10 +118,10 @@ pub fn save_entry(
     body: String,
     font: Option<EntryFont>,
     now_ms: u64,
-) -> Result<EntryView, AppError> {
+) -> Result<EntryView, CoreError> {
     let date = parse_date(date)?;
     let inner = inner(state);
-    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    let key = inner.key.as_ref().ok_or(CoreError::Locked)?;
     Ok(inner
         .store
         .save_entry(key, &date, body, font, now_ms)?
@@ -129,31 +129,31 @@ pub fn save_entry(
 }
 
 /// Saves `bytes`, a JPEG, PNG, or GIF, as a new image and returns its id.
-pub fn save_image(state: &AppState, bytes: Vec<u8>) -> Result<String, AppError> {
+pub fn save_image(state: &AppState, bytes: Vec<u8>) -> Result<String, CoreError> {
     let picture = Picture::try_from(bytes)?;
     let inner = inner(state);
-    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    let key = inner.key.as_ref().ok_or(CoreError::Locked)?;
     Ok(inner.store.save_image(key, &picture)?.into())
 }
 
 /// The picture saved as `id`.
-pub fn read_image(state: &AppState, id: String) -> Result<Vec<u8>, AppError> {
-    let id = ImageId::try_from(id).map_err(AppError::InvalidImageId)?;
+pub fn read_image(state: &AppState, id: String) -> Result<Vec<u8>, CoreError> {
+    let id = ImageId::try_from(id).map_err(CoreError::InvalidImageId)?;
     let inner = inner(state);
-    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    let key = inner.key.as_ref().ok_or(CoreError::Locked)?;
     Ok(inner.store.read_image(key, &id)?.into())
 }
 
 /// The vault's Secret Key as text, for the person to keep again. Only while
 /// unlocked, from this device's keychain.
-pub fn secret_key_text(state: &AppState) -> Result<String, AppError> {
+pub fn secret_key_text(state: &AppState) -> Result<String, CoreError> {
     let inner = inner(state);
-    inner.key.as_ref().ok_or(AppError::Locked)?;
-    let secret_key = inner.store.secret_key()?.ok_or(AppError::NoSecretKey)?;
+    inner.key.as_ref().ok_or(CoreError::Locked)?;
+    let secret_key = inner.store.secret_key()?.ok_or(CoreError::NoSecretKey)?;
     Ok(secret_key.to_text().to_string())
 }
 
-pub fn biometry_status(state: &AppState) -> Result<BiometryStatus, AppError> {
+pub fn biometry_status(state: &AppState) -> Result<BiometryStatus, CoreError> {
     let store = inner(state).store.clone();
     let biometry = store.biometry();
     let on = biometry.is_some() && store.keeps_vault_key()?;
@@ -161,21 +161,21 @@ pub fn biometry_status(state: &AppState) -> Result<BiometryStatus, AppError> {
 }
 
 /// Keeps the open vault's key behind Touch ID or Face ID. Only while unlocked.
-pub fn turn_on_biometry(state: &AppState) -> Result<(), AppError> {
+pub fn turn_on_biometry(state: &AppState) -> Result<(), CoreError> {
     let inner = inner(state);
-    let key = inner.key.as_ref().ok_or(AppError::Locked)?;
+    let key = inner.key.as_ref().ok_or(CoreError::Locked)?;
     inner.store.keep_vault_key(key)
 }
 
-pub fn turn_off_biometry(state: &AppState) -> Result<(), AppError> {
+pub fn turn_off_biometry(state: &AppState) -> Result<(), CoreError> {
     let store = inner(state).store.clone();
     store.forget_vault_key()
 }
 
 /// Every date that has an entry, oldest first, as `YYYY-MM-DD`.
-pub fn entry_dates(state: &AppState) -> Result<Vec<String>, AppError> {
+pub fn entry_dates(state: &AppState) -> Result<Vec<String>, CoreError> {
     let inner = inner(state);
-    inner.key.as_ref().ok_or(AppError::Locked)?;
+    inner.key.as_ref().ok_or(CoreError::Locked)?;
     Ok(inner
         .store
         .entry_dates()?
@@ -184,8 +184,8 @@ pub fn entry_dates(state: &AppState) -> Result<Vec<String>, AppError> {
         .collect())
 }
 
-fn parse_date(date: String) -> Result<EntryDate, AppError> {
-    EntryDate::try_from(date).map_err(AppError::InvalidDate)
+fn parse_date(date: String) -> Result<EntryDate, CoreError> {
+    EntryDate::try_from(date).map_err(CoreError::InvalidDate)
 }
 
 #[cfg(test)]
@@ -259,7 +259,7 @@ mod tests {
         assert!(inner(&state).key.is_none());
         assert!(matches!(
             read_entry(&state, "2026-10-29".to_string()),
-            Err(AppError::Locked)
+            Err(CoreError::Locked)
         ));
     }
 
@@ -274,7 +274,7 @@ mod tests {
         lock(&state); // the user locks while the key is being derived
         assert!(matches!(
             finish_unlock(&state, pending, key),
-            Err(AppError::Locked)
+            Err(CoreError::Locked)
         ));
         assert_eq!(status(&state), VaultStatus::Locked);
     }
@@ -286,7 +286,7 @@ mod tests {
         lock(&state);
         assert!(matches!(
             save_entry(&state, "2026-10-29".to_string(), "b".to_string(), None, 1),
-            Err(AppError::Locked)
+            Err(CoreError::Locked)
         ));
     }
 
@@ -298,7 +298,7 @@ mod tests {
         finish_unlock(&state, pending, key).unwrap();
         assert_eq!(secret_key_text(&state).unwrap(), *created.to_text());
         lock(&state);
-        assert!(matches!(secret_key_text(&state), Err(AppError::Locked)));
+        assert!(matches!(secret_key_text(&state), Err(CoreError::Locked)));
     }
 
     #[test]
@@ -325,7 +325,7 @@ mod tests {
         assert_eq!(biometry_status(&state).unwrap(), off);
 
         lock(&state);
-        assert!(matches!(turn_on_biometry(&state), Err(AppError::Locked)));
+        assert!(matches!(turn_on_biometry(&state), Err(CoreError::Locked)));
     }
 
     #[test]
@@ -342,7 +342,7 @@ mod tests {
         );
         assert!(matches!(
             turn_on_biometry(&state),
-            Err(AppError::NoBiometry)
+            Err(CoreError::NoBiometry)
         ));
     }
 
@@ -353,7 +353,7 @@ mod tests {
         save_entry(&state, "2026-10-29".to_string(), "b".to_string(), None, 1).unwrap();
         assert_eq!(entry_dates(&state).unwrap(), ["2026-10-29"]);
         lock(&state);
-        assert!(matches!(entry_dates(&state), Err(AppError::Locked)));
+        assert!(matches!(entry_dates(&state), Err(CoreError::Locked)));
     }
 
     #[test]
@@ -392,7 +392,7 @@ mod tests {
         create_and_unlock(&state, "correct horse");
         assert!(matches!(
             read_entry(&state, "../../vault".to_string()),
-            Err(AppError::InvalidDate(_))
+            Err(CoreError::InvalidDate(_))
         ));
     }
 

@@ -1,119 +1,14 @@
+use hush_core::core_error::CoreError;
 use serde::ser::SerializeStruct;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("key derivation failed")]
-    KeyDerivation(#[source] argon2::Error),
-
-    /// Wrong key, wrong file path, or a ciphertext that was altered. The cipher
-    /// does not say which, by design.
-    #[error("decryption failed")]
-    Decryption,
-
-    #[error("encryption failed")]
-    Encryption,
-
-    #[error("system random number generator failed")]
-    Random(#[source] getrandom::Error),
-
-    #[error("wrong passphrase")]
-    WrongPassphrase,
-
-    /// The Secret Key was typed, so either of the two can be the wrong one.
-    #[error("wrong passphrase or secret key")]
-    WrongPassphraseOrSecretKey,
-
-    #[error("text is not a secret key")]
-    InvalidSecretKey,
-
-    #[error("this device has no secret key for the vault")]
-    NoSecretKey,
-
-    #[error("keychain access failed")]
-    Keychain(#[source] keyring::Error),
-
-    #[error("this device has no Touch ID or Face ID set up")]
-    NoBiometry,
-
-    /// The person cancelled Touch ID or Face ID.
-    #[error("touch id or face id was cancelled")]
-    BiometryCancelled,
-
-    /// Touch ID or Face ID failed too many times, and is locked until the
-    /// device passcode is entered.
-    #[error("touch id or face id failed")]
-    BiometryFailed,
-
-    #[error("keychain access for touch id or face id failed with status {0}")]
-    BiometricKeychain(i32),
-
-    /// No key is kept for Touch ID or Face ID, or the kept one no longer
-    /// opens the vault.
-    #[error("no key is kept for touch id or face id")]
-    NoKeptKey,
-
-    #[error("passphrase is empty")]
-    EmptyPassphrase,
-
-    #[error("vault.json is version {0}, newer than this app")]
-    NewerVaultVersion(u32),
-
-    #[error("vault.json is version {0}, from before secret keys")]
-    OutdatedVault(u32),
-
-    #[error("vault.json is broken")]
-    BrokenVault(#[source] serde_json::Error),
-
-    #[error("entry file is version {0}, newer than this app")]
-    NewerEntryVersion(u32),
-
-    #[error("entry file is broken")]
-    BrokenEntry(#[source] serde_json::Error),
-
-    #[error("{0}")]
-    InvalidDate(String),
-
-    #[error("image file is version {0}, newer than this app")]
-    NewerImageVersion(u32),
-
-    #[error("image file is broken")]
-    BrokenImage(#[source] serde_json::Error),
-
-    #[error("{0}")]
-    InvalidImageId(String),
-
-    #[error("no image file with this id")]
-    NoImage,
-
-    #[error("picture is not a JPEG, PNG, or GIF")]
-    UnsupportedPicture,
-
-    #[error("no vault yet")]
-    NoVault,
-
-    #[error("a vault already exists")]
-    VaultExists,
-
-    #[error("vault is locked")]
-    Locked,
-
-    #[error("the server for video pages is not running")]
-    EmbedPages,
+    #[error(transparent)]
+    Core(#[from] CoreError),
 
     /// Not allowed, not answered in time, or no such playlist.
     #[error("the music app did not play the playlist")]
     Music,
-
-    /// The link's site could not be reached, did not answer in time, or answered with an error.
-    #[error("link could not be fetched")]
-    Link(#[from] reqwest::Error),
-
-    /// Not an `http` or `https` link, or its picture is too large.
-    #[error("link cannot be read")]
-    UnreadableLink,
-
-    #[error("file access failed")]
-    Io(#[from] std::io::Error),
 
     #[error("app runtime failed")]
     Tauri(#[from] tauri::Error),
@@ -123,40 +18,8 @@ impl AppError {
     /// What the frontend branches on.
     fn kind(&self) -> &'static str {
         match self {
-            Self::KeyDerivation(_) => "keyDerivation",
-            Self::Decryption => "decryption",
-            Self::Encryption => "encryption",
-            Self::Random(_) => "random",
-            Self::WrongPassphrase => "wrongPassphrase",
-            Self::WrongPassphraseOrSecretKey => "wrongPassphraseOrSecretKey",
-            Self::InvalidSecretKey => "invalidSecretKey",
-            Self::NoSecretKey => "noSecretKey",
-            Self::Keychain(_) => "keychain",
-            Self::OutdatedVault(_) => "outdatedVault",
-            Self::NoBiometry => "noBiometry",
-            Self::BiometryCancelled => "biometryCancelled",
-            Self::BiometryFailed => "biometryFailed",
-            Self::BiometricKeychain(_) => "biometricKeychain",
-            Self::NoKeptKey => "noKeptKey",
-            Self::EmptyPassphrase => "emptyPassphrase",
-            Self::NewerVaultVersion(_) => "newerVaultVersion",
-            Self::BrokenVault(_) => "brokenVault",
-            Self::NewerEntryVersion(_) => "newerEntryVersion",
-            Self::BrokenEntry(_) => "brokenEntry",
-            Self::InvalidDate(_) => "invalidDate",
-            Self::NewerImageVersion(_) => "newerImageVersion",
-            Self::BrokenImage(_) => "brokenImage",
-            Self::InvalidImageId(_) => "invalidImageId",
-            Self::NoImage => "noImage",
-            Self::UnsupportedPicture => "unsupportedPicture",
-            Self::NoVault => "noVault",
-            Self::VaultExists => "vaultExists",
-            Self::Locked => "locked",
-            Self::EmbedPages => "embedPages",
+            Self::Core(error) => core_kind(error),
             Self::Music => "music",
-            Self::Link(_) => "link",
-            Self::UnreadableLink => "unreadableLink",
-            Self::Io(_) => "io",
             Self::Tauri(_) => "tauri",
         }
     }
@@ -171,6 +34,44 @@ impl AppError {
             source = error.source();
         }
         message
+    }
+}
+
+fn core_kind(error: &CoreError) -> &'static str {
+    match error {
+        CoreError::KeyDerivation(_) => "keyDerivation",
+        CoreError::Decryption => "decryption",
+        CoreError::Encryption => "encryption",
+        CoreError::Random(_) => "random",
+        CoreError::WrongPassphrase => "wrongPassphrase",
+        CoreError::WrongPassphraseOrSecretKey => "wrongPassphraseOrSecretKey",
+        CoreError::InvalidSecretKey => "invalidSecretKey",
+        CoreError::NoSecretKey => "noSecretKey",
+        CoreError::Keychain(_) => "keychain",
+        CoreError::OutdatedVault(_) => "outdatedVault",
+        CoreError::NoBiometry => "noBiometry",
+        CoreError::BiometryCancelled => "biometryCancelled",
+        CoreError::BiometryFailed => "biometryFailed",
+        CoreError::BiometricKeychain(_) => "biometricKeychain",
+        CoreError::NoKeptKey => "noKeptKey",
+        CoreError::EmptyPassphrase => "emptyPassphrase",
+        CoreError::NewerVaultVersion(_) => "newerVaultVersion",
+        CoreError::BrokenVault(_) => "brokenVault",
+        CoreError::NewerEntryVersion(_) => "newerEntryVersion",
+        CoreError::BrokenEntry(_) => "brokenEntry",
+        CoreError::InvalidDate(_) => "invalidDate",
+        CoreError::NewerImageVersion(_) => "newerImageVersion",
+        CoreError::BrokenImage(_) => "brokenImage",
+        CoreError::InvalidImageId(_) => "invalidImageId",
+        CoreError::NoImage => "noImage",
+        CoreError::UnsupportedPicture => "unsupportedPicture",
+        CoreError::NoVault => "noVault",
+        CoreError::VaultExists => "vaultExists",
+        CoreError::Locked => "locked",
+        CoreError::EmbedPages => "embedPages",
+        CoreError::Link(_) => "link",
+        CoreError::UnreadableLink => "unreadableLink",
+        CoreError::Io(_) => "io",
     }
 }
 
@@ -192,7 +93,7 @@ mod tests {
     #[test]
     fn reaches_the_frontend_as_kind_and_message_with_its_cause() {
         let io = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied");
-        let value = serde_json::to_value(AppError::Io(io)).unwrap();
+        let value = serde_json::to_value(AppError::Core(CoreError::Io(io))).unwrap();
         assert_eq!(value["kind"], "io");
         assert_eq!(value["message"], "file access failed: denied");
     }
@@ -201,31 +102,34 @@ mod tests {
     #[test]
     fn kinds_the_frontend_branches_on() {
         let cases = [
-            (AppError::WrongPassphrase, "wrongPassphrase"),
-            (AppError::EmptyPassphrase, "emptyPassphrase"),
-            (AppError::NoVault, "noVault"),
-            (AppError::VaultExists, "vaultExists"),
-            (AppError::Locked, "locked"),
+            (CoreError::WrongPassphrase.into(), "wrongPassphrase"),
+            (CoreError::EmptyPassphrase.into(), "emptyPassphrase"),
+            (CoreError::NoVault.into(), "noVault"),
+            (CoreError::VaultExists.into(), "vaultExists"),
+            (CoreError::Locked.into(), "locked"),
             (AppError::Music, "music"),
-            (AppError::UnreadableLink, "unreadableLink"),
-            (AppError::InvalidDate(String::new()), "invalidDate"),
-            (AppError::NewerVaultVersion(2), "newerVaultVersion"),
-            (AppError::NewerEntryVersion(2), "newerEntryVersion"),
-            (AppError::Decryption, "decryption"),
+            (CoreError::UnreadableLink.into(), "unreadableLink"),
+            (CoreError::InvalidDate(String::new()).into(), "invalidDate"),
+            (CoreError::NewerVaultVersion(2).into(), "newerVaultVersion"),
+            (CoreError::NewerEntryVersion(2).into(), "newerEntryVersion"),
+            (CoreError::Decryption.into(), "decryption"),
             (
-                AppError::WrongPassphraseOrSecretKey,
+                CoreError::WrongPassphraseOrSecretKey.into(),
                 "wrongPassphraseOrSecretKey",
             ),
-            (AppError::InvalidSecretKey, "invalidSecretKey"),
-            (AppError::NoSecretKey, "noSecretKey"),
-            (AppError::BiometryCancelled, "biometryCancelled"),
-            (AppError::BiometryFailed, "biometryFailed"),
-            (AppError::NoKeptKey, "noKeptKey"),
-            (AppError::OutdatedVault(1), "outdatedVault"),
-            (AppError::NewerImageVersion(2), "newerImageVersion"),
-            (AppError::InvalidImageId(String::new()), "invalidImageId"),
-            (AppError::NoImage, "noImage"),
-            (AppError::UnsupportedPicture, "unsupportedPicture"),
+            (CoreError::InvalidSecretKey.into(), "invalidSecretKey"),
+            (CoreError::NoSecretKey.into(), "noSecretKey"),
+            (CoreError::BiometryCancelled.into(), "biometryCancelled"),
+            (CoreError::BiometryFailed.into(), "biometryFailed"),
+            (CoreError::NoKeptKey.into(), "noKeptKey"),
+            (CoreError::OutdatedVault(1).into(), "outdatedVault"),
+            (CoreError::NewerImageVersion(2).into(), "newerImageVersion"),
+            (
+                CoreError::InvalidImageId(String::new()).into(),
+                "invalidImageId",
+            ),
+            (CoreError::NoImage.into(), "noImage"),
+            (CoreError::UnsupportedPicture.into(), "unsupportedPicture"),
         ];
         for (error, kind) in cases {
             assert_eq!(serde_json::to_value(error).unwrap()["kind"], kind);

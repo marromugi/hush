@@ -11,8 +11,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::app_error::AppError;
 use crate::app_state::AppState;
+use crate::core_error::CoreError;
 
 /// Where a video's page is served: `/youtube/{id}`.
 const YOUTUBE_PATH: &str = "/youtube/";
@@ -70,11 +70,11 @@ pub fn start() -> io::Result<String> {
 }
 
 /// The origin the pages are served under, as `start` returned it.
-pub fn origin(state: &AppState) -> Result<String, AppError> {
+pub fn origin(state: &AppState) -> Result<String, CoreError> {
     let inner = state
         .lock()
         .expect("state lock is only poisoned by an earlier panic");
-    inner.embed_pages.clone().ok_or(AppError::EmbedPages)
+    inner.embed_pages.clone().ok_or(CoreError::EmbedPages)
 }
 
 fn serve(mut stream: TcpStream) -> io::Result<()> {
