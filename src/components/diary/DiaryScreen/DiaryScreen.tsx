@@ -12,14 +12,13 @@ import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
 
-import { NowPlayingCard } from "./NowPlayingCard";
 import { PastEntry } from "./PastEntry";
+import { PlaylistButton } from "./PlaylistButton";
 import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";
 import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
 import { useKeepClear } from "./useKeepClear";
-import { useNowPlaying } from "./useNowPlaying";
 import { useTodayScreen } from "./useTodayScreen";
 
 /** Today's entry, saved as it is written, and the days before it to read. Mount it inside `UnlockedSession`. */
@@ -29,7 +28,6 @@ export function DiaryScreen() {
   const settings = useSettings();
   const dice = useFontDice(subsetFor(settings.language), today.font, today.pickFont);
   const keepClear = useKeepClear();
-  const song = useNowPlaying();
   // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
   const config = useRef<HTMLButtonElement>(null);
   // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
@@ -195,7 +193,7 @@ export function DiaryScreen() {
         ) : null}
         {/* Its own column, so it stays at the right when the dice are not shown. */}
         <div className="col-start-3 flex justify-end">
-          {song ? <NowPlayingCard song={song} /> : null}
+          {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
         <Drawer
           label="日付の一覧"

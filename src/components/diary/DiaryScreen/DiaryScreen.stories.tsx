@@ -3,15 +3,15 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 
 import { UnlockedSession } from "@/components/vault/UnlockedSession";
 import { localDate } from "@/lib/diary/localDate";
-import type { NowPlaying } from "@/lib/vault/commands";
+import { writeSettings } from "@/lib/settings/settings";
 
 import { DiaryScreen } from "./DiaryScreen";
 
 /**
  * A fake Rust side that keeps entries and images in memory. Give past days oldest
- * first; today starts empty and comes after them. `song` is what the Music app plays.
+ * first; today starts empty and comes after them.
  */
-function fakeEntries(past: Record<string, string>, song: NowPlaying | null = null) {
+function fakeEntries(past: Record<string, string>) {
   const entries = new Map(Object.entries(past));
   const images = new Map<string, Uint8Array>();
   mockIPC(
@@ -28,7 +28,7 @@ function fakeEntries(past: Record<string, string>, song: NowPlaying | null = nul
       }
       const date = String(args && "date" in args ? args.date : "");
       if (command === "list_entry_dates") return [...entries.keys()];
-      if (command === "now_playing") return song;
+      if (command === "play_playlist") return null;
       if (command === "show_secret_key") return "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
       if (command === "read_entry") {
         const body = entries.get(date);
@@ -95,18 +95,31 @@ export const LongEntry: Story = {
     }),
 };
 
-/** Album art drawn as an SVG, standing in for the PNG or JPEG the Music app gives. */
+/** Playlist artwork drawn as an SVG, standing in for the JPEG the Music app gives. */
 const ARTWORK = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><linearGradient id="g"><stop offset="0" stop-color="#f97316"/><stop offset="1" stop-color="#7c3aed"/></linearGradient><rect width="1" height="1" fill="url(#g)"/></svg>',
 )}`;
 
-/** A song playing in the Music app: its art sits at the bottom right. */
-export const NowPlayingSong: Story = {
-  beforeEach: () =>
-    fakeEntries({}, { title: "夕方の散歩", artist: "Example Artist", artwork: ARTWORK }),
+/** A playlist chosen in the settings: its artwork sits at the bottom right, and plays it when pressed. */
+export const Playlist: Story = {
+  beforeEach: () => {
+    writeSettings({ playlist: { id: "A1", name: "夕方の散歩", artwork: ARTWORK } });
+    const stop = fakeEntries({});
+    return () => {
+      stop();
+      writeSettings({ playlist: null });
+    };
+  },
 };
 
-/** A song with no album art: its title stands in. */
-export const NowPlayingWithoutArt: Story = {
-  beforeEach: () => fakeEntries({}, { title: "Untitled demo", artist: "Someone", artwork: null }),
+/** A playlist with no artwork: its name stands in. */
+export const PlaylistWithoutArt: Story = {
+  beforeEach: () => {
+    writeSettings({ playlist: { id: "A1", name: "Untitled mix", artwork: null } });
+    const stop = fakeEntries({});
+    return () => {
+      stop();
+      writeSettings({ playlist: null });
+    };
+  },
 };

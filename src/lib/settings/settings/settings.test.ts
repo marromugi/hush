@@ -6,6 +6,7 @@ const DEFAULTS = {
   language: "ja",
   defaultFonts: { ja: null, en: null },
   text: { size: 18, lineHeight: 1.6, letterSpacing: 0 },
+  playlist: null,
 };
 
 afterEach(() => {
@@ -84,4 +85,12 @@ test("the text settings are kept, and a value out of range or not a number reads
     JSON.stringify({ text: { size: 18.4, lineHeight: 1.66, letterSpacing: 0.123 } }),
   );
   expect(readSettings().text).toEqual({ size: 18, lineHeight: 1.7, letterSpacing: 0.12 });
+});
+
+test("a chosen playlist is kept with its artwork, and one stored broken reads as none", () => {
+  const playlist = { id: "D80B3F7BD6DE16F3", name: "夜", artwork: "data:image/jpeg;base64,/9j/" };
+  writeSettings({ playlist });
+  expect(readSettings().playlist).toEqual(playlist);
+  localStorage.setItem("hush.settings", JSON.stringify({ language: "en", playlist: { id: 3 } }));
+  expect(readSettings()).toEqual({ ...DEFAULTS, language: "en", playlist: null });
 });

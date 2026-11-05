@@ -100,6 +100,10 @@ pub enum AppError {
     #[error("the server for video pages is not running")]
     EmbedPages,
 
+    /// Not allowed, not answered in time, or no such playlist.
+    #[error("the music app did not play the playlist")]
+    Music,
+
     #[error("file access failed")]
     Io(#[from] std::io::Error),
 
@@ -141,6 +145,7 @@ impl AppError {
             Self::VaultExists => "vaultExists",
             Self::Locked => "locked",
             Self::EmbedPages => "embedPages",
+            Self::Music => "music",
             Self::Io(_) => "io",
             Self::Tauri(_) => "tauri",
         }
@@ -191,6 +196,7 @@ mod tests {
             (AppError::NoVault, "noVault"),
             (AppError::VaultExists, "vaultExists"),
             (AppError::Locked, "locked"),
+            (AppError::Music, "music"),
             (AppError::InvalidDate(String::new()), "invalidDate"),
             (AppError::NewerVaultVersion(2), "newerVaultVersion"),
             (AppError::NewerEntryVersion(2), "newerEntryVersion"),

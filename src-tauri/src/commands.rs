@@ -9,7 +9,7 @@ use crate::app_error::AppError;
 use crate::app_state::AppState;
 use crate::embed_pages;
 use crate::entry::EntryFont;
-use crate::now_playing::{self, NowPlaying};
+use crate::music::{self, Playlists};
 use crate::session::{self, BiometryStatus, EntryView, VaultStatus};
 
 fn now_ms() -> u64 {
@@ -143,8 +143,21 @@ pub async fn read_image(id: String, state: State<'_, AppState>) -> Result<Respon
     Ok(Response::new(session::read_image(&state, id)?))
 }
 
-/// What the Music app plays now; later changes come as `NOW_PLAYING_CHANGED`.
+/// The playlists the settings can offer. The first time, the system asks
+/// the person whether Hush may use the Music app.
 #[tauri::command]
-pub async fn now_playing(app: AppHandle) -> Result<Option<NowPlaying>, AppError> {
-    Ok(spawn_blocking(move || now_playing::read(&app)).await?)
+pub async fn music_playlists(app: AppHandle) -> Result<Playlists, AppError> {
+    Ok(spawn_blocking(move || music::playlists(&app)).await?)
+}
+
+/// The playlist's artwork as a small `data:` URL, kept with the setting.
+#[tauri::command]
+pub async fn playlist_artwork(app: AppHandle, id: String) -> Result<Option<String>, AppError> {
+    Ok(spawn_blocking(move || music::artwork(&app, &id)).await?)
+}
+
+/// Starts the playlist in the Music app, shuffled.
+#[tauri::command]
+pub async fn play_playlist(app: AppHandle, id: String) -> Result<(), AppError> {
+    spawn_blocking(move || music::play(&app, &id)).await?
 }
