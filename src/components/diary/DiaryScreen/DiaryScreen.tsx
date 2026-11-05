@@ -13,6 +13,7 @@ import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
 
+import { CelestialBody } from "./CelestialBody";
 import { PastEntry } from "./PastEntry";
 import { PlaylistButton } from "./PlaylistButton";
 import { SecretKeyModal } from "./SecretKeyModal";
@@ -80,9 +81,13 @@ export function DiaryScreen() {
         </div>
         <time
           dateTime={screen.selected}
-          className="flex h-6 items-center text-sm tabular-nums opacity-60"
+          className="flex h-6 items-center gap-2 text-sm tabular-nums"
         >
-          {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
+          {/* The body keeps its own colors; only the numbers are faded. */}
+          <CelestialBody body={screen.selectedBody} />
+          <span className="opacity-60">
+            {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
+          </span>
         </time>
         {/* A long error wraps downward only, keeping its first line beside the date. */}
         <div className="flex justify-end pt-0.5 text-right">

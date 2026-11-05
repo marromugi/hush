@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { dateParts } from "@/components/diary/DiaryScreen/dateParts";
 import type { DateParts } from "@/components/diary/DiaryScreen/dateParts";
+import { weekdayBody } from "@/components/diary/DiaryScreen/weekdayBody";
+import type { Body } from "@/components/diary/DiaryScreen/weekdayBody";
 import { useDisclosure } from "@/hooks/common/useDisclosure";
 import type { Disclosure } from "@/hooks/common/useDisclosure";
 import { usePromise } from "@/hooks/common/usePromise";
@@ -15,6 +17,8 @@ export type UseDiaryScreen = {
   /** The day shown, as `YYYY-MM-DD`. Today at first. */
   selected: string;
   selectedParts: DateParts;
+  /** The body the shown day's weekday is named after. */
+  selectedBody: Body;
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
@@ -66,6 +70,7 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
   return {
     selected,
     selectedParts: dateParts(selected),
+    selectedBody: weekdayBody(selected),
     showsToday: selected === today,
     select: setSelected,
     datesDrawer,
