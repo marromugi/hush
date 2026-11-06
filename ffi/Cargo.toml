@@ -21,3 +21,4 @@ cli = ["uniffi/cli"]
 [dependencies]
 hush-core = { path = "../core" }
 uniffi = "0.32.2"
+zeroize = "1.9.1"

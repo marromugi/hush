@@ -1693,6 +1693,7 @@ version = "0.1.0"
 dependencies = [
  "hush-core",
  "uniffi",
+ "zeroize",
 ]
 
 [[package]]
