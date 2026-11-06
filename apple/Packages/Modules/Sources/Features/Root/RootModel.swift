@@ -4,7 +4,7 @@ import Observation
 @Observable
 public final class RootModel {
   /// `nil` until the first read finishes.
-  public private(set) var status: VaultStatus?
+  private(set) var status: VaultStatus?
 
   private let core: Core
 
@@ -12,7 +12,7 @@ public final class RootModel {
     self.core = core
   }
 
-  public func load() async {
+  func load() async {
     status = await core.vaultStatus()
   }
 }
