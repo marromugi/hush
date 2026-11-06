@@ -14,8 +14,10 @@ final class CreateVaultForm {
     self.confirm = confirm
   }
 
-  /// Hands the passphrase to `create` only when it was typed the same way twice.
-  func submit(create: (String) -> Void) {
+  /// Hands the passphrase to `create` only when it was typed the same way
+  /// twice. Does nothing while a create runs, so its failure is not hidden.
+  func submit(busy: Bool, create: (String) -> Void) {
+    guard !busy else { return }
     mismatched = passphrase != confirm
     if !mismatched { create(passphrase) }
   }

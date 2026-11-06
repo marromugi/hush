@@ -7,7 +7,7 @@ struct CreateVaultFormTests {
     let form = CreateVaultForm(passphrase: "one", confirm: "two")
     var created: [String] = []
 
-    form.submit { created.append($0) }
+    form.submit(busy: false) { created.append($0) }
     #expect(created.isEmpty)
     #expect(form.mismatched)
   }
@@ -16,8 +16,17 @@ struct CreateVaultFormTests {
     let form = CreateVaultForm(passphrase: "same", confirm: "same")
     var created: [String] = []
 
-    form.submit { created.append($0) }
+    form.submit(busy: false) { created.append($0) }
     #expect(created == ["same"])
+    #expect(!form.mismatched)
+  }
+
+  @Test func aSubmitWhileACreateRunsChangesNothing() {
+    let form = CreateVaultForm(passphrase: "one", confirm: "two")
+    var created: [String] = []
+
+    form.submit(busy: true) { created.append($0) }
+    #expect(created.isEmpty)
     #expect(!form.mismatched)
   }
 }

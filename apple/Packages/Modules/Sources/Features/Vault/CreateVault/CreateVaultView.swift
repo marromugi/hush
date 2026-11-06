@@ -32,11 +32,11 @@ struct CreateVaultView: View {
       if let text = failure?.text(at: .wholeForm) {
         FailureText(text)
       }
-      Button("作る") { form.submit(create: onCreate) }
+      Button("作る") { form.submit(busy: busy, create: onCreate) }
         .buttonStyle(.borderedProminent)
         .disabled(busy)
     }
-    .onSubmit { form.submit(create: onCreate) }
+    .onSubmit { form.submit(busy: busy, create: onCreate) }
   }
 }
 
@@ -54,7 +54,7 @@ struct CreateVaultView: View {
 
 #Preview("パスフレーズが一致しない") {
   let form = CreateVaultForm(passphrase: "a", confirm: "b")
-  form.submit { _ in }
+  form.submit(busy: false) { _ in }
   return CreateVaultView(busy: false, failure: nil, form: form) { _ in }
 }
 
