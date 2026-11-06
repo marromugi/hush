@@ -24,7 +24,8 @@ targets:
       base:
         # Apart from the Tauri app (dev.marromugi.hush), so both can be installed.
         PRODUCT_BUNDLE_IDENTIFIER: dev.marromugi.hush.swift
-        PRODUCT_NAME: Hush
+        # Its own app name too: on macOS, "Hush.app" and the Tauri "hush.app" would be one file.
+        PRODUCT_NAME: HushSwift
         INFOPLIST_KEY_CFBundleDisplayName: Hush Swift
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

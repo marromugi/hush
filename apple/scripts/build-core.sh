@@ -25,6 +25,7 @@ cargo run --quiet --locked -p hush-ffi --features cli --bin uniffi-bindgen -- \
   --language swift --out-dir "$work/generated"
 cp "$work/generated/hush_ffiFFI.h" "$work/headers/"
 cp "$work/generated/hush_ffiFFI.modulemap" "$work/headers/module.modulemap"
+mkdir -p "$modules/Sources/CoreBindings"
 cp "$work/generated/hush_ffi.swift" "$modules/Sources/CoreBindings/hush_ffi.swift"
 
 rm -rf "$modules/Frameworks/HushFFI.xcframework"
