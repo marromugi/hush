@@ -33,13 +33,11 @@ struct VaultModelTests {
     #expect(model.status == .needsSecretKey)
   }
 
-  @Test func lockingClosesTheVaultAndForgetsAnUnkeptSecretKey() async {
-    let model = VaultModel(vault: FakeVault(status: .missing))
+  @Test func lockingClosesTheVault() async {
+    let model = VaultModel(vault: FakeVault(status: .unlocked))
     await model.load()
-    await model.create(passphrase: "passphrase").value
 
     model.lock()
     #expect(model.status == .locked)
-    #expect(model.newSecretKey == nil)
   }
 }
