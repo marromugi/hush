@@ -32,8 +32,8 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri` and Cargo's build output
-      ignored: ["**/src-tauri/**", "**/target/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, Cargo's build output, and the Swift app
+      ignored: ["**/src-tauri/**", "**/target/**", "**/apple/**"],
     },
   },
   test: {
