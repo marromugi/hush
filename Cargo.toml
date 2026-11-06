@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "src-tauri"]
+members = ["core", "ffi", "src-tauri"]
 resolver = "3"
 
 # Cargo reads profiles only from the workspace root.
@@ -11,6 +11,10 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Proc macros are loaded by rustc itself; stripped, they cannot be found.
+[profile.release.build-override]
+strip = false
 
 # Key derivation is deliberately heavy; unoptimized it takes over a second per unlock in `tauri dev`.
 [profile.dev.package.argon2]

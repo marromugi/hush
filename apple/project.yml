@@ -1,0 +1,41 @@
+name: Hush
+options:
+  bundleIdPrefix: dev.marromugi
+  deploymentTarget:
+    iOS: "26.0"
+    macOS: "26.0"
+packages:
+  Modules:
+    path: Packages/Modules
+targets:
+  Hush:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Hush
+        type: syncedFolder
+    dependencies:
+      - package: Modules
+        product: CoreEntrance
+      - package: Modules
+        product: Features
+    settings:
+      base:
+        # Apart from the Tauri app (dev.marromugi.hush), so both can be installed.
+        PRODUCT_BUNDLE_IDENTIFIER: dev.marromugi.hush.swift
+        # Its own app name too: on macOS, "Hush.app" and the Tauri "hush.app" would be one file.
+        PRODUCT_NAME: HushSwift
+        INFOPLIST_KEY_CFBundleDisplayName: Hush Swift
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        # The core is built for Apple silicon only (scripts/build-core.sh).
+        ARCHS: arm64
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY[sdk=macosx*]: "-"
