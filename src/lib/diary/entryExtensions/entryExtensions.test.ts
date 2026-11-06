@@ -1,6 +1,9 @@
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { Editor } from "@tiptap/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
+
+import type { LinkPage } from "@/lib/diary/entryHost";
+import { fakeEntryHost } from "@/lib/diary/fakeEntryHost";
+import { HushError } from "@/lib/vault/hushError";
 
 import { entryExtensions } from "./entryExtensions";
 import {
@@ -13,19 +16,22 @@ import {
 test("an image in an entry's HTML is read back and written as the same HTML", () => {
   const body =
     '<p>海へ行った。</p><img data-image="0123456789abcdef0123456789abcdef"><p>また行きたい。</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
 
 test("an image with no id in the entry is not kept", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: '<p>a</p><img src="x.png">' });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: '<p>a</p><img src="x.png">',
+  });
   expect(editor.getHTML()).toBe("<p>a</p>");
   editor.destroy();
 });
 
 test("images inserted one after another all stay, in order", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p>海</p>" });
   editor.commands.setTextSelection(2);
   insertEntryImage(editor, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   insertEntryImage(editor, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
@@ -36,7 +42,10 @@ test("images inserted one after another all stay, in order", () => {
 });
 
 test("an image put inside a line splits it and leaves the cursor before the rest", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海へ</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>海へ</p>",
+  });
   editor.commands.setTextSelection(2);
   insertEntryImage(editor, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   editor.commands.insertContent("x");
@@ -48,14 +57,14 @@ test("an image put inside a line splits it and leaves the cursor before the rest
 
 test("an image's width is read back and written as the same HTML", () => {
   const body = '<img data-image="0123456789abcdef0123456789abcdef" data-width="60"><p>海</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
 
 test("a width out of range is dropped, leaving the image at its own size", () => {
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content: '<img data-image="0123456789abcdef0123456789abcdef" data-width="500">',
   });
   expect(editor.getHTML()).toBe('<img data-image="0123456789abcdef0123456789abcdef">');
@@ -65,7 +74,7 @@ test("a width out of range is dropped, leaving the image at its own size", () =>
 test("an image's alignment is read back and written as the same HTML", () => {
   const body =
     '<img data-image="0123456789abcdef0123456789abcdef" data-width="60" data-align="center"><p>海</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
@@ -73,7 +82,7 @@ test("an image's alignment is read back and written as the same HTML", () => {
 test("aligning the selected image writes it, and moving it back to the left writes nothing", () => {
   const id = "0123456789abcdef0123456789abcdef";
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content: `<img data-image="${id}"><p>海</p>`,
   });
   editor.commands.setNodeSelection(0);
@@ -88,7 +97,7 @@ test("aligning the selected image writes it, and moving it back to the left writ
 test("a selected image can be changed only while the entry can be written", () => {
   const id = "0123456789abcdef0123456789abcdef";
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content: `<img data-image="${id}"><p>海</p>`,
   });
   editor.commands.setNodeSelection(0);
@@ -101,7 +110,7 @@ test("a selected image can be changed only while the entry can be written", () =
 });
 
 test("text that is selected is not an image", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p>海</p>" });
   editor.commands.selectAll();
   expect(isImageSelected(editor)).toBe(false);
   editor.destroy();
@@ -116,13 +125,16 @@ function pressEnter(editor: Editor): void {
 
 test("a code block in an entry's HTML is read back and written as the same HTML", () => {
   const body = '<pre><code class="language-typescript">const a = 1;</code></pre><p>海</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
 
 test("a fence and Enter turn the line into a code block of that language", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>```ts</p>",
+  });
   editor.commands.focus("end");
   pressEnter(editor);
   editor.commands.insertContent("x");
@@ -131,7 +143,10 @@ test("a fence and Enter turn the line into a code block of that language", () =>
 });
 
 test("a fence alone and Enter make a code block with no language", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>```</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>```</p>",
+  });
   editor.commands.focus("end");
   pressEnter(editor);
   expect(editor.getHTML()).toBe("<pre><code></code></pre><p></p>");
@@ -139,7 +154,10 @@ test("a fence alone and Enter make a code block with no language", () => {
 });
 
 test("a language with capitals or signs after the fence is read too", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>```C++</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>```C++</p>",
+  });
   editor.commands.focus("end");
   pressEnter(editor);
   expect(editor.getHTML()).toBe('<pre><code class="language-cpp"></code></pre><p></p>');
@@ -148,7 +166,7 @@ test("a language with capitals or signs after the fence is read too", () => {
 
 test("a fence and Enter in a list item leave the list whole", () => {
   const body = "<ul><li><p>a</p></li><li><p>```</p></li><li><p>b</p></li></ul>";
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   editor.commands.setTextSelection(11);
   expect(editor.state.selection.$from.parent.textContent).toBe("```");
   pressEnter(editor);
@@ -158,7 +176,10 @@ test("a fence and Enter in a list item leave the list whole", () => {
 });
 
 test("Enter on a line with more than a fence splits the line as usual", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>```ts は</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>```ts は</p>",
+  });
   editor.commands.focus("end");
   pressEnter(editor);
   expect(editor.getHTML()).toBe("<p>```ts は</p><p></p>");
@@ -166,7 +187,7 @@ test("Enter on a line with more than a fence splits the line as usual", () => {
 });
 
 test("a fence and a space also start a code block, with the language under shiki's id", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p></p>" });
   editor.commands.focus("end");
   editor.commands.insertContent("```py");
   const { from } = editor.state.selection;
@@ -189,14 +210,14 @@ function pasteText(editor: Editor, text: string) {
 test("an embed in an entry's HTML is read back and written as the same HTML", () => {
   const body =
     '<p>見た。</p><div data-embed="youtube" data-id="dQw4w9WgXcQ"></div><div data-embed="x" data-id="20"></div><p>また。</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
 
 test("an embed of an unknown site or a broken id is not kept", () => {
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content:
       '<p>a</p><div data-embed="vimeo" data-id="1"></div><div data-embed="x" data-id="1&amp;b=2"></div>',
   });
@@ -205,7 +226,7 @@ test("an embed of an unknown site or a broken id is not kept", () => {
 });
 
 test("a pasted YouTube link becomes the video, with the cursor on the line after it", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p>海</p>" });
   editor.commands.setTextSelection(2);
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   editor.commands.insertContent("x");
@@ -216,7 +237,7 @@ test("a pasted YouTube link becomes the video, with the cursor on the line after
 });
 
 test("a pasted link to a post on X becomes the post", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://x.com/jack/status/20");
   expect(editor.getHTML()).toContain('<div data-embed="x" data-id="20"></div>');
@@ -224,7 +245,7 @@ test("a pasted link to a post on X becomes the post", () => {
 });
 
 test("a link among other words stays text", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "見て https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).not.toContain("data-embed");
@@ -233,7 +254,10 @@ test("a link among other words stays text", () => {
 });
 
 test("a link pasted over selected words links those words instead of becoming an embed", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海の歌</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>海の歌</p>",
+  });
   editor.commands.setTextSelection({ from: 1, to: 4 });
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).not.toContain("data-embed");
@@ -244,7 +268,7 @@ test("a link pasted over selected words links those words instead of becoming an
 
 test("a link pasted into code stays text in the code", () => {
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content: '<pre><code class="language-typescript"></code></pre>',
   });
   editor.commands.setTextSelection(1);
@@ -257,28 +281,27 @@ test("a link pasted into code stays text in the code", () => {
 });
 
 test("a link pasted into inline code stays text in the code", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p><code>abc</code></p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p><code>abc</code></p>",
+  });
   editor.commands.setTextSelection(3);
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).toBe("<p><code>abhttps://youtu.be/dQw4w9WgXcQc</code></p>");
   editor.destroy();
 });
 
-afterEach(() => {
-  clearMocks();
-});
-
 test("a link card in an entry's HTML is read back and written as the same HTML", () => {
   const body =
     '<p>読んだ。</p><div data-link-card="https://example.com/a" data-title="海の記事" data-image="0123456789abcdef0123456789abcdef"></div><div data-link-card="https://example.com/b"></div><p>また。</p>';
-  const editor = new Editor({ extensions: entryExtensions, content: body });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: body });
   expect(editor.getHTML()).toBe(body);
   editor.destroy();
 });
 
 test("a link card whose link is not a web link is not kept", () => {
   const editor = new Editor({
-    extensions: entryExtensions,
+    extensions: entryExtensions(fakeEntryHost()),
     content: '<p>a</p><div data-link-card="javascript:alert(1)" data-title="x"></div>',
   });
   expect(editor.getHTML()).toBe("<p>a</p>");
@@ -286,11 +309,8 @@ test("a link card whose link is not a web link is not kept", () => {
 });
 
 test("a link pasted alone on an empty line becomes a card, filled with the page's title", async () => {
-  mockIPC((command) => {
-    if (command === "link_page") return { title: "海の記事", imageUrl: null };
-    throw new Error(`unexpected ${command}`);
-  });
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>海</p><p></p>" });
+  const host = fakeEntryHost({ linkPage: async () => ({ title: "海の記事", imageUrl: null }) });
+  const editor = new Editor({ extensions: entryExtensions(host), content: "<p>海</p><p></p>" });
   editor.commands.setTextSelection(4);
   pasteText(editor, "https://example.com/a");
   // While the page is read, the card holds only the link.
@@ -307,19 +327,19 @@ test("a link pasted alone on an empty line becomes a card, filled with the page'
 
 test("a card whose page cannot be read keeps only its link", async () => {
   const failures: Array<(reason: unknown) => void> = [];
-  mockIPC(
-    () =>
+  const host = fakeEntryHost({
+    linkPage: () =>
       new Promise((_, reject) => {
         failures.push(reject);
       }),
-  );
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  });
+  const editor = new Editor({ extensions: entryExtensions(host), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://example.com/a");
   await vi.waitFor(() => {
     expect(failures).toHaveLength(1);
   });
-  for (const fail of failures) fail({ kind: "link", message: "link could not be fetched" });
+  for (const fail of failures) fail(new HushError("link", "link could not be fetched"));
   await vi.waitFor(() => {
     expect(editor.getJSON().content?.[0]?.attrs?.pending).toBeNull();
   });
@@ -328,7 +348,10 @@ test("a card whose page cannot be read keeps only its link", async () => {
 });
 
 test("a link pasted on a line that has words stays text", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p>見て</p>" });
+  const editor = new Editor({
+    extensions: entryExtensions(fakeEntryHost()),
+    content: "<p>見て</p>",
+  });
   editor.commands.setTextSelection(3);
   pasteText(editor, "https://example.com/a");
   expect(editor.getHTML()).not.toContain("data-link-card");
@@ -337,7 +360,7 @@ test("a link pasted on a line that has words stays text", () => {
 });
 
 test("a YouTube link pasted on an empty line is still the video, not a card", () => {
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  const editor = new Editor({ extensions: entryExtensions(fakeEntryHost()), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://youtu.be/dQw4w9WgXcQ");
   expect(editor.getHTML()).toContain('data-embed="youtube"');
@@ -346,22 +369,24 @@ test("a YouTube link pasted on an empty line is still the video, not a card", ()
 });
 
 test("the same link pasted twice fills each card from its own reading", async () => {
-  const answers: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> =
-    [];
-  mockIPC(
-    () =>
+  const answers: Array<{
+    resolve: (value: LinkPage) => void;
+    reject: (reason: unknown) => void;
+  }> = [];
+  const host = fakeEntryHost({
+    linkPage: () =>
       new Promise((resolve, reject) => {
         answers.push({ resolve, reject });
       }),
-  );
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  });
+  const editor = new Editor({ extensions: entryExtensions(host), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://example.com/a");
   pasteText(editor, "https://example.com/a");
   await vi.waitFor(() => {
     expect(answers).toHaveLength(2);
   });
-  answers[0]?.reject({ kind: "link", message: "timed out" });
+  answers[0]?.reject(new HushError("link", "timed out"));
   answers[1]?.resolve({ title: "海の記事", imageUrl: null });
   await vi.waitFor(() => {
     expect(editor.getHTML()).toBe(
@@ -372,14 +397,14 @@ test("the same link pasted twice fills each card from its own reading", async ()
 });
 
 test("a card taken away by undo before its page is read comes back filled on redo", async () => {
-  const answers: Array<(value: unknown) => void> = [];
-  mockIPC(
-    () =>
+  const answers: Array<(value: LinkPage) => void> = [];
+  const host = fakeEntryHost({
+    linkPage: () =>
       new Promise((resolve) => {
         answers.push(resolve);
       }),
-  );
-  const editor = new Editor({ extensions: entryExtensions, content: "<p></p>" });
+  });
+  const editor = new Editor({ extensions: entryExtensions(host), content: "<p></p>" });
   editor.commands.setTextSelection(1);
   pasteText(editor, "https://example.com/r");
   editor.commands.undo();

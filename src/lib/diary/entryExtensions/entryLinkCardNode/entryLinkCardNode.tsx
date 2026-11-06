@@ -4,6 +4,7 @@ import { Node, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import type { Editor, ReactNodeViewProps } from "@tiptap/react";
 
 import { EntryLinkCard } from "@/components/diary/EntryLinkCard";
+import type { EntryHost } from "@/lib/diary/entryHost";
 import { fetchLinkCard } from "@/lib/diary/fetchLinkCard";
 import type { LinkCardContent } from "@/lib/diary/fetchLinkCard";
 import { insertAtomBlock } from "@/lib/diary/insertAtomBlock";
@@ -54,72 +55,74 @@ function optional(key: string, name: string) {
 /**
  * A link on a line of its own, shown as a card with the page's title and
  * picture, made by pasting the link alone on an empty line. The title and
- * picture are read from the page once, when pasted, and kept in the entry:
- * the HTML holds the link, the title, and the id of the saved picture.
+ * picture are read from the page once, when pasted, by `host`, and kept in
+ * the entry: the HTML holds the link, the title, and the id of the saved
+ * picture.
  */
-export const EntryLinkCardNode = Node.create({
-  name: NAME,
-  group: "block",
-  atom: true,
-  draggable: true,
+export const entryLinkCardNode = (host: EntryHost) =>
+  Node.create({
+    name: NAME,
+    group: "block",
+    atom: true,
+    draggable: true,
 
-  addAttributes() {
-    return {
-      url: {
-        default: null,
-        parseHTML: (element) => element.getAttribute(URL_ATTRIBUTE),
-        renderHTML: (attributes) => ({ [URL_ATTRIBUTE]: attributes.url }),
-      },
-      title: optional("title", TITLE_ATTRIBUTE),
-      image: optional("image", IMAGE_ATTRIBUTE),
-      // The paste a card is waiting on, while its page is read; never written to the entry.
-      pending: { default: null, rendered: false, parseHTML: () => null },
-    };
-  },
-
-  parseHTML() {
-    return [
-      {
-        tag: `div[${URL_ATTRIBUTE}]`,
-        getAttrs: (element) => (parseCardUrl(element.getAttribute(URL_ATTRIBUTE)) ? null : false),
-      },
-    ];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ["div", HTMLAttributes];
-  },
-
-  addNodeView() {
-    return ReactNodeViewRenderer(EntryLinkCardView);
-  },
-
-  addProseMirrorPlugins() {
-    const editor = this.editor;
-    return [
-      new Plugin({
-        props: {
-          handlePaste: (view, event) => {
-            const { selection } = view.state;
-            const line = selection.$from.parent;
-            if (!selection.empty || line.type.name !== "paragraph" || line.content.size > 0) {
-              return false;
-            }
-            const url = parseCardLink(event.clipboardData?.getData("text/plain") ?? "");
-            if (url === null) return false;
-            const pending = crypto.randomUUID();
-            insertAtomBlock(editor, { type: NAME, attrs: { url, pending } });
-            void readPasted(editor, url, pending);
-            return true;
-          },
+    addAttributes() {
+      return {
+        url: {
+          default: null,
+          parseHTML: (element) => element.getAttribute(URL_ATTRIBUTE),
+          renderHTML: (attributes) => ({ [URL_ATTRIBUTE]: attributes.url }),
         },
-        // A card brought back by redo after its page was read is filled here.
-        appendTransaction: (_transactions, _old, state) =>
-          editor.isEditable ? fillSettled(state) : null,
-      }),
-    ];
-  },
-});
+        title: optional("title", TITLE_ATTRIBUTE),
+        image: optional("image", IMAGE_ATTRIBUTE),
+        // The paste a card is waiting on, while its page is read; never written to the entry.
+        pending: { default: null, rendered: false, parseHTML: () => null },
+      };
+    },
+
+    parseHTML() {
+      return [
+        {
+          tag: `div[${URL_ATTRIBUTE}]`,
+          getAttrs: (element) => (parseCardUrl(element.getAttribute(URL_ATTRIBUTE)) ? null : false),
+        },
+      ];
+    },
+
+    renderHTML({ HTMLAttributes }) {
+      return ["div", HTMLAttributes];
+    },
+
+    addNodeView() {
+      return ReactNodeViewRenderer(EntryLinkCardView);
+    },
+
+    addProseMirrorPlugins() {
+      const editor = this.editor;
+      return [
+        new Plugin({
+          props: {
+            handlePaste: (view, event) => {
+              const { selection } = view.state;
+              const line = selection.$from.parent;
+              if (!selection.empty || line.type.name !== "paragraph" || line.content.size > 0) {
+                return false;
+              }
+              const url = parseCardLink(event.clipboardData?.getData("text/plain") ?? "");
+              if (url === null) return false;
+              const pending = crypto.randomUUID();
+              insertAtomBlock(editor, { type: NAME, attrs: { url, pending } });
+              void readPasted(editor, host, url, pending);
+              return true;
+            },
+          },
+          // A card brought back by redo after its page was read is filled here.
+          appendTransaction: (_transactions, _old, state) =>
+            editor.isEditable ? fillSettled(state) : null,
+        }),
+      ];
+    },
+  });
 
 /**
  * What each paste's page gave, by the paste. Kept for as long as the app
@@ -132,10 +135,15 @@ const settled = new Map<string, LinkCardContent>();
  * the card. A page that cannot be read leaves the card with only its link,
  * and a toast says why.
  */
-async function readPasted(editor: Editor, url: string, pending: string): Promise<void> {
+async function readPasted(
+  editor: Editor,
+  host: EntryHost,
+  url: string,
+  pending: string,
+): Promise<void> {
   let content: LinkCardContent = { title: null, image: null };
   try {
-    content = await fetchLinkCard(url);
+    content = await fetchLinkCard(host, url);
   } catch (failure) {
     toastError(`リンク先を読み込めませんでした。${failureText(failure)}`);
   }

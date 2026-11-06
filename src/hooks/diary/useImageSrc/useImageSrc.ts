@@ -1,6 +1,6 @@
 import { usePromise } from "@/hooks/common/usePromise";
+import { useEntryHost } from "@/hooks/diary/useEntryHost";
 import { toastError } from "@/lib/ui/toast";
-import { readImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
 import { pictureDataUrl } from "./pictureDataUrl";
@@ -13,10 +13,11 @@ export type UseImageSrc = {
   failed: boolean;
 };
 
-/** The image saved as `id`, read and decrypted once per id. */
+/** The image saved as `id`, read and decrypted once per id by the app the entry is in. */
 export function useImageSrc(id: string): UseImageSrc {
+  const host = useEntryHost();
   const read = usePromise(
-    () => readImage(id).then(pictureDataUrl),
+    () => host.readImage(id).then(pictureDataUrl),
     id,
     (failure) => toastError(`画像を読み込めませんでした。${failureText(failure)}`),
   );

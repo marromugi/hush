@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { usePromise } from "@/hooks/common/usePromise";
+import { useEntryHost } from "@/hooks/diary/useEntryHost";
 import { embedFrameSrc } from "@/lib/diary/embedLink";
 import type { EmbedLink } from "@/lib/diary/embedLink";
-import { embedPagesOrigin } from "@/lib/vault/commands";
 
 import { tweetMessage } from "./tweetMessage";
 import { useColorScheme } from "./useColorScheme";
@@ -20,7 +20,8 @@ const X_ORIGIN = "https://platform.twitter.com";
  */
 export function useEmbedFrame(embed: EmbedLink) {
   const theme = useColorScheme();
-  const pages = usePromise(embedPagesOrigin);
+  const host = useEntryHost();
+  const pages = usePromise(() => host.embedPagesOrigin());
   const src =
     embed.site === "youtube" && pages.status === "loading"
       ? null

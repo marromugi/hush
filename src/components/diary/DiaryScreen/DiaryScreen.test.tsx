@@ -3,13 +3,21 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Editor } from "@tiptap/react";
 import { MotionGlobalConfig } from "motion/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { UnlockedSession } from "@/components/vault/UnlockedSession";
+import { EntryHostContext } from "@/hooks/diary/useEntryHost";
 import * as fonts from "@/lib/diary/fonts";
+import { tauriEntryHost } from "@/lib/diary/tauriEntryHost";
 import { writeSettings } from "@/lib/settings/settings";
 
 import { DiaryScreen } from "./DiaryScreen";
+
+/** The Tauri app, whose commands these tests fake with `mockIPC`. */
+function InTauri({ children }: { children: ReactNode }) {
+  return <EntryHostContext value={tauriEntryHost}>{children}</EntryHostContext>;
+}
 
 // The test DOM cancels animations by rejecting a promise nothing awaits; what
 // is tested here is what opens and where the focus goes, not the motion.
@@ -73,6 +81,7 @@ test("config opens a menu whose Secret Key item shows the key, and closing retur
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   const config = await screen.findByRole("button", { name: "config" });
 
@@ -101,6 +110,7 @@ test("ロック in the config menu locks", async () => {
     >
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   fireEvent.click(await screen.findByRole("button", { name: "config" }));
   await act(async () => {
@@ -129,6 +139,7 @@ test("a lock the system asks for saves what was just typed first", async () => {
     >
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   act(() => type("晴れ"));
@@ -156,6 +167,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   const dice = await findDice();
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
@@ -193,6 +205,7 @@ test("shaking the phone shows today's entry in another font, and does nothing on
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   await act(async () => {
@@ -227,6 +240,7 @@ test("shaking the phone does nothing until today's entry has been read", async (
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await screen.findByRole("button", { name: "メニュー" });
   await act(async () => {
@@ -242,6 +256,7 @@ test("shaking the phone does nothing while the settings are shown over the diary
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   fireEvent.click(screen.getByRole("button", { name: "config" }));
@@ -266,6 +281,7 @@ test("the dice cannot be pressed until today's entry has been read", async () =>
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   const dice = await findDice();
   expect(dice).toHaveProperty("disabled", true);
@@ -303,6 +319,7 @@ test("the dice's font is saved with today's entry", async () => {
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   await act(async () => {
@@ -326,6 +343,7 @@ test("choosing English in the settings makes the dice pick among Latin fonts", a
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   fireEvent.click(await screen.findByRole("button", { name: "config" }));
   fireEvent.click(await screen.findByRole("button", { name: "設定" }));
@@ -355,6 +373,7 @@ test("today's entry is in the default font until the dice picks another", async 
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() =>
     expect(
@@ -401,6 +420,7 @@ test("past entries are in the default font too", async () => {
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await screen.findByRole("button", { name: "メニュー" });
   await openNewYear2020(within(document.body));
@@ -432,6 +452,7 @@ test("today's entry is blurred while the dice loads a font, and clear once it ha
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   expect(content()?.classList.contains("blur-sm")).toBe(false);
@@ -464,6 +485,7 @@ test("the header's button shows the days over the diary, and choosing one opens 
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   const button = await screen.findByRole("button", { name: "日付を選ぶ" });
   fireEvent.click(button);
@@ -479,6 +501,7 @@ test("the header shows Hush's mark, named for screen readers", async () => {
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   const heading = await screen.findByRole("heading", { name: "Hush" });
   expect(heading.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
@@ -502,6 +525,7 @@ test("the header shows the day that is open, as year.month.day", async () => {
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await screen.findByRole("button", { name: "メニュー" });
   await openNewYear2020(within(document.body));
@@ -517,6 +541,7 @@ test("the entry takes its size, line height and letter spacing from the settings
     <UnlockedSession onLock={async () => {}}>
       <DiaryScreen />
     </UnlockedSession>,
+    { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
   const around = document.querySelector<HTMLElement>("main");

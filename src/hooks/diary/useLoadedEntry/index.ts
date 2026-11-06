@@ -1,0 +1,1 @@
+export { useLoadedEntry } from "./useLoadedEntry";

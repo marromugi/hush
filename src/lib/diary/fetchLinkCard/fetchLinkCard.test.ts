@@ -1,43 +1,61 @@
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { afterEach, expect, test } from "vitest";
+import { expect, test } from "vitest";
+
+import { fakeEntryHost } from "@/lib/diary/fakeEntryHost";
+import { HushError } from "@/lib/vault/hushError";
 
 import { fetchLinkCard } from "./fetchLinkCard";
 
-afterEach(() => {
-  clearMocks();
-});
-
 test("a page with no picture gives its title and fetches nothing more", async () => {
   const calls: string[] = [];
-  mockIPC((command) => {
-    calls.push(command);
-    if (command === "link_page") return { title: "海の記事", imageUrl: null };
-    throw new Error(`unexpected ${command}`);
+  const host = fakeEntryHost({
+    linkPage: async () => {
+      calls.push("linkPage");
+      return { title: "海の記事", imageUrl: null };
+    },
+    linkImage: async () => {
+      calls.push("linkImage");
+      return new ArrayBuffer(0);
+    },
+    saveImage: async () => {
+      calls.push("saveImage");
+      return "0123456789abcdef0123456789abcdef";
+    },
   });
-  await expect(fetchLinkCard("https://example.com/")).resolves.toEqual({
+  await expect(fetchLinkCard(host, "https://example.com/")).resolves.toEqual({
     title: "海の記事",
     image: null,
   });
-  expect(calls).toEqual(["link_page"]);
+  expect(calls).toEqual(["linkPage"]);
 });
 
 test("a picture that cannot be fetched leaves the card without one", async () => {
   const calls: string[] = [];
-  mockIPC((command) => {
-    calls.push(command);
-    if (command === "link_page") return { title: "海", imageUrl: "https://example.com/a.jpg" };
-    throw { kind: "link", message: "link could not be fetched" };
+  const host = fakeEntryHost({
+    linkPage: async () => {
+      calls.push("linkPage");
+      return { title: "海", imageUrl: "https://example.com/a.jpg" };
+    },
+    linkImage: async () => {
+      calls.push("linkImage");
+      throw new HushError("link", "link could not be fetched");
+    },
+    saveImage: async () => {
+      calls.push("saveImage");
+      return "0123456789abcdef0123456789abcdef";
+    },
   });
-  await expect(fetchLinkCard("https://example.com/")).resolves.toEqual({
+  await expect(fetchLinkCard(host, "https://example.com/")).resolves.toEqual({
     title: "海",
     image: null,
   });
-  expect(calls).not.toContain("save_image");
+  expect(calls).not.toContain("saveImage");
 });
 
 test("a page that cannot be read is rejected", async () => {
-  mockIPC(() => {
-    throw { kind: "link", message: "link could not be fetched" };
+  const host = fakeEntryHost({
+    linkPage: () => Promise.reject(new HushError("link", "link could not be fetched")),
   });
-  await expect(fetchLinkCard("https://example.com/")).rejects.toMatchObject({ kind: "link" });
+  await expect(fetchLinkCard(host, "https://example.com/")).rejects.toMatchObject({
+    kind: "link",
+  });
 });
