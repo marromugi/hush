@@ -5,11 +5,11 @@ import SwiftUI
 
 @main
 struct HushApp: App {
-  @State private var model = RootModel(core: Core(dataDirectory: .hushData))
+  @State private var model = VaultModel(vault: Core(dataDirectory: .hushData))
 
   var body: some Scene {
     WindowGroup {
-      RootView(model: model)
+      VaultView(model: model)
     }
   }
 }
