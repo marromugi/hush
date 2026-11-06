@@ -12,6 +12,14 @@ test("a page with no picture gives its title and fetches nothing more", async ()
       calls.push("linkPage");
       return { title: "海の記事", imageUrl: null };
     },
+    linkImage: async () => {
+      calls.push("linkImage");
+      return new ArrayBuffer(0);
+    },
+    saveImage: async () => {
+      calls.push("saveImage");
+      return "0123456789abcdef0123456789abcdef";
+    },
   });
   await expect(fetchLinkCard(host, "https://example.com/")).resolves.toEqual({
     title: "海の記事",
