@@ -35,6 +35,14 @@ extension VaultStatus {
   VaultStatusView(status: .missing)
 }
 
+#Preview("Secret Key なし") {
+  VaultStatusView(status: .needsSecretKey)
+}
+
 #Preview("ロック中") {
   VaultStatusView(status: .locked)
+}
+
+#Preview("開いている") {
+  VaultStatusView(status: .unlocked)
 }
