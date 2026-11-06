@@ -27,7 +27,6 @@ export type {
   Biometry,
   BiometryStatus,
   EntryView,
-  LinkPage,
   Playlist,
   Playlists,
   VaultStatus,

@@ -1,8 +1,9 @@
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { KeepClear } from "@/components/diary/DiaryEditor/type";
+import { useEntryHost } from "@/hooks/diary/useEntryHost";
 import {
   alignSelectedImage,
   entryExtensions,
@@ -15,7 +16,6 @@ import { entryProse } from "@/lib/diary/entryProse";
 import type { ImageAlign } from "@/lib/diary/imageAlign";
 import { preparePicture } from "@/lib/diary/preparePicture";
 import { toastError } from "@/lib/ui/toast";
-import { listenKeyboardMoves, saveImage } from "@/lib/vault/commands";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./imageFiles";
@@ -28,7 +28,8 @@ const CURSOR_ROOM = 16;
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
  * scrolls so it stays in view. A pasted picture is prepared for saving
- * (`preparePicture`), saved as an encrypted image, and put where the cursor
+ * (`preparePicture`), saved as an encrypted image by the app the entry is
+ * in, and put where the cursor
  * is once saved; one that fails is told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
  * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
  * selected image needs. The menu rises in as it appears, and slides only
@@ -40,9 +41,11 @@ export function useDiaryEditor(
   disabled: boolean,
   keepClear: KeepClear = { top: 0, bottom: 0 },
 ) {
+  const host = useEntryHost();
+  const [extensions] = useState(() => entryExtensions(host));
   const edges = { left: 0, right: 0, top: keepClear.top, bottom: keepClear.bottom };
   const editor = useEditor({
-    extensions: entryExtensions,
+    extensions,
     content: initialBody,
     // Tiptap calls the handler from the newest render, so it never goes stale.
     onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
@@ -83,7 +86,7 @@ export function useDiaryEditor(
       }
       let id: string;
       try {
-        id = await saveImage(picture);
+        id = await host.saveImage(picture);
       } catch (failure) {
         toastError(`画像を保存できませんでした。${failureText(failure)}`);
         continue;
@@ -122,12 +125,13 @@ export function useDiaryEditor(
     window.addEventListener("resize", onResize);
     let stopped = false;
     let unlisten: (() => void) | undefined;
-    void listenKeyboardMoves(() => {
-      keyboardMoved = true;
-      reveal();
-      // Once the resize had its chance, a later one is not the keyboard's.
-      setTimeout(() => (keyboardMoved = false), 500);
-    })
+    void host
+      .listenKeyboardMoves(() => {
+        keyboardMoved = true;
+        reveal();
+        // Once the resize had its chance, a later one is not the keyboard's.
+        setTimeout(() => (keyboardMoved = false), 500);
+      })
       .then((stop) => {
         if (stopped) stop();
         else unlisten = stop;
@@ -140,7 +144,7 @@ export function useDiaryEditor(
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(frame);
     };
-  }, [editor]);
+  }, [editor, host]);
 
   const imageAlign = useEditorState({
     editor,

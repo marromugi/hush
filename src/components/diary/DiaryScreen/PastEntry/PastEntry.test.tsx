@@ -1,11 +1,19 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { EntryHostContext } from "@/hooks/diary/useEntryHost";
 import * as fonts from "@/lib/diary/fonts";
+import { tauriEntryHost } from "@/lib/diary/tauriEntryHost";
 import { writeSettings } from "@/lib/settings/settings";
 
 import { PastEntry } from "./PastEntry";
+
+/** The Tauri app, whose commands these tests fake with `mockIPC`. */
+function InTauri({ children }: { children: ReactNode }) {
+  return <EntryHostContext value={tauriEntryHost}>{children}</EntryHostContext>;
+}
 
 afterEach(() => {
   cleanup();
@@ -42,7 +50,7 @@ test("an entry saved without a font is in the default font", async () => {
   fakeEntry(null);
   vi.spyOn(fonts, "loadFont").mockResolvedValue();
   writeSettings({ defaultFonts: { ja: klee, en: null } });
-  render(<PastEntry date="2022-12-18" />);
+  render(<PastEntry date="2022-12-18" />, { wrapper: InTauri });
   await waitFor(() => expect(shown()).toEqual({ font: '"Klee One", cursive', blurred: false }));
 });
 
@@ -56,7 +64,7 @@ test("an entry saved with a font is blurred until that font loads, then in it", 
       }),
   );
   writeSettings({ defaultFonts: { ja: null, en: null } });
-  render(<PastEntry date="2022-12-18" />);
+  render(<PastEntry date="2022-12-18" />, { wrapper: InTauri });
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   expect(shown().blurred).toBe(true);
   await act(async () => {
@@ -72,6 +80,6 @@ test("an entry whose font cannot load is in the default font, not blurred", asyn
     if (font.id === "zen-maru") throw new Error("offline");
   });
   writeSettings({ defaultFonts: { ja: klee, en: null } });
-  render(<PastEntry date="2022-12-18" />);
+  render(<PastEntry date="2022-12-18" />, { wrapper: InTauri });
   await waitFor(() => expect(shown()).toEqual({ font: '"Klee One", cursive', blurred: false }));
 });

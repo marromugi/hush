@@ -1,1 +1,1 @@
-export { EntryLinkCardNode } from "./entryLinkCardNode";
+export { entryLinkCardNode } from "./entryLinkCardNode";

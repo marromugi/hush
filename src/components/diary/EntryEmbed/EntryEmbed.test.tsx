@@ -2,11 +2,22 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { embedPagesOrigin } from "@/lib/vault/commands";
+import { EntryHostContext } from "@/hooks/diary/useEntryHost";
+import type { EmbedLink } from "@/lib/diary/embedLink";
+import { fakeEntryHost } from "@/lib/diary/fakeEntryHost";
 
 import { EntryEmbed } from "./EntryEmbed";
 
-vi.mock("@/lib/vault/commands", () => ({ embedPagesOrigin: vi.fn<() => Promise<string>>() }));
+const embedPagesOrigin = vi.fn<() => Promise<string>>();
+
+/** Shows `embed` in an app whose pages for videos are served from wherever `embedPagesOrigin` says. */
+function showEmbed(embed: EmbedLink) {
+  return render(
+    <EntryHostContext value={fakeEntryHost({ embedPagesOrigin })}>
+      <EntryEmbed embed={embed} />
+    </EntryHostContext>,
+  );
+}
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -27,7 +38,7 @@ const resize = (height: number) =>
 /** Shows a post on X, with a stand-in for the page inside its frame. */
 function showPost() {
   vi.mocked(embedPagesOrigin).mockResolvedValue("http://127.0.0.1:5123");
-  const { container } = render(<EntryEmbed embed={{ site: "x", id: "20" }} />);
+  const { container } = showEmbed({ site: "x", id: "20" });
   const frame = container.querySelector("iframe");
   if (!frame) throw new Error("no frame");
   const postMessage = vi.fn<(message: unknown, origin: string) => void>();
@@ -69,7 +80,7 @@ test("a message from another origin, or from another frame, is neither taken nor
 
 /** Shows a YouTube video and returns its frame. */
 function showVideo() {
-  const { container } = render(<EntryEmbed embed={{ site: "youtube", id: "dQw4w9WgXcQ" }} />);
+  const { container } = showEmbed({ site: "youtube", id: "dQw4w9WgXcQ" });
   const frame = container.querySelector("iframe");
   if (!frame) throw new Error("no frame");
   return frame;
