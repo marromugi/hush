@@ -61,7 +61,9 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
       _ = try await webPage.callJavaScript(
         "window.hushEditor.load(entry)", arguments: ["entry": ["body": initialBody]])
     } catch {
-      preconditionFailure("the editor page takes an entry once it is ready: \(error)")
+      // WebKit fails the call when the page's process has ended. The page
+      // then shows no editor, so nothing typed can overwrite the entry.
+      log.error("the editor page did not take the entry: \(error, privacy: .public)")
     }
   }
 }
