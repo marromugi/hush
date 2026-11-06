@@ -14,6 +14,15 @@ export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
   // "@/" is src, as in tsconfig.json.
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  // The Tauri app's page, and the editor alone for the Swift app's web view.
+  build: {
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        editor: fileURLToPath(new URL("./editor.html", import.meta.url)),
+      },
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
