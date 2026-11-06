@@ -1,4 +1,5 @@
 use std::sync::MutexGuard;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
@@ -182,6 +183,14 @@ pub fn entry_dates(state: &AppState) -> Result<Vec<String>, CoreError> {
         .into_iter()
         .map(String::from)
         .collect())
+}
+
+/// The time now, as `save_entry` takes it.
+pub fn now_ms() -> u64 {
+    let since_epoch = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("the clock is after 1970");
+    u64::try_from(since_epoch.as_millis()).expect("milliseconds since 1970 fit in u64")
 }
 
 fn parse_date(date: String) -> Result<EntryDate, CoreError> {
