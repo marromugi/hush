@@ -113,6 +113,19 @@ struct TodayModelTests {
     #expect(await diary.saved == [Entry(body: "<p>海</p>")])
   }
 
+  @Test func textTypedWhileTheLockSavesIsSavedBeforeTheVaultLocks() async {
+    let diary = FakeDiary()
+    let model = model(diary)
+    await model.load()
+    model.changed("<p>海</p>")
+    await diary.onNextSave { model.changed("<p>海辺</p>") }
+
+    var locked = false
+    await model.lock { locked = true }.value
+    #expect(locked)
+    #expect(await diary.saved == [Entry(body: "<p>海</p>"), Entry(body: "<p>海辺</p>")])
+  }
+
   @Test func aFailedSaveKeepsTheVaultOpen() async {
     let diary = FakeDiary()
     let model = model(diary)

@@ -4,6 +4,8 @@
     private var entries: [EntryDate: Entry]
     /// Thrown by reads and saves; `nil` lets them succeed.
     private var failure: AppError?
+    /// Runs once, during the next save, before it is stored.
+    private var duringNextSave: (@MainActor @Sendable () -> Void)?
     /// Every entry saved, oldest first.
     public private(set) var saved: [Entry] = []
 
@@ -17,6 +19,11 @@
       self.failure = failure
     }
 
+    /// Runs `action` during the next save, as when the person types while it runs.
+    public func onNextSave(_ action: @escaping @MainActor @Sendable () -> Void) {
+      duringNextSave = action
+    }
+
     public func entry(on date: EntryDate) async throws(AppError) -> Entry? {
       if let failure { throw failure }
       return entries[date]
@@ -24,6 +31,10 @@
 
     public func save(_ entry: Entry, on date: EntryDate) async throws(AppError) -> Entry {
       if let failure { throw failure }
+      if let action = duringNextSave {
+        duringNextSave = nil
+        await action()
+      }
       entries[date] = entry
       saved.append(entry)
       return entry

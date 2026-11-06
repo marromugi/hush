@@ -114,7 +114,15 @@ final class TodayModel {
   func lock(then lockVault: @escaping () -> Void) -> Task<Void, Never> {
     locking = true
     return Task {
-      if await save() { lockVault() }
+      // A change can arrive after a save ends and before this task resumes;
+      // the vault locks only once nothing is left unsaved.
+      repeat {
+        guard await save() else {
+          locking = false
+          return
+        }
+      } while !isStored
+      lockVault()
       locking = false
     }
   }
