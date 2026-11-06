@@ -66,3 +66,24 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+
+  apple:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, aarch64-apple-ios, aarch64-apple-ios-sim
+      - uses: Swatinem/rust-cache@v2
+      - run: apple/scripts/lint.sh
+      - run: apple/scripts/build-core.sh
+      - run: brew install xcodegen
+      - run: xcodegen generate
+        working-directory: apple
+      - name: Build for macOS, the iOS simulator, and iOS devices
+        working-directory: apple
+        run: |
+          for destination in "generic/platform=macOS" "generic/platform=iOS Simulator" "generic/platform=iOS"; do
+            xcodebuild -project Hush.xcodeproj -scheme Hush -destination "$destination" \
+              build CODE_SIGNING_ALLOWED=NO -quiet
+          done
