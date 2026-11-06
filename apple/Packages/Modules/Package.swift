@@ -17,5 +17,7 @@ let package = Package(
     .target(name: "CoreBindings", dependencies: ["HushFFI"], swiftSettings: concurrency),
     .target(name: "CoreEntrance", dependencies: ["CoreBindings"], swiftSettings: concurrency),
     .target(name: "Features", dependencies: ["CoreEntrance"], swiftSettings: mainActor),
+    .testTarget(
+      name: "FeaturesTests", dependencies: ["Features", "CoreEntrance"], swiftSettings: mainActor),
   ]
 )

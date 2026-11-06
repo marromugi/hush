@@ -2,7 +2,7 @@
 
 Hush を SwiftUI で作り直しているアプリです。iOS と macOS で動きます。
 
-- 金庫や日記の読み書きは、Rust のコア（`core/`）が受け持ちます。
+- 日記帳や日記の読み書きは、Rust のコア（`core/`）が受け持ちます。
 - Swift からは、`ffi/` のクレートを通してコアを呼びます。
 - Tauri 版とは別のアプリなので、両方を同じ端末に入れられます。データも別のフォルダに置きます。
 
@@ -21,6 +21,14 @@ cd apple && xcodegen generate
 ```
 
 あとは `apple/Hush.xcodeproj` を開いて実行します。
+
+## テスト
+
+画面のモデルのテストを実行します。先に Rust のコアをビルドしておきます。
+
+```sh
+swift test --package-path apple/Packages/Modules
+```
 
 ## 整形の確認
 
