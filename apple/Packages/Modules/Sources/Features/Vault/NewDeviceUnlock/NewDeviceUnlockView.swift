@@ -16,6 +16,11 @@ struct NewDeviceUnlockView: View {
       LabeledField("Secret Key", failure: failure?.text(at: .secretKeyField)) {
         TextField("Secret Key", text: $secretKey)
           .autocorrectionDisabled()
+          #if os(iOS)
+            // A Secret Key is letters and digits; a kana keyboard would turn them into kana.
+            .keyboardType(.asciiCapable)
+            .textInputAutocapitalization(.characters)
+          #endif
       }
       LabeledField("パスフレーズ", failure: failure?.text(at: .passphraseField)) {
         SecureField("パスフレーズ", text: $passphrase)
