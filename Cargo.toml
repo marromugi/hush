@@ -12,6 +12,10 @@ opt-level = 3
 panic = "abort"
 strip = true
 
+# Proc macros are loaded by rustc itself; stripped, they cannot be found.
+[profile.release.build-override]
+strip = false
+
 # Key derivation is deliberately heavy; unoptimized it takes over a second per unlock in `tauri dev`.
 [profile.dev.package.argon2]
 opt-level = 3
