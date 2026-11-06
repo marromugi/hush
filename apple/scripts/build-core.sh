@@ -9,10 +9,6 @@ modules="$root/apple/Packages/Modules"
 work="$root/target/apple"
 targets="aarch64-apple-darwin aarch64-apple-ios aarch64-apple-ios-sim"
 
-# Matches the app's deployment targets in apple/project.yml.
-export MACOSX_DEPLOYMENT_TARGET=26.0
-export IPHONEOS_DEPLOYMENT_TARGET=26.0
-
 cd "$root"
 for target in $targets; do
   cargo build --release --locked -p hush-ffi --target "$target"
