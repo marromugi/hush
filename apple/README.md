@@ -3,6 +3,7 @@
 Hush を SwiftUI で作り直しているアプリです。iOS と macOS で動きます。
 
 - 日記帳や日記の読み書きは、Rust のコア（`core/`）が受け持ちます。
+- 日記のエディタは、Tauri 版と同じ Web のページを WebView に出します。
 - Swift からは、`ffi/` のクレートを通してコアを呼びます。
 - Tauri 版とは別のアプリなので、両方を同じ端末に入れられます。データも別のフォルダに置きます。
 
@@ -12,6 +13,12 @@ Rust のコアをビルドして、Swift から呼べる形にします。コア
 
 ```sh
 apple/scripts/build-core.sh
+```
+
+エディタの Web のページをビルドして、アプリに入れる場所に置きます。エディタを変えたら、もう一度実行します。
+
+```sh
+apple/scripts/build-web.sh
 ```
 
 Xcode のプロジェクトを作ります。`apple/project.yml` を変えたときも、もう一度実行します。

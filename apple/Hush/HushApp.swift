@@ -5,12 +5,27 @@ import SwiftUI
 
 @main
 struct HushApp: App {
-  @State private var model = VaultModel(vault: Core(dataDirectory: .hushData))
+  /// One for the app, shared by the vault and the diary: the open vault's key lives in it.
+  private let core: Core
+  @State private var model: VaultModel
+
+  init() {
+    let core = Core(dataDirectory: .hushData)
+    self.core = core
+    _model = State(initialValue: VaultModel(vault: core))
+  }
 
   var body: some Scene {
-    WindowGroup {
-      VaultView(model: model)
-    }
+    // One window on the Mac too: two editors on one entry would save over each other.
+    #if os(macOS)
+      Window("Hush Swift", id: "diary") { root }
+    #else
+      WindowGroup { root }
+    #endif
+  }
+
+  private var root: some View {
+    VaultView(model: model, diary: core, editorFiles: .inApp)
   }
 }
 
@@ -21,5 +36,15 @@ extension URL {
       preconditionFailure("the app bundle has an identifier")
     }
     return URL.applicationSupportDirectory.appending(path: id, directoryHint: .isDirectory)
+  }
+}
+
+extension EditorFiles {
+  /// The web pages bundled by `apple/scripts/build-web.sh`.
+  fileprivate static var inApp: EditorFiles {
+    guard let folder = Bundle.main.url(forResource: "Web", withExtension: nil) else {
+      preconditionFailure("the app bundles the web pages; run apple/scripts/build-web.sh")
+    }
+    return EditorFiles(folder: folder)
   }
 }

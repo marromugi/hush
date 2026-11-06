@@ -14,6 +14,10 @@ targets:
     sources:
       - path: Hush
         type: syncedFolder
+      # Made by scripts/build-web.sh. Copied whole, as the folder `Web`.
+      - path: Web
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: Modules
         product: CoreEntrance

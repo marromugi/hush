@@ -4,9 +4,14 @@ import SwiftUI
 /// The screen for where the vault stands.
 public struct VaultView: View {
   let model: VaultModel
+  let diary: any Diary
+  let editorFiles: EditorFiles
 
-  public init(model: VaultModel) {
+  /// `diary` and `editorFiles` are for the diary shown once the vault is open.
+  public init(model: VaultModel, diary: any Diary, editorFiles: EditorFiles) {
     self.model = model
+    self.diary = diary
+    self.editorFiles = editorFiles
   }
 
   public var body: some View {
@@ -26,7 +31,7 @@ public struct VaultView: View {
         if let secretKey = model.newSecretKey {
           SecretKeyNoticeView(secretKey: secretKey, onKept: model.keptSecretKey)
         } else {
-          UnlockedView(onLock: model.lock)
+          TodayView(diary: diary, files: editorFiles, onLock: model.lock)
         }
       }
     }
@@ -36,9 +41,13 @@ public struct VaultView: View {
 }
 
 #Preview("日記帳がない") {
-  VaultView(model: VaultModel(vault: FakeVault(status: .missing)))
+  VaultView(
+    model: VaultModel(vault: FakeVault(status: .missing)), diary: FakeDiary(),
+    editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
 }
 
 #Preview("ロック中") {
-  VaultView(model: VaultModel(vault: FakeVault(status: .locked)))
+  VaultView(
+    model: VaultModel(vault: FakeVault(status: .locked)), diary: FakeDiary(),
+    editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
 }

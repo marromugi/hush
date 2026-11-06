@@ -28,8 +28,9 @@ target/
 storybook-static
 debug-storybook.log
 
-# Made by apple/scripts/build-core.sh and xcodegen
+# Made by apple/scripts/build-core.sh, build-web.sh, and xcodegen
 apple/Packages/Modules/Frameworks/
+apple/Web/
 apple/Packages/Modules/Sources/CoreBindings/hush_ffi.swift
 apple/Hush.xcodeproj/
 .build/

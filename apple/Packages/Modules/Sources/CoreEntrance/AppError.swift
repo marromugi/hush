@@ -14,6 +14,9 @@ public enum AppError: Error, Equatable, Sendable {
   case outdatedVault
   case brokenVault
   case keychain
+  /// The entry was written by a newer version of the app.
+  case newerEntry
+  case brokenEntry
   /// Anything else. The log says what happened.
   case unexpected
 }
