@@ -1,0 +1,24 @@
+[package]
+name = "hush-ffi"
+version = "0.1.0"
+description = "The diary's core, callable from Swift"
+edition = "2024"
+
+[lib]
+name = "hush_ffi"
+# `staticlib` goes into the XCFramework; `lib` lets the bindings
+# generator and tests link it.
+crate-type = ["staticlib", "lib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[features]
+# Only the bindings generator needs it; the library stays without it.
+cli = ["uniffi/cli"]
+
+[dependencies]
+hush-core = { path = "../core" }
+uniffi = "0.32.2"
