@@ -6,9 +6,8 @@ edition = "2024"
 
 [lib]
 name = "hush_ffi"
-# `staticlib` goes into the XCFramework; `lib` lets the bindings
-# generator and tests link it.
-crate-type = ["staticlib", "lib"]
+# Goes into the XCFramework.
+crate-type = ["staticlib"]
 
 [[bin]]
 name = "uniffi-bindgen"
