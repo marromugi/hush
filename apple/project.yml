@@ -1,7 +1,6 @@
 name: Hush
 options:
   bundleIdPrefix: dev.marromugi
-  # Matches the deployment targets in scripts/build-core.sh.
   deploymentTarget:
     iOS: "26.0"
     macOS: "26.0"
@@ -36,7 +35,6 @@ targets:
         SWIFT_VERSION: "6.0"
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         SWIFT_APPROACHABLE_CONCURRENCY: YES
-        SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES
         # The core is built for Apple silicon only (scripts/build-core.sh).
         ARCHS: arm64
         CODE_SIGN_STYLE: Automatic
