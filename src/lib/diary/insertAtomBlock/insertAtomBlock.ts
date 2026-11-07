@@ -4,7 +4,9 @@ import type { Editor, JSONContent } from "@tiptap/react";
 /**
  * Puts `block`, one that holds no text, where the cursor is, and leaves the
  * cursor on the line after it, so a second block goes after the first
- * instead of replacing it.
+ * instead of replacing it. The cursor is brought into view, and kept there
+ * while the entry changes height, as a picture or a post does once it is
+ * read, until the cursor moves or the editor loses focus.
  */
 export function insertAtomBlock(editor: Editor, block: JSONContent): void {
   editor
@@ -21,5 +23,28 @@ export function insertAtomBlock(editor: Editor, block: JSONContent): void {
       tr.setSelection(TextSelection.create(tr.doc, after + 1));
       return true;
     })
+    // `focus` scrolls only when the editor did not have focus yet.
+    .scrollIntoView()
     .run();
+  followCursor(editor);
+}
+
+/**
+ * Brings the cursor back into view each time the entry changes height,
+ * until the cursor moves or the editor loses focus.
+ */
+function followCursor(editor: Editor): void {
+  const observer = new ResizeObserver(() => {
+    if (!editor.isDestroyed) editor.commands.scrollIntoView();
+  });
+  const stop = () => {
+    observer.disconnect();
+    editor.off("selectionUpdate", stop);
+    editor.off("blur", stop);
+    editor.off("destroy", stop);
+  };
+  editor.on("selectionUpdate", stop);
+  editor.on("blur", stop);
+  editor.on("destroy", stop);
+  observer.observe(editor.view.dom);
 }
