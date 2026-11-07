@@ -4,8 +4,9 @@ import WebKit
 import os
 
 /// The editor page, and the requests it sends to the app. Nothing else talks
-/// to the page.
-final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
+/// to the page. It lives as long as whoever keeps it: nothing the page holds
+/// keeps it alive.
+final class EditorPage {
   /// What the page shows.
   enum Content {
     /// An entry to edit, starting from `initialBody`. Each change goes to `onChange`.
@@ -18,7 +19,6 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
   private static let handlerName = "hushEditor"
 
   let webPage: WebPage
-  private let controller: WKUserContentController
   private let host: any EntryHost
   private let content: Content
 
@@ -26,25 +26,18 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
   init(files: EditorFiles, host: any EntryHost, content: Content) {
     var configuration = WebPage.Configuration()
     configuration.urlSchemeHandlers[.editor] = files
-    controller = configuration.userContentController
+    let controller = configuration.userContentController
     webPage = WebPage(configuration: configuration, navigationDecider: StayOnPage())
     self.host = host
     self.content = content
-    super.init()
     // Added before the page loads, so that its first request is heard.
-    controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.handlerName)
+    controller.addScriptMessageHandler(
+      Requests(to: self), contentWorld: .page, name: Self.handlerName)
     webPage.load(URLRequest(url: .editorPage))
   }
 
-  /// Stops hearing the page. Until then the page holds this object, and this
-  /// object holds the page.
-  func close() {
-    controller.removeScriptMessageHandler(forName: Self.handlerName, contentWorld: .page)
-  }
-
-  func userContentController(
-    _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
-  ) async -> (Any?, String?) {
+  /// The answer to one request: a reply, or the failure's kind as the page names it.
+  fileprivate func answer(_ message: WKScriptMessage) async -> (Any?, String?) {
     let request: EditorRequest
     do {
       request = try EditorRequest(message: message.body)
@@ -109,6 +102,24 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
       // then shows no editor, so nothing typed can overwrite the entry.
       log.error("the editor page did not take the entry: \(error, privacy: .public)")
     }
+  }
+}
+
+/// Passes the page's requests to the editor page while it exists. The page's
+/// controller holds this object, so it holds the editor page weakly; holding
+/// it strongly would keep the editor page, and the page, alive for good.
+private final class Requests: NSObject, WKScriptMessageHandlerWithReply {
+  private weak var page: EditorPage?
+
+  init(to page: EditorPage) {
+    self.page = page
+  }
+
+  func userContentController(
+    _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
+  ) async -> (Any?, String?) {
+    guard let page else { return (nil, "unknown") }
+    return await page.answer(message)
   }
 }
 
