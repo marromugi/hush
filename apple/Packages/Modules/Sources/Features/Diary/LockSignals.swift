@@ -22,7 +22,9 @@ private struct LockSignals: ViewModifier {
     @Environment(\.scenePhase) private var phase
 
     func body(content: Content) -> some View {
-      content.onChange(of: phase) { _, phase in
+      // Also when the diary appears: an unlock can finish after the person
+      // has left the app, and no change of phase follows to lock it.
+      content.onChange(of: phase, initial: true) { _, phase in
         if phase != .active { lock() }
       }
     }
