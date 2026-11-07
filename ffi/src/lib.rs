@@ -128,6 +128,11 @@ impl CoreHandle {
         )?)
     }
 
+    /// Every date that has an entry, oldest first, as `YYYY-MM-DD`.
+    pub fn entry_dates(&self) -> Result<Vec<String>, CoreFailure> {
+        Ok(session::entry_dates(&self.state)?)
+    }
+
     /// Saves `picture`, a JPEG, PNG, or GIF, as a new encrypted image and
     /// returns its id.
     pub fn save_image(&self, picture: Vec<u8>) -> Result<String, CoreFailure> {
