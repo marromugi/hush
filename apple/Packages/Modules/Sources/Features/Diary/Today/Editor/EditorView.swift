@@ -1,9 +1,11 @@
+import CoreEntrance
 import SwiftUI
 import WebKit
 
 /// The editor, showing an entry and reporting each change to it.
 struct EditorView: View {
   let files: EditorFiles
+  let host: any EntryHost
   /// The body the editor starts with. Read once, when the editor appears.
   let initialBody: String
   let onChange: (String) -> Void
@@ -20,7 +22,8 @@ struct EditorView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onAppear {
       if page == nil {
-        page = EditorPage(files: files, initialBody: initialBody, onChange: onChange)
+        page = EditorPage(
+          files: files, host: host, initialBody: initialBody, onChange: onChange)
       }
     }
     .onDisappear {

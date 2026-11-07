@@ -20,5 +20,6 @@ cli = ["uniffi/cli"]
 
 [dependencies]
 hush-core = { path = "../core" }
-uniffi = "0.32.2"
+# `tokio` runs the core's link fetching, which needs a Tokio runtime, for Swift's `await`.
+uniffi = { version = "0.32.2", features = ["tokio"] }
 zeroize = "1.9.1"

@@ -17,7 +17,8 @@ extension AppError {
     case .invalidSecretKey: .secretKeyField
     case .wrongPassphraseOrSecretKey: .bothFields
     case .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .newerEntry,
-      .brokenEntry, .unexpected:
+      .brokenEntry, .unsupportedPicture, .newerImage, .brokenImage, .invalidImageId, .noImage,
+      .link, .unreadableLink, .embedPages, .unexpected:
       .wholeForm
     }
   }

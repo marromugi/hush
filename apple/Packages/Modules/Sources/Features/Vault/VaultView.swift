@@ -5,12 +5,17 @@ import SwiftUI
 public struct VaultView: View {
   let model: VaultModel
   let diary: any Diary
+  let entryHost: any EntryHost
   let editorFiles: EditorFiles
 
-  /// `diary` and `editorFiles` are for the diary shown once the vault is open.
-  public init(model: VaultModel, diary: any Diary, editorFiles: EditorFiles) {
+  /// `diary`, `entryHost`, and `editorFiles` are for the diary shown once
+  /// the vault is open.
+  public init(
+    model: VaultModel, diary: any Diary, entryHost: any EntryHost, editorFiles: EditorFiles
+  ) {
     self.model = model
     self.diary = diary
+    self.entryHost = entryHost
     self.editorFiles = editorFiles
   }
 
@@ -31,7 +36,7 @@ public struct VaultView: View {
         if let secretKey = model.newSecretKey {
           SecretKeyNoticeView(secretKey: secretKey, onKept: model.keptSecretKey)
         } else {
-          TodayView(diary: diary, files: editorFiles, onLock: model.lock)
+          TodayView(diary: diary, host: entryHost, files: editorFiles, onLock: model.lock)
         }
       }
     }
@@ -43,11 +48,11 @@ public struct VaultView: View {
 #Preview("日記帳がない") {
   VaultView(
     model: VaultModel(vault: FakeVault(status: .missing)), diary: FakeDiary(),
-    editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
+    entryHost: FakeEntryHost(), editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
 }
 
 #Preview("ロック中") {
   VaultView(
     model: VaultModel(vault: FakeVault(status: .locked)), diary: FakeDiary(),
-    editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
+    entryHost: FakeEntryHost(), editorFiles: EditorFiles(folder: Bundle.main.bundleURL))
 }

@@ -7,8 +7,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use hush_core::app_state::{AppState, AppStateInner};
+use hush_core::embed_pages;
 use hush_core::entry::EntryFont;
 use hush_core::keychain::Keychain;
+use hush_core::link_page::{self, LinkPage};
 use hush_core::local_store::LocalStore;
 use hush_core::session::{self, EntryView, VaultStatus};
 use zeroize::Zeroizing;
@@ -42,6 +44,12 @@ pub struct EntryFont {
     pub stylesheet: String,
 }
 
+#[uniffi::remote(Record)]
+pub struct LinkPage {
+    pub title: Option<String>,
+    pub image_url: Option<String>,
+}
+
 /// One per app run, holding the vault's state for this device.
 #[derive(uniffi::Object)]
 pub struct CoreHandle {
@@ -56,8 +64,11 @@ impl CoreHandle {
         let store = LocalStore::new(PathBuf::from(data_dir), Arc::new(Keychain));
         #[cfg(target_os = "ios")]
         let store = store.with_vault_keys(Arc::new(hush_core::biometry::BiometricKeychain));
+        let mut inner = AppStateInner::new(store);
+        // Without it the diary still works; only YouTube videos cannot play.
+        inner.embed_pages = embed_pages::start().ok();
         Arc::new(CoreHandle {
-            state: AppState::new(AppStateInner::new(store)),
+            state: AppState::new(inner),
         })
     }
 
@@ -116,4 +127,33 @@ impl CoreHandle {
             session::now_ms(),
         )?)
     }
+
+    /// Saves `picture`, a JPEG, PNG, or GIF, as a new encrypted image and
+    /// returns its id.
+    pub fn save_image(&self, picture: Vec<u8>) -> Result<String, CoreFailure> {
+        Ok(session::save_image(&self.state, picture)?)
+    }
+
+    /// The picture saved as `id`.
+    pub fn read_image(&self, id: String) -> Result<Vec<u8>, CoreFailure> {
+        Ok(session::read_image(&self.state, id)?)
+    }
+
+    /// Where the pages YouTube videos are shown in are served from, as
+    /// `http://127.0.0.1:{port}`.
+    pub fn embed_pages_origin(&self) -> Result<String, CoreFailure> {
+        Ok(embed_pages::origin(&self.state)?)
+    }
+}
+
+/// Reads the page at `url`, an `http` or `https` link, for its title and picture.
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn link_page(url: String) -> Result<LinkPage, CoreFailure> {
+    Ok(link_page::fetch_page(&url).await?)
+}
+
+/// The picture at `url`, in whatever format the site sent it.
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn link_image(url: String) -> Result<Vec<u8>, CoreFailure> {
+    Ok(link_page::fetch_image(&url).await?)
 }

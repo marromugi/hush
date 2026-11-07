@@ -25,7 +25,7 @@ struct HushApp: App {
   }
 
   private var root: some View {
-    VaultView(model: model, diary: core, editorFiles: .inApp)
+    VaultView(model: model, diary: core, entryHost: core, editorFiles: .inApp)
   }
 }
 
