@@ -6,7 +6,8 @@ import type { Editor, JSONContent } from "@tiptap/react";
  * cursor on the line after it, so a second block goes after the first
  * instead of replacing it. The cursor is brought into view, and kept there
  * while the entry changes height, as a picture or a post does once it is
- * read, until the cursor moves or the editor loses focus.
+ * read, until the cursor moves, the editor loses focus, or the window is
+ * resized.
  */
 export function insertAtomBlock(editor: Editor, block: JSONContent): void {
   editor
@@ -31,20 +32,22 @@ export function insertAtomBlock(editor: Editor, block: JSONContent): void {
 
 /**
  * Brings the cursor back into view each time the entry changes height,
- * until the cursor moves or the editor loses focus.
+ * until the cursor moves, the editor loses focus or is gone, or the window
+ * is resized. A window resized by hand leaves the page where it is; the
+ * keyboard's own moves reveal the cursor in `useDiaryEditor`.
  */
 function followCursor(editor: Editor): void {
-  const observer = new ResizeObserver(() => {
-    if (!editor.isDestroyed) editor.commands.scrollIntoView();
-  });
+  const observer = new ResizeObserver(() => editor.commands.scrollIntoView());
   const stop = () => {
     observer.disconnect();
     editor.off("selectionUpdate", stop);
     editor.off("blur", stop);
     editor.off("destroy", stop);
+    window.removeEventListener("resize", stop);
   };
   editor.on("selectionUpdate", stop);
   editor.on("blur", stop);
   editor.on("destroy", stop);
+  window.addEventListener("resize", stop);
   observer.observe(editor.view.dom);
 }

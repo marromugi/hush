@@ -66,6 +66,7 @@ test("while the cursor stays after the block, the entry changing height brings i
 test.each([
   ["the cursor moves", (editor: Editor) => editor.commands.setTextSelection(1)],
   ["the editor loses focus", (editor: Editor) => editor.view.dom.dispatchEvent(new Event("blur"))],
+  ["the window is resized", () => window.dispatchEvent(new Event("resize"))],
 ])("once %s, the entry changing height leaves the page where it is", (_, moveOn) => {
   const { editor, scrolls } = editorOn("<p>海</p>");
   editor.commands.setTextSelection(2);
@@ -75,4 +76,12 @@ test.each([
   resized();
   expect(scrolls.count).toBe(before);
   editor.destroy();
+});
+
+test("once the editor is gone, the entry changing height does nothing", () => {
+  const { editor } = editorOn("<p>海</p>");
+  editor.commands.setTextSelection(2);
+  insertAtomBlock(editor, { type: "box" });
+  editor.destroy();
+  expect(() => resized()).not.toThrow();
 });
