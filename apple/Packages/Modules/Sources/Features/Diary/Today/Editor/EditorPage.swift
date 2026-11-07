@@ -25,6 +25,12 @@ final class EditorPage {
   private let navigation = StayOnPage()
   private let host: any EntryHost
   private let content: Content
+  #if os(iOS)
+    /// Hears the on-screen keyboard for as long as the page lives, not only
+    /// while its view is shown: a navigation column can disappear and stay
+    /// on screen.
+    private var keyboardObserver: SignalObserver?
+  #endif
 
   /// Starts loading the page, which shows `content` once it is ready.
   init(files: EditorFiles, host: any EntryHost, content: Content) {
@@ -38,7 +44,30 @@ final class EditorPage {
     webView.configuration.userContentController.addScriptMessageHandler(
       Requests(to: self), contentWorld: .page, name: Self.handlerName)
     webView.load(URLRequest(url: .editorPage))
+    #if os(iOS)
+      let keyboard = SignalObserver { [weak self] in
+        Task { await self?.keyboardMoved() }
+      }
+      NotificationCenter.default.addObserver(
+        keyboard, selector: #selector(SignalObserver.post),
+        name: UIResponder.keyboardDidChangeFrameNotification, object: nil)
+      keyboardObserver = keyboard
+    #endif
   }
+
+  #if os(iOS)
+    /// Tells the page that the on-screen keyboard has moved and the page has
+    /// its new size, so that it brings the cursor back into view. A page
+    /// still loading has no cursor yet and is told nothing.
+    private func keyboardMoved() async {
+      do {
+        _ = try await webView.callAsyncJavaScript(
+          "window.hushEditor?.keyboardMoved()", arguments: [:], contentWorld: .page)
+      } catch {
+        log.error("the editor page did not hear the keyboard move: \(error, privacy: .public)")
+      }
+    }
+  #endif
 
   /// The answer to one request: a reply, or the failure's kind as the page names it.
   fileprivate func answer(_ message: WKScriptMessage) async -> (Any?, String?) {

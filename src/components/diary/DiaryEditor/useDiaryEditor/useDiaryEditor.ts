@@ -19,6 +19,7 @@ import { toastError } from "@/lib/ui/toast";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./imageFiles";
+import { keyboardResizes } from "./keyboardResizes";
 import { riseIn, settle, slideNextMove, stopSliding } from "./menuMotion";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
@@ -105,33 +106,22 @@ export function useDiaryEditor(
 
   // The on-screen keyboard shrinks the window without a transaction, which
   // would leave the cursor behind the footer until the next keystroke; it is
-  // brought back into view once the window has been resized. Only the
-  // keyboard counts: a window resized by hand leaves the page where it is.
+  // brought back into view each time the window is resized while the
+  // keyboard moves. Only the keyboard counts: a window resized by hand leaves
+  // the page where it is.
   useEffect(() => {
-    let keyboardMoved = false;
     let frame = 0;
-    const reveal = () => {
+    const keyboard = keyboardResizes(() => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!editor.isDestroyed && editor.isFocused) editor.commands.scrollIntoView();
       });
-    };
-    // The resize and the keyboard's word can come in either order.
-    const onResize = () => {
-      if (!keyboardMoved) return;
-      keyboardMoved = false;
-      reveal();
-    };
-    window.addEventListener("resize", onResize);
+    });
+    window.addEventListener("resize", keyboard.windowResized);
     let stopped = false;
     let unlisten: (() => void) | undefined;
     void host
-      .listenKeyboardMoves(() => {
-        keyboardMoved = true;
-        reveal();
-        // Once the resize had its chance, a later one is not the keyboard's.
-        setTimeout(() => (keyboardMoved = false), 500);
-      })
+      .listenKeyboardMoves(keyboard.keyboardMoved)
       .then((stop) => {
         if (stopped) stop();
         else unlisten = stop;
@@ -141,7 +131,7 @@ export function useDiaryEditor(
     return () => {
       stopped = true;
       unlisten?.();
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", keyboard.windowResized);
       cancelAnimationFrame(frame);
     };
   }, [editor, host]);
