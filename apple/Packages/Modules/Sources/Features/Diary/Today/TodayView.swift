@@ -35,15 +35,14 @@ extension View {
     if #available(iOS 26, *) {
       navigationSubtitle(text ?? Text(verbatim: ""))
     } else {
+      // Always there, so that the editor does not shrink as the first save starts.
       safeAreaInset(edge: .top, spacing: 0) {
-        if let text {
-          text
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-            .background(.bar)
-        }
+        (text ?? Text(verbatim: " "))
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 4)
+          .background(.bar)
       }
     }
   }
