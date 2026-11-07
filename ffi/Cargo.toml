@@ -22,4 +22,6 @@ cli = ["uniffi/cli"]
 hush-core = { path = "../core" }
 # `tokio` runs the core's link fetching, which needs a Tokio runtime, for Swift's `await`.
 uniffi = { version = "0.32.2", features = ["tokio"] }
+# Runs the Touch ID or Face ID prompt, which waits for the person, off the async threads.
+tokio = { version = "1", features = ["rt"] }
 zeroize = "1.9.1"

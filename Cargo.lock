@@ -1705,6 +1705,7 @@ name = "hush-ffi"
 version = "0.1.0"
 dependencies = [
  "hush-core",
+ "tokio",
  "uniffi",
  "zeroize",
 ]
