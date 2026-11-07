@@ -50,6 +50,12 @@ extension Core: Diary {
     return Entry(
       try await call { try handle.saveEntry(date: date.text, body: entry.body, font: font) })
   }
+
+  /// Reads the folder of entries, so it leaves the main actor.
+  @concurrent
+  public func entryDates() async throws(AppError) -> [EntryDate] {
+    try await call { try handle.entryDates() }.map(EntryDate.init(coreText:))
+  }
 }
 
 extension Core: EntryHost {

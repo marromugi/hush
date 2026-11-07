@@ -19,8 +19,8 @@ final class TodayModel {
     case failed(AppError)
   }
 
-  /// The day being written, fixed when the screen appears.
-  let day: Date
+  /// The day being written, fixed when the diary opens.
+  let date: EntryDate
   private(set) var reading = Reading.inProgress
   /// The entry as last read or stored; `nil` while nothing is stored.
   private(set) var entry: Entry?
@@ -37,13 +37,11 @@ final class TodayModel {
   private var running: Task<Bool, Never>?
 
   private let diary: any Diary
-  private let date: EntryDate
   private let saveDelay: Duration
 
   /// `saveDelay` is how long typing must pause before the entry is saved.
   init(diary: any Diary, day: Date = .now, saveDelay: Duration = .seconds(1)) {
     self.diary = diary
-    self.day = day
     date = EntryDate(of: day)
     self.saveDelay = saveDelay
   }
