@@ -8,13 +8,20 @@ struct DiaryView: View {
   @State private var model: DiaryModel
   /// Today's entry first on a narrow screen, not the list.
   @State private var column = NavigationSplitViewColumn.detail
+  @State private var showsSettings = false
+  private let vault: any Vault
   private let diary: any Diary
   let host: any EntryHost
   let files: EditorFiles
   let onLock: () -> Void
 
-  init(diary: any Diary, host: any EntryHost, files: EditorFiles, onLock: @escaping () -> Void) {
+  /// `vault` is for the settings.
+  init(
+    vault: any Vault, diary: any Diary, host: any EntryHost, files: EditorFiles,
+    onLock: @escaping () -> Void
+  ) {
     _model = State(initialValue: DiaryModel(diary: diary))
+    self.vault = vault
     self.diary = diary
     self.host = host
     self.files = files
@@ -48,8 +55,12 @@ struct DiaryView: View {
           Button("ロック") { model.today.lock(then: onLock) }
             .disabled(model.today.locking)
         }
+        ToolbarItem(placement: .secondaryAction) {
+          Button("設定", systemImage: "gearshape") { showsSettings = true }
+        }
       }
     }
+    .sheet(isPresented: $showsSettings) { SettingsView(vault: vault) }
     .task { await model.load() }
     .lockWhenLeftUnattended { model.today.lock(then: onLock) }
   }
@@ -79,13 +90,15 @@ extension DiaryModel {
 
 #Preview("今日") {
   DiaryView(
-    diary: FakeDiary(), host: FakeEntryHost(), files: EditorFiles(folder: Bundle.main.bundleURL)
+    vault: FakeVault(status: .unlocked), diary: FakeDiary(), host: FakeEntryHost(),
+    files: EditorFiles(folder: Bundle.main.bundleURL)
   ) {}
 }
 
 #Preview("一覧を作れない") {
   DiaryView(
-    diary: FakeDiary(failure: .unexpected), host: FakeEntryHost(),
+    vault: FakeVault(status: .unlocked), diary: FakeDiary(failure: .unexpected),
+    host: FakeEntryHost(),
     files: EditorFiles(folder: Bundle.main.bundleURL)
   ) {}
 }

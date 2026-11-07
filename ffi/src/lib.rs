@@ -7,12 +7,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use hush_core::app_state::{AppState, AppStateInner};
+use hush_core::biometry::Biometry;
 use hush_core::embed_pages;
 use hush_core::entry::EntryFont;
 use hush_core::keychain::Keychain;
 use hush_core::link_page::{self, LinkPage};
 use hush_core::local_store::LocalStore;
-use hush_core::session::{self, EntryView, VaultStatus};
+use hush_core::session::{self, BiometryStatus, EntryView, VaultStatus};
 use zeroize::Zeroizing;
 
 use core_failure::CoreFailure;
@@ -25,6 +26,19 @@ pub enum VaultStatus {
     NeedsSecretKey,
     Locked,
     Unlocked,
+}
+
+#[uniffi::remote(Enum)]
+pub enum Biometry {
+    TouchId,
+    FaceId,
+    OpticId,
+}
+
+#[uniffi::remote(Record)]
+pub struct BiometryStatus {
+    pub biometry: Option<Biometry>,
+    pub on: bool,
 }
 
 #[uniffi::remote(Record)]
@@ -106,6 +120,21 @@ impl CoreHandle {
         session::lock(&self.state);
     }
 
+    /// Whether this device has Touch ID or Face ID, and whether the vault
+    /// opens with it here. Asks for nothing.
+    pub fn biometry_status(&self) -> Result<BiometryStatus, CoreFailure> {
+        Ok(session::biometry_status(&self.state)?)
+    }
+
+    /// Keeps the open vault's key behind Touch ID or Face ID. Only while unlocked.
+    pub fn turn_on_biometry(&self) -> Result<(), CoreFailure> {
+        Ok(session::turn_on_biometry(&self.state)?)
+    }
+
+    pub fn turn_off_biometry(&self) -> Result<(), CoreFailure> {
+        Ok(session::turn_off_biometry(&self.state)?)
+    }
+
     /// `None` when nothing was written on `date` (`YYYY-MM-DD`).
     pub fn read_entry(&self, date: String) -> Result<Option<EntryView>, CoreFailure> {
         Ok(session::read_entry(&self.state, date)?)
@@ -148,6 +177,21 @@ impl CoreHandle {
     /// `http://127.0.0.1:{port}`.
     pub fn embed_pages_origin(&self) -> Result<String, CoreFailure> {
         Ok(embed_pages::origin(&self.state)?)
+    }
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+impl CoreHandle {
+    /// Asks for Touch ID or Face ID, showing `reason` where the system has
+    /// room for it, and opens the vault with the key kept behind it.
+    pub async fn unlock_with_biometry(&self, reason: String) -> Result<(), CoreFailure> {
+        let pending = session::begin_unlock(&self.state);
+        let store = pending.store.clone();
+        // The prompt waits for the person, so it must not hold an async thread.
+        let key = tokio::task::spawn_blocking(move || store.unlock_with_biometry(&reason))
+            .await
+            .expect("asking for Touch ID or Face ID does not panic")?;
+        Ok(session::finish_unlock(&self.state, pending, key)?)
     }
 }
 

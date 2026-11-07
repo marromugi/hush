@@ -149,7 +149,8 @@ extension AppError {
     case .unreadableLink: "unreadableLink"
     case .embedPages: "embedPages"
     case .emptyPassphrase, .wrongPassphrase, .wrongPassphraseOrSecretKey, .invalidSecretKey,
-      .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .newerEntry,
+      .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .noBiometry,
+      .biometryCancelled, .biometryFailed, .biometricKeychain, .noKeptKey, .newerEntry,
       .brokenEntry, .unexpected:
       "unknown"
     }

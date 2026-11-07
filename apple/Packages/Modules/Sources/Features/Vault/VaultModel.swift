@@ -1,5 +1,6 @@
 import CoreEntrance
 import Observation
+import SwiftUI
 
 /// Where the vault stands, and making, opening, and closing it.
 @Observable
@@ -10,9 +11,18 @@ public final class VaultModel {
   private(set) var failure: AppError?
   /// The Secret Key of the vault just made, until the person has kept it.
   private(set) var newSecretKey: String?
+  /// `nil` unless the vault opens with Touch ID or Face ID on this device.
+  /// Read again each time the locked screen comes to the front, so that a
+  /// change in the settings counts.
+  private(set) var biometry: Biometry?
+  /// Whether Touch ID or Face ID was asked for since the locked screen last
+  /// came to the front. The prompt takes the app out of the front itself, so
+  /// coming back from it does not count.
+  private var askedForBiometry = false
   private var running: Task<Void, Never>?
 
-  private let vault: any Vault
+  /// Also for the settings, which turn Touch ID or Face ID on and off.
+  let vault: any Vault
 
   public init(vault: any Vault) {
     self.vault = vault
@@ -42,6 +52,36 @@ public final class VaultModel {
     }
   }
 
+  /// Asks for Touch ID or Face ID, as when the person taps the button for it.
+  @discardableResult
+  func unlockWithBiometry() -> Task<Void, Never> {
+    start { [self] () async throws(AppError) in
+      try await vault.unlockWithBiometry(reason: Self.biometryReason)
+      status = .unlocked
+    }
+  }
+
+  /// Follows the app in and out of the front. Each time the locked screen
+  /// comes to the front, it asks once for Touch ID or Face ID, when the
+  /// person has turned it on. Returns the task that asks, if it asks.
+  @discardableResult
+  func sceneChanged(to phase: ScenePhase) -> Task<Void, Never>? {
+    switch phase {
+    case .background:
+      askedForBiometry = false
+      return nil
+    case .active:
+      guard status == .locked, !askedForBiometry else { return nil }
+      askedForBiometry = true
+      return Task {
+        biometry = await biometryTurnedOn()
+        if biometry != nil { await unlockWithBiometry().value }
+      }
+    default:
+      return nil
+    }
+  }
+
   func keptSecretKey() {
     newSecretKey = nil
   }
@@ -51,6 +91,22 @@ public final class VaultModel {
     // A Secret Key still waiting to be kept is not shown again once locked.
     newSecretKey = nil
     status = .locked
+    askedForBiometry = false
+  }
+
+  /// Shown under "Touch ID" in the system prompt.
+  private static let biometryReason = "日記帳を開きます。"
+
+  /// The kind the vault opens with on this device, or `nil` when it opens
+  /// only with the passphrase.
+  private func biometryTurnedOn() async -> Biometry? {
+    do throws(AppError) {
+      let status = try await vault.biometryStatus()
+      return status.isOn ? status.biometry : nil
+    } catch {
+      // Without it the passphrase still opens the vault.
+      return nil
+    }
   }
 
   /// Runs `work` unless a create or unlock is running already, and returns
@@ -62,7 +118,8 @@ public final class VaultModel {
       do throws(AppError) {
         try await work()
       } catch {
-        failure = error
+        // A dismissed Touch ID prompt needs no words.
+        failure = error == .biometryCancelled ? nil : error
         // The device lost the vault's Secret Key, or never kept it: ask for it.
         if error == .noSecretKey { status = .needsSecretKey }
       }

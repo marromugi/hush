@@ -31,8 +31,30 @@ extension Core: Vault {
     try await call { try handle.unlockVault(passphrase: passphrase, secretKey: secretKey) }
   }
 
+  public func unlockWithBiometry(reason: String) async throws(AppError) {
+    try await call { try await handle.unlockWithBiometry(reason: reason) }
+  }
+
   public func lock() {
     handle.lockVault()
+  }
+
+  /// Reads the vault file and the keychain, so it leaves the main actor.
+  @concurrent
+  public func biometryStatus() async throws(AppError) -> BiometryStatus {
+    BiometryStatus(try await call { try handle.biometryStatus() })
+  }
+
+  /// Writes to the keychain, so it leaves the main actor.
+  @concurrent
+  public func turnOnBiometry() async throws(AppError) {
+    try await call { try handle.turnOnBiometry() }
+  }
+
+  /// Writes to the keychain, so it leaves the main actor.
+  @concurrent
+  public func turnOffBiometry() async throws(AppError) {
+    try await call { try handle.turnOffBiometry() }
   }
 }
 
@@ -121,8 +143,12 @@ extension AppError {
     case .link: self = .link
     case .unreadableLink: self = .unreadableLink
     case .embedPages: self = .embedPages
-    case .keyDerivation, .decryption, .encryption, .random, .noBiometry, .biometryCancelled,
-      .biometryFailed, .biometricKeychain, .noKeptKey, .invalidDate, .noVault, .vaultExists,
+    case .noBiometry: self = .noBiometry
+    case .biometryCancelled: self = .biometryCancelled
+    case .biometryFailed: self = .biometryFailed
+    case .biometricKeychain: self = .biometricKeychain
+    case .noKeptKey: self = .noKeptKey
+    case .keyDerivation, .decryption, .encryption, .random, .invalidDate, .noVault, .vaultExists,
       .locked, .io:
       self = .unexpected
     }

@@ -7,6 +7,7 @@ public struct VaultView: View {
   let diary: any Diary
   let entryHost: any EntryHost
   let editorFiles: EditorFiles
+  @Environment(\.scenePhase) private var phase
 
   /// `diary`, `entryHost`, and `editorFiles` are for the diary shown once
   /// the vault is open.
@@ -31,12 +32,18 @@ public struct VaultView: View {
           model.unlock(passphrase: $0, secretKey: $1)
         }
       case .locked:
-        UnlockView(busy: model.busy, failure: model.failure) { model.unlock(passphrase: $0) }
+        UnlockView(
+          busy: model.busy, failure: model.failure, biometry: model.biometry,
+          onUnlockWithBiometry: { model.unlockWithBiometry() }
+        ) { model.unlock(passphrase: $0) }
+        .onChange(of: phase, initial: true) { _, phase in model.sceneChanged(to: phase) }
       case .unlocked:
         if let secretKey = model.newSecretKey {
           SecretKeyNoticeView(secretKey: secretKey, onKept: model.keptSecretKey)
         } else {
-          DiaryView(diary: diary, host: entryHost, files: editorFiles, onLock: model.lock)
+          DiaryView(
+            vault: model.vault, diary: diary, host: entryHost, files: editorFiles,
+            onLock: model.lock)
         }
       }
     }
