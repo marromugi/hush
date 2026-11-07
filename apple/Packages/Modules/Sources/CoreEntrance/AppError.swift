@@ -17,6 +17,21 @@ public enum AppError: Error, Equatable, Sendable {
   /// The entry was written by a newer version of the app.
   case newerEntry
   case brokenEntry
+  /// The picture is not a JPEG, PNG, or GIF.
+  case unsupportedPicture
+  /// The image was saved by a newer version of the app.
+  case newerImage
+  case brokenImage
+  /// The entry names an image by something that is not an image's id.
+  case invalidImageId
+  case noImage
+  /// The page or picture a link points at could not be fetched.
+  case link
+  /// The link is not one the app reads: not `http` or `https`, or on this
+  /// device's own network.
+  case unreadableLink
+  /// The pages videos are shown in are not served.
+  case embedPages
   /// Anything else. The log says what happened.
   case unexpected
 }

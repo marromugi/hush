@@ -4,11 +4,15 @@ import SwiftUI
 /// Today's entry, written in the editor and saved as it changes.
 struct TodayView: View {
   @State private var model: TodayModel
+  let host: any EntryHost
   let files: EditorFiles
   let onLock: () -> Void
 
-  init(diary: any Diary, files: EditorFiles, onLock: @escaping () -> Void) {
+  init(
+    diary: any Diary, host: any EntryHost, files: EditorFiles, onLock: @escaping () -> Void
+  ) {
     _model = State(initialValue: TodayModel(diary: diary))
+    self.host = host
     self.files = files
     self.onLock = onLock
   }
@@ -19,7 +23,9 @@ struct TodayView: View {
       case .inProgress:
         ProgressView()
       case .read:
-        EditorView(files: files, initialBody: model.initialBody) { model.changed($0) }
+        EditorView(files: files, host: host, initialBody: model.initialBody) {
+          model.changed($0)
+        }
       case .failed(let failure):
         FailureText(failure.text)
           .padding()
@@ -37,6 +43,7 @@ struct TodayView: View {
 
 #Preview("読めない日") {
   TodayView(
-    diary: FakeDiary(failure: .brokenEntry), files: EditorFiles(folder: Bundle.main.bundleURL)
+    diary: FakeDiary(failure: .brokenEntry), host: FakeEntryHost(),
+    files: EditorFiles(folder: Bundle.main.bundleURL)
   ) {}
 }

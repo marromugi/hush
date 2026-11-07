@@ -1,3 +1,4 @@
+import CoreEntrance
 import Foundation
 import WebKit
 import os
@@ -10,15 +11,20 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
 
   let webPage: WebPage
   private let controller: WKUserContentController
+  private let host: any EntryHost
   private let initialBody: String
   private let onChange: (String) -> Void
 
   /// Starts loading the page, which shows `initialBody` once it is ready.
-  init(files: EditorFiles, initialBody: String, onChange: @escaping (String) -> Void) {
+  init(
+    files: EditorFiles, host: any EntryHost, initialBody: String,
+    onChange: @escaping (String) -> Void
+  ) {
     var configuration = WebPage.Configuration()
     configuration.urlSchemeHandlers[.editor] = files
     controller = configuration.userContentController
     webPage = WebPage(configuration: configuration, navigationDecider: StayOnPage())
+    self.host = host
     self.initialBody = initialBody
     self.onChange = onChange
     super.init()
@@ -43,16 +49,42 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
       log.error("the editor page sent a request the app cannot read: \(error, privacy: .public)")
       return (nil, "unknown")
     }
+    do throws(AppError) {
+      return (try await reply(to: request), nil)
+    } catch {
+      return (nil, error.pageKind)
+    }
+  }
+
+  /// What the page is answered with: text, or an object of text and nulls.
+  /// Bytes go as base64 text both ways.
+  private func reply(to request: EditorRequest) async throws(AppError) -> Any? {
     switch request {
     case .ready:
       await show()
-      return (nil, nil)
+      return nil
     case .changed(let body):
       onChange(body)
-      return (nil, nil)
-    case .saveImage, .readImage, .linkPage, .linkImage, .embedPagesOrigin:
-      // The app does not do these yet; the page shows each as a failure.
-      return (nil, "unknown")
+      return nil
+    case .saveImage(let picture):
+      guard let bytes = Data(base64Encoded: picture) else {
+        log.error("the editor page sent a picture that is not base64")
+        throw .unexpected
+      }
+      return try await host.saveImage(bytes)
+    case .readImage(let id):
+      return try await host.image(id: id).base64EncodedString()
+    case .linkPage(let url):
+      let page = try await host.linkPage(at: url)
+      // The page takes a missing title or picture as null, never as an absent field.
+      return [
+        "title": (page.title as Any?) ?? NSNull(),
+        "imageUrl": (page.imageURL as Any?) ?? NSNull(),
+      ]
+    case .linkImage(let url):
+      return try await host.linkImage(at: url).base64EncodedString()
+    case .embedPagesOrigin:
+      return try await host.embedPagesOrigin()
     }
   }
 
@@ -69,11 +101,35 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
 }
 
 /// Keeps the web view on the editor page, so that the entry stays on screen.
+/// The frames inside it, which show an entry's videos and posts, load
+/// wherever they point; a new window opens nowhere.
 private struct StayOnPage: WebPage.NavigationDeciding {
   func decidePolicy(
     for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences
   ) async -> WKNavigationActionPolicy {
-    action.request.url?.scheme == URLScheme.editor.rawValue ? .allow : .cancel
+    guard let frame = action.target else { return .cancel }
+    if !frame.isMainFrame { return .allow }
+    return action.request.url?.scheme == URLScheme.editor.rawValue ? .allow : .cancel
+  }
+}
+
+extension AppError {
+  /// The failure's kind as the page names it (`HushErrorKind` on the web side).
+  fileprivate var pageKind: String {
+    switch self {
+    case .unsupportedPicture: "unsupportedPicture"
+    case .newerImage: "newerImageVersion"
+    case .brokenImage: "brokenImage"
+    case .invalidImageId: "invalidImageId"
+    case .noImage: "noImage"
+    case .link: "link"
+    case .unreadableLink: "unreadableLink"
+    case .embedPages: "embedPages"
+    case .emptyPassphrase, .wrongPassphrase, .wrongPassphraseOrSecretKey, .invalidSecretKey,
+      .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .newerEntry,
+      .brokenEntry, .unexpected:
+      "unknown"
+    }
   }
 }
 
