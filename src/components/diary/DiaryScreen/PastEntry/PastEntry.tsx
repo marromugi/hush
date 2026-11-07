@@ -1,4 +1,5 @@
-import { EntryReader } from "./EntryReader";
+import { EntryReader } from "@/components/diary/EntryReader";
+
 import type { PastEntryProps } from "./type";
 import { usePastEntry } from "./usePastEntry";
 

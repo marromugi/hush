@@ -33,12 +33,31 @@ test("the page tells the app it is ready, and keeps each entry the app gives as 
   window.hushEditor?.load({ body: "<p>雪</p>" });
   window.hushEditor?.load({ body: "<p>雨</p>" });
 
-  expect(channel.loadedEntry()).toEqual({ entry: { body: "<p>雨</p>" }, count: 2 });
+  expect(channel.loadedEntry()).toEqual({
+    entry: { body: "<p>雨</p>" },
+    shownAs: "editor",
+    count: 2,
+  });
   expect(onLoad).toHaveBeenCalledTimes(2);
   // The app's own call, which the types here cannot hold to `{ body }`.
   const load = window.hushEditor?.load;
   if (!load) throw new Error("the page did not take the app's calls");
   expect(() => Reflect.apply(load, undefined, [{}])).toThrow(TypeError);
+});
+
+test("an entry the app gives to read is kept apart from one to edit", async () => {
+  fakeApp(async () => null);
+  const channel = await openPage();
+  channel.installEditorChannel();
+
+  window.hushEditor?.load({ body: "<p>雪</p>" });
+  window.hushEditor?.read({ body: "<p>雨</p>" });
+
+  expect(channel.loadedEntry()).toEqual({
+    entry: { body: "<p>雨</p>" },
+    shownAs: "reader",
+    count: 2,
+  });
 });
 
 test("a picture goes to the app and comes back as base64", async () => {

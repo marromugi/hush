@@ -62,3 +62,15 @@ test("a new entry from the app takes the place of the one shown", async () => {
   expect(await screen.findByText("雨")).toBeTruthy();
   expect(screen.queryByText("雪")).toBeNull();
 });
+
+test("an entry the app gives to read is shown, and cannot be changed", async () => {
+  const postMessage = fakeApp();
+  const { container } = await openPage();
+
+  act(() => window.hushEditor?.read({ body: "<p>雪</p>" }));
+
+  expect(await screen.findByText("雪")).toBeTruthy();
+  expect(container.querySelector(".ProseMirror")?.getAttribute("contenteditable")).toBe("false");
+  paste(container, "海");
+  expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ kind: "changed" }));
+});

@@ -35,8 +35,10 @@ export type LoadedEntry = {
 
 /** What the app calls on the page. */
 type FromApp = {
-  /** Shows `entry` in a new editor, in place of the one shown before. */
+  /** Shows `entry` in a new editor, in place of what was shown before. */
   load: (entry: LoadedEntry) => void;
+  /** Shows `entry` to read only, in place of what was shown before. */
+  read: (entry: LoadedEntry) => void;
   /** The on-screen keyboard has moved, and the page was resized to fit. */
   keyboardMoved: () => void;
 };
@@ -123,8 +125,11 @@ export const editorChannelHost: EntryHost = {
   },
 };
 
-/** The entry last given by the app, and how many have been given, so each is told apart. */
-export type Loaded = { entry: LoadedEntry; count: number };
+/**
+ * The entry last given by the app, whether to edit or to read it, and how
+ * many have been given, so each is told apart.
+ */
+export type Loaded = { entry: LoadedEntry; shownAs: "editor" | "reader"; count: number };
 
 let loaded: Loaded | null = null;
 const loadedListeners = new Set<() => void>();
@@ -145,18 +150,22 @@ export function reportChange(body: string): void {
   void send({ kind: "changed", body }).catch(() => {});
 }
 
+/** Keeps `entry` as the one the app gave last, shown as `shownAs`. */
+function give(entry: LoadedEntry, shownAs: Loaded["shownAs"]): void {
+  // The app's call fails with this, so a wrong call shows on its side.
+  if (typeof entry?.body !== "string") throw new TypeError("the entry is { body: string }");
+  loaded = { entry: { body: entry.body }, shownAs, count: (loaded?.count ?? 0) + 1 };
+  for (const onLoad of loadedListeners) onLoad();
+}
+
 /**
  * Lets the app speak to the page through `window.hushEditor`, then tells it
  * the page is ready. Call it once, before anything is shown.
  */
 export function installEditorChannel(): void {
   window.hushEditor = {
-    load: (entry) => {
-      // The app's call fails with this, so a wrong call shows on its side.
-      if (typeof entry?.body !== "string") throw new TypeError("load takes { body: string }");
-      loaded = { entry: { body: entry.body }, count: (loaded?.count ?? 0) + 1 };
-      for (const onLoad of loadedListeners) onLoad();
-    },
+    load: (entry) => give(entry, "editor"),
+    read: (entry) => give(entry, "reader"),
     keyboardMoved: () => {
       for (const onMove of keyboardListeners) onMove();
     },
