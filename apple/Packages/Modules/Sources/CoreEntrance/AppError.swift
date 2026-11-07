@@ -14,6 +14,17 @@ public enum AppError: Error, Equatable, Sendable {
   case outdatedVault
   case brokenVault
   case keychain
+  /// The device has no Touch ID or Face ID.
+  case noBiometry
+  /// The person dismissed the Touch ID or Face ID prompt.
+  case biometryCancelled
+  /// Touch ID or Face ID did not recognize the person.
+  case biometryFailed
+  /// The key kept behind Touch ID or Face ID could not be read or written.
+  case biometricKeychain
+  /// No key comes out from behind Touch ID or Face ID any more, as after the
+  /// fingers or face set up changed.
+  case noKeptKey
   /// The entry was written by a newer version of the app.
   case newerEntry
   case brokenEntry

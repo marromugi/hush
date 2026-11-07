@@ -1,10 +1,14 @@
 import CoreEntrance
 import SwiftUI
 
-/// Opens the vault on a device that has its Secret Key.
+/// Opens the vault on a device that has its Secret Key, with the passphrase
+/// or, when the person has turned it on, with Touch ID or Face ID.
 struct UnlockView: View {
   let busy: Bool
   let failure: AppError?
+  /// `nil` unless the vault opens with Touch ID or Face ID here.
+  var biometry: Biometry?
+  var onUnlockWithBiometry: () -> Void = {}
   let onUnlock: (String) -> Void
   @State private var passphrase = ""
 
@@ -19,6 +23,11 @@ struct UnlockView: View {
       Button("開く") { onUnlock(passphrase) }
         .buttonStyle(.borderedProminent)
         .disabled(busy)
+      if let biometry {
+        Button("\(biometry.name) で開く", action: onUnlockWithBiometry)
+          .buttonStyle(.bordered)
+          .disabled(busy)
+      }
     }
     .onSubmit { onUnlock(passphrase) }
   }
@@ -26,6 +35,14 @@ struct UnlockView: View {
 
 #Preview("はじめ") {
   UnlockView(busy: false, failure: nil) { _ in }
+}
+
+#Preview("Touch ID でも開く") {
+  UnlockView(busy: false, failure: nil, biometry: .touchID) { _ in }
+}
+
+#Preview("Touch ID で確かめられない") {
+  UnlockView(busy: false, failure: .biometryFailed, biometry: .touchID) { _ in }
 }
 
 #Preview("開いている途中") {

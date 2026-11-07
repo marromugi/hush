@@ -16,7 +16,8 @@ extension AppError {
     case .emptyPassphrase, .wrongPassphrase: .passphraseField
     case .invalidSecretKey: .secretKeyField
     case .wrongPassphraseOrSecretKey: .bothFields
-    case .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .newerEntry,
+    case .noSecretKey, .newerVault, .outdatedVault, .brokenVault, .keychain, .noBiometry,
+      .biometryCancelled, .biometryFailed, .biometricKeychain, .noKeptKey, .newerEntry,
       .brokenEntry, .unsupportedPicture, .newerImage, .brokenImage, .invalidImageId, .noImage,
       .link, .unreadableLink, .embedPages, .unexpected:
       .wholeForm

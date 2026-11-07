@@ -1,4 +1,5 @@
 import CoreEntrance
+import SwiftUI
 import Testing
 
 @testable import Features
@@ -39,5 +40,52 @@ struct VaultModelTests {
 
     model.lock()
     #expect(model.status == .locked)
+  }
+
+  @Test func theLockedScreenOpensWithTouchIdWhenItIsOn() async throws {
+    let vault = FakeVault(status: .locked, biometry: BiometryStatus(biometry: .touchID, isOn: true))
+    let model = VaultModel(vault: vault)
+    await model.load()
+
+    await (try #require(model.sceneChanged(to: .active))).value
+
+    #expect(model.status == .unlocked)
+    #expect(model.biometry == .touchID)
+    #expect(await vault.biometryAsks == 1)
+  }
+
+  @Test func aDismissedPromptIsAskedAgainOnlyAfterTheAppComesBack() async throws {
+    let vault = FakeVault(
+      status: .locked, biometry: BiometryStatus(biometry: .touchID, isOn: true),
+      biometryFailure: .biometryCancelled)
+    let model = VaultModel(vault: vault)
+    await model.load()
+
+    await (try #require(model.sceneChanged(to: .active))).value
+    #expect(model.status == .locked)
+    #expect(model.failure == nil)
+
+    // The prompt itself takes the app out of the front and back.
+    model.sceneChanged(to: .inactive)
+    #expect(model.sceneChanged(to: .active) == nil)
+    #expect(await vault.biometryAsks == 1)
+
+    model.sceneChanged(to: .background)
+    model.sceneChanged(to: .inactive)
+    await (try #require(model.sceneChanged(to: .active))).value
+    #expect(await vault.biometryAsks == 2)
+  }
+
+  @Test func theLockedScreenDoesNotAskWhenTouchIdIsOff() async throws {
+    let vault = FakeVault(
+      status: .locked, biometry: BiometryStatus(biometry: .touchID, isOn: false))
+    let model = VaultModel(vault: vault)
+    await model.load()
+
+    await (try #require(model.sceneChanged(to: .active))).value
+
+    #expect(model.status == .locked)
+    #expect(model.biometry == nil)
+    #expect(await vault.biometryAsks == 0)
   }
 }

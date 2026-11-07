@@ -22,10 +22,13 @@ private struct LockSignals: ViewModifier {
     @Environment(\.scenePhase) private var phase
 
     func body(content: Content) -> some View {
-      // Also when the diary appears: an unlock can finish after the person
-      // has left the app, and no change of phase follows to lock it.
-      content.onChange(of: phase, initial: true) { _, phase in
-        if phase != .active { lock() }
+      // Also when the diary appears, as an unlock can finish after the person
+      // has left the app. Then only a scene in the background locks: Touch ID
+      // leaves the app inactive for a moment after it opens the vault, and
+      // locking there would ask for Touch ID again at once.
+      content.onChange(of: phase, initial: true) { old, new in
+        let appearing = old == new
+        if appearing ? new == .background : new != .active { lock() }
       }
     }
   #else
