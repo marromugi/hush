@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-import WebKit
 
 @testable import Features
 
@@ -19,16 +18,7 @@ struct EditorFilesTests {
 
   func reply(_ files: EditorFiles, _ address: String) async throws -> (URLResponse?, Data) {
     let url = try #require(URL(string: address))
-    var response: URLResponse?
-    var data = Data()
-    for try await part in files.reply(for: URLRequest(url: url)) {
-      switch part {
-      case .response(let value): response = value
-      case .data(let value): data.append(value)
-      @unknown default: break
-      }
-    }
-    return (response, data)
+    return try await files.file(for: URLRequest(url: url))
   }
 
   // WebKit runs a module script only when it comes with a JavaScript type.

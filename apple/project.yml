@@ -2,7 +2,7 @@ name: Hush
 options:
   bundleIdPrefix: dev.marromugi
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "18.0"
     macOS: "26.0"
 packages:
   Modules:

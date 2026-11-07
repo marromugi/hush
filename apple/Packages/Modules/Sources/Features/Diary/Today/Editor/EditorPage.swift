@@ -17,23 +17,27 @@ final class EditorPage {
 
   /// The name the page posts its requests to.
   private static let handlerName = "hushEditor"
+  /// The scheme the page's files are served on.
+  fileprivate static let scheme = "hush-editor"
 
-  let webPage: WebPage
+  let webView: WKWebView
+  /// The web view holds its navigation delegate weakly.
+  private let navigation = StayOnPage()
   private let host: any EntryHost
   private let content: Content
 
   /// Starts loading the page, which shows `content` once it is ready.
   init(files: EditorFiles, host: any EntryHost, content: Content) {
-    var configuration = WebPage.Configuration()
-    configuration.urlSchemeHandlers[.editor] = files
-    let controller = configuration.userContentController
-    webPage = WebPage(configuration: configuration, navigationDecider: StayOnPage())
+    let configuration = WKWebViewConfiguration()
+    configuration.setURLSchemeHandler(FileServer(files: files), forURLScheme: Self.scheme)
+    webView = WKWebView(frame: .zero, configuration: configuration)
     self.host = host
     self.content = content
+    webView.navigationDelegate = navigation
     // Added before the page loads, so that its first request is heard.
-    controller.addScriptMessageHandler(
+    webView.configuration.userContentController.addScriptMessageHandler(
       Requests(to: self), contentWorld: .page, name: Self.handlerName)
-    webPage.load(URLRequest(url: .editorPage))
+    webView.load(URLRequest(url: .editorPage))
   }
 
   /// The answer to one request: a reply, or the failure's kind as the page names it.
@@ -95,8 +99,9 @@ final class EditorPage {
       case .reader(let body): ("read", body)
       }
     do {
-      _ = try await webPage.callJavaScript(
-        "window.hushEditor.\(call)(entry)", arguments: ["entry": ["body": body]])
+      _ = try await webView.callAsyncJavaScript(
+        "window.hushEditor.\(call)(entry)", arguments: ["entry": ["body": body]],
+        contentWorld: .page)
     } catch {
       // WebKit fails the call when the page's process has ended. The page
       // then shows no editor, so nothing typed can overwrite the entry.
@@ -123,16 +128,53 @@ private final class Requests: NSObject, WKScriptMessageHandlerWithReply {
   }
 }
 
+/// Serves the page's files from the folder in the app. Files are read off
+/// the main actor; a request WebKit has stopped is not answered, since
+/// answering it raises an exception.
+private final class FileServer: NSObject, WKURLSchemeHandler {
+  private let files: EditorFiles
+  /// The requests started and not yet stopped or answered.
+  private var running: Set<ObjectIdentifier> = []
+
+  init(files: EditorFiles) {
+    self.files = files
+  }
+
+  func webView(_ webView: WKWebView, start task: any WKURLSchemeTask) {
+    let id = ObjectIdentifier(task)
+    running.insert(id)
+    let request = task.request
+    Task {
+      let file: (URLResponse, Data)
+      do {
+        file = try await files.file(for: request)
+      } catch {
+        if running.remove(id) != nil { task.didFailWithError(error) }
+        return
+      }
+      guard running.remove(id) != nil else { return }
+      task.didReceive(file.0)
+      task.didReceive(file.1)
+      task.didFinish()
+    }
+  }
+
+  func webView(_ webView: WKWebView, stop task: any WKURLSchemeTask) {
+    running.remove(ObjectIdentifier(task))
+  }
+}
+
 /// Keeps the web view on the editor page, so that the entry stays on screen.
 /// The frames inside it, which show an entry's videos and posts, load
 /// wherever they point; a new window opens nowhere.
-private struct StayOnPage: WebPage.NavigationDeciding {
-  func decidePolicy(
-    for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences
-  ) async -> WKNavigationActionPolicy {
-    guard let frame = action.target else { return .cancel }
-    if !frame.isMainFrame { return .allow }
-    return action.request.url?.scheme == URLScheme.editor.rawValue ? .allow : .cancel
+private final class StayOnPage: NSObject, WKNavigationDelegate {
+  func webView(
+    _ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
+    decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+  ) {
+    guard let frame = action.targetFrame else { return decisionHandler(.cancel) }
+    if !frame.isMainFrame { return decisionHandler(.allow) }
+    decisionHandler(action.request.url?.scheme == EditorPage.scheme ? .allow : .cancel)
   }
 }
 
@@ -155,16 +197,6 @@ extension AppError {
       "unknown"
     }
   }
-}
-
-extension URLScheme {
-  /// The scheme the editor page's files are served on.
-  fileprivate static let editor: URLScheme = {
-    guard let scheme = URLScheme("hush-editor") else {
-      preconditionFailure("hush-editor is a scheme WebKit leaves to the app")
-    }
-    return scheme
-  }()
 }
 
 extension URL {
