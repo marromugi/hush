@@ -9,7 +9,9 @@ extension View {
   /// screen, as the Tauri app does: on iOS as soon as the app is no longer
   /// active, Control Center and the app switcher included; on the Mac when it
   /// sleeps or locks the screen, not when another app comes to the front.
-  /// On the Mac it also locks when the diary's window closes.
+  /// On the Mac it also locks when the diary's window closes. When the diary
+  /// appears on iOS, only a scene in the background locks it: an unlock that
+  /// finishes under Control Center leaves the diary open.
   func lockWhenLeftUnattended(_ lock: @escaping () -> Void) -> some View {
     modifier(LockSignals(lock: lock))
   }
