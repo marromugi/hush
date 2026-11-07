@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use tauri::async_runtime::spawn_blocking;
 use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, State};
@@ -14,13 +12,6 @@ use hush_core::session::{self, BiometryStatus, EntryView, VaultStatus};
 
 use crate::app_error::AppError;
 use crate::music::{self, Playlists};
-
-fn now_ms() -> u64 {
-    let since_epoch = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("the clock is after 1970");
-    u64::try_from(since_epoch.as_millis()).expect("milliseconds since 1970 fit in u64")
-}
 
 #[tauri::command]
 pub async fn vault_status(state: State<'_, AppState>) -> Result<VaultStatus, AppError> {
@@ -109,7 +100,13 @@ pub async fn save_entry(
     font: Option<EntryFont>,
     state: State<'_, AppState>,
 ) -> Result<EntryView, AppError> {
-    Ok(session::save_entry(&state, date, body, font, now_ms())?)
+    Ok(session::save_entry(
+        &state,
+        date,
+        body,
+        font,
+        session::now_ms(),
+    )?)
 }
 
 #[tauri::command]

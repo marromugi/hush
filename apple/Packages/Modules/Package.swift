@@ -18,6 +18,8 @@ let package = Package(
     .target(name: "CoreEntrance", dependencies: ["CoreBindings"], swiftSettings: concurrency),
     .target(name: "Features", dependencies: ["CoreEntrance"], swiftSettings: mainActor),
     .testTarget(
+      name: "CoreEntranceTests", dependencies: ["CoreEntrance"], swiftSettings: concurrency),
+    .testTarget(
       name: "FeaturesTests", dependencies: ["Features", "CoreEntrance"], swiftSettings: mainActor),
   ]
 )
