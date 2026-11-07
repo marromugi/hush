@@ -69,17 +69,4 @@ private struct LockSignals: ViewModifier {
       }
     }
   }
-
-  /// Turns a notification into a call, for the centres that take a selector.
-  private final class SignalObserver: NSObject {
-    private let onPost: @Sendable () -> Void
-
-    init(_ onPost: @escaping @Sendable () -> Void) {
-      self.onPost = onPost
-    }
-
-    @objc func post(_ notification: Notification) {
-      onPost()
-    }
-  }
 #endif
