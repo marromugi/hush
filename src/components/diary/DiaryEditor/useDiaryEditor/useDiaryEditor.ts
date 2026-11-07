@@ -19,6 +19,7 @@ import { toastError } from "@/lib/ui/toast";
 import { failureText } from "@/lib/vault/errorText";
 
 import { imageFiles } from "./imageFiles";
+import { keyboardResizes } from "./keyboardResizes";
 import { riseIn, settle, slideNextMove, stopSliding } from "./menuMotion";
 
 /** Room the cursor keeps from the window's edges when the page scrolls to it, beyond `keepClear`. */
@@ -109,37 +110,18 @@ export function useDiaryEditor(
   // keyboard moves. Only the keyboard counts: a window resized by hand leaves
   // the page where it is.
   useEffect(() => {
-    let keyboardMoving = false;
-    let settled = 0;
     let frame = 0;
-    const reveal = () => {
+    const keyboard = keyboardResizes(() => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!editor.isDestroyed && editor.isFocused) editor.commands.scrollIntoView();
       });
-    };
-    // The resizes and the keyboard's word can come in any order, and the app
-    // can go on resizing the window after the word, as SwiftUI does while it
-    // animates. A resize within 500 ms of the word or of the resize before it
-    // is the keyboard's; the last one is at the size the window keeps.
-    const keepListening = () => {
-      keyboardMoving = true;
-      clearTimeout(settled);
-      settled = window.setTimeout(() => (keyboardMoving = false), 500);
-    };
-    const onResize = () => {
-      if (!keyboardMoving) return;
-      keepListening();
-      reveal();
-    };
-    window.addEventListener("resize", onResize);
+    });
+    window.addEventListener("resize", keyboard.windowResized);
     let stopped = false;
     let unlisten: (() => void) | undefined;
     void host
-      .listenKeyboardMoves(() => {
-        keepListening();
-        reveal();
-      })
+      .listenKeyboardMoves(keyboard.keyboardMoved)
       .then((stop) => {
         if (stopped) stop();
         else unlisten = stop;
@@ -149,8 +131,7 @@ export function useDiaryEditor(
     return () => {
       stopped = true;
       unlisten?.();
-      window.removeEventListener("resize", onResize);
-      clearTimeout(settled);
+      window.removeEventListener("resize", keyboard.windowResized);
       cancelAnimationFrame(frame);
     };
   }, [editor, host]);
