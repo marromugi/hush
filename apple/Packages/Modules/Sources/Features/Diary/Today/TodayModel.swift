@@ -35,6 +35,8 @@ final class TodayModel {
   private var waiting: Task<Void, Never>?
   /// The last save asked for. Saves run one after another.
   private var running: Task<Bool, Never>?
+  /// The lock under way, which a second request to lock waits for.
+  private var lockTask: Task<Void, Never>?
 
   private let diary: any Diary
   private let saveDelay: Duration
@@ -107,22 +109,27 @@ final class TodayModel {
   }
 
   /// Saves what is waiting, then calls `lockVault`. Stays open when the save
-  /// fails, and the save message says why. Returns the task that saves.
+  /// fails, and the save message says why. Asked again while it runs, it
+  /// returns the same task, so the vault is locked once. Returns the task
+  /// that saves.
   @discardableResult
   func lock(then lockVault: @escaping () -> Void) -> Task<Void, Never> {
+    if let lockTask { return lockTask }
     locking = true
-    return Task {
+    let task = Task {
+      defer {
+        locking = false
+        lockTask = nil
+      }
       // A change can arrive after a save ends and before this task resumes;
       // the vault locks only once nothing is left unsaved.
       repeat {
-        guard await save() else {
-          locking = false
-          return
-        }
+        guard await save() else { return }
       } while !isStored
       lockVault()
-      locking = false
     }
+    lockTask = task
+    return task
   }
 
   /// Stores the newest body, again while typing goes on during a save.
