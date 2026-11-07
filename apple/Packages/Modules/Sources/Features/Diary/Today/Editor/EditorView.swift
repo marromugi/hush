@@ -16,8 +16,7 @@ struct EditorView: View {
   var body: some View {
     ZStack {
       if let page {
-        WebView(page.webPage)
-          .webViewBackForwardNavigationGestures(.disabled)
+        WebViewHost(webView: page.webView)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -28,3 +27,23 @@ struct EditorView: View {
     }
   }
 }
+
+/// Places a web view made elsewhere. Updates change nothing in it, so the
+/// page is never loaded again.
+#if os(iOS)
+  private struct WebViewHost: UIViewRepresentable {
+    let webView: WKWebView
+
+    func makeUIView(context: Context) -> WKWebView { webView }
+
+    func updateUIView(_ view: WKWebView, context: Context) {}
+  }
+#else
+  private struct WebViewHost: NSViewRepresentable {
+    let webView: WKWebView
+
+    func makeNSView(context: Context) -> WKWebView { webView }
+
+    func updateNSView(_ view: WKWebView, context: Context) {}
+  }
+#endif

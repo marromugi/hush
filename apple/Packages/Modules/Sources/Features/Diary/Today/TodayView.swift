@@ -23,7 +23,29 @@ struct TodayView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .navigationSubtitle(model.saveMessage?.subtitle ?? Text(verbatim: ""))
+    .saveMessage(model.saveMessage?.subtitle)
+  }
+}
+
+extension View {
+  /// How saving stands: under the day's title where the system has room for
+  /// it, and before iOS 26 in a strip above the entry.
+  @ViewBuilder
+  fileprivate func saveMessage(_ text: Text?) -> some View {
+    if #available(iOS 26, *) {
+      navigationSubtitle(text ?? Text(verbatim: ""))
+    } else {
+      safeAreaInset(edge: .top, spacing: 0) {
+        if let text {
+          text
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .background(.bar)
+        }
+      }
+    }
   }
 }
 

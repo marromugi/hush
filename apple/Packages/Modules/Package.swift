@@ -6,7 +6,7 @@ let mainActor: [SwiftSetting] = concurrency + [.defaultIsolation(MainActor.self)
 
 let package = Package(
   name: "Modules",
-  platforms: [.iOS(.v26), .macOS(.v26)],
+  platforms: [.iOS(.v18), .macOS(.v26)],
   products: [
     .library(name: "CoreEntrance", targets: ["CoreEntrance"]),
     .library(name: "Features", targets: ["Features"]),
