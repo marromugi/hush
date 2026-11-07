@@ -113,6 +113,22 @@ struct TodayModelTests {
     #expect(await diary.saved == [Entry(body: "<p>海</p>")])
   }
 
+  @Test func askingToLockAgainWhileTheLockSavesLocksTheVaultOnce() async {
+    let diary = FakeDiary()
+    let model = model(diary)
+    await model.load()
+    model.changed("<p>海</p>")
+
+    var locks = 0
+    let first = model.lock { locks += 1 }
+    let second = model.lock { locks += 1 }
+    await first.value
+    await second.value
+
+    #expect(locks == 1)
+    #expect(await diary.saved == [Entry(body: "<p>海</p>")])
+  }
+
   @Test func textTypedWhileTheLockSavesIsSavedBeforeTheVaultLocks() async {
     let diary = FakeDiary()
     let model = model(diary)

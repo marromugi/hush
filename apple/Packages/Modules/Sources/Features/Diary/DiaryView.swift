@@ -51,6 +51,7 @@ struct DiaryView: View {
       }
     }
     .task { await model.load() }
+    .lockWhenLeftUnattended { model.today.lock(then: onLock) }
   }
 }
 
