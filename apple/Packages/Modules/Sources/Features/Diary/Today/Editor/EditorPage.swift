@@ -6,27 +6,30 @@ import os
 /// The editor page, and the requests it sends to the app. Nothing else talks
 /// to the page.
 final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
+  /// What the page shows.
+  enum Content {
+    /// An entry to edit, starting from `initialBody`. Each change goes to `onChange`.
+    case editor(initialBody: String, onChange: (String) -> Void)
+    /// An entry to read only.
+    case reader(body: String)
+  }
+
   /// The name the page posts its requests to.
   private static let handlerName = "hushEditor"
 
   let webPage: WebPage
   private let controller: WKUserContentController
   private let host: any EntryHost
-  private let initialBody: String
-  private let onChange: (String) -> Void
+  private let content: Content
 
-  /// Starts loading the page, which shows `initialBody` once it is ready.
-  init(
-    files: EditorFiles, host: any EntryHost, initialBody: String,
-    onChange: @escaping (String) -> Void
-  ) {
+  /// Starts loading the page, which shows `content` once it is ready.
+  init(files: EditorFiles, host: any EntryHost, content: Content) {
     var configuration = WebPage.Configuration()
     configuration.urlSchemeHandlers[.editor] = files
     controller = configuration.userContentController
     webPage = WebPage(configuration: configuration, navigationDecider: StayOnPage())
     self.host = host
-    self.initialBody = initialBody
-    self.onChange = onChange
+    self.content = content
     super.init()
     // Added before the page loads, so that its first request is heard.
     controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.handlerName)
@@ -64,6 +67,10 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
       await show()
       return nil
     case .changed(let body):
+      guard case .editor(_, let onChange) = content else {
+        log.error("the editor page reported a change to an entry shown to read only")
+        throw .unexpected
+      }
       onChange(body)
       return nil
     case .saveImage(let picture):
@@ -89,9 +96,14 @@ final class EditorPage: NSObject, WKScriptMessageHandlerWithReply {
   }
 
   private func show() async {
+    let (call, body) =
+      switch content {
+      case .editor(let initialBody, _): ("load", initialBody)
+      case .reader(let body): ("read", body)
+      }
     do {
       _ = try await webPage.callJavaScript(
-        "window.hushEditor.load(entry)", arguments: ["entry": ["body": initialBody]])
+        "window.hushEditor.\(call)(entry)", arguments: ["entry": ["body": body]])
     } catch {
       // WebKit fails the call when the page's process has ended. The page
       // then shows no editor, so nothing typed can overwrite the entry.

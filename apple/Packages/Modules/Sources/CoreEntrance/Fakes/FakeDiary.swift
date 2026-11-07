@@ -2,7 +2,7 @@
   /// A diary kept in memory, for previews and tests.
   public actor FakeDiary: Diary {
     private var entries: [EntryDate: Entry]
-    /// Thrown by reads and saves; `nil` lets them succeed.
+    /// Thrown by every call; `nil` lets them succeed.
     private var failure: AppError?
     /// Runs once, during the next save, before it is stored.
     private var duringNextSave: (@MainActor @Sendable () -> Void)?
@@ -14,7 +14,7 @@
       self.failure = failure
     }
 
-    /// Makes reads and saves throw `failure` from now on, or succeed for `nil`.
+    /// Makes every call throw `failure` from now on, or succeed for `nil`.
     public func fail(with failure: AppError?) {
       self.failure = failure
     }
@@ -38,6 +38,11 @@
       entries[date] = entry
       saved.append(entry)
       return entry
+    }
+
+    public func entryDates() async throws(AppError) -> [EntryDate] {
+      if let failure { throw failure }
+      return entries.keys.sorted()
     }
   }
 #endif

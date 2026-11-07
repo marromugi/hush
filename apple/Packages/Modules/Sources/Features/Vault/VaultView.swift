@@ -36,7 +36,7 @@ public struct VaultView: View {
         if let secretKey = model.newSecretKey {
           SecretKeyNoticeView(secretKey: secretKey, onKept: model.keptSecretKey)
         } else {
-          TodayView(diary: diary, host: entryHost, files: editorFiles, onLock: model.lock)
+          DiaryView(diary: diary, host: entryHost, files: editorFiles, onLock: model.lock)
         }
       }
     }
