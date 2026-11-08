@@ -6,10 +6,3 @@ extension EntryDate {
     "\(year).\(month).\(day)"
   }
 }
-
-extension CalendarMonth.ID {
-  /// `2026.11`, as the Tauri app's sidebar shows a month.
-  var title: String {
-    "\(year).\(month)"
-  }
-}
