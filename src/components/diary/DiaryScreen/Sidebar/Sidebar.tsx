@@ -1,16 +1,9 @@
 import { clsx } from "clsx";
 
+import { menuItem } from "@/components/diary/DiaryScreen/menuItem";
+
 import type { SidebarProps } from "./type";
 import { useSidebar } from "./useSidebar";
-
-const item = clsx(
-  // layout
-  "block cursor-pointer py-1",
-  // typography
-  "tabular-nums",
-  // state
-  "opacity-50 transition-opacity hover:opacity-100 aria-[current=date]:opacity-100",
-);
 
 /** Years and months that open and close; choosing a month lists its days. */
 export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
@@ -23,7 +16,7 @@ export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
           <button
             type="button"
             onClick={sidebar.back}
-            className={clsx(item, "mb-2 flex items-center gap-2")}
+            className={clsx(menuItem, "mb-2 flex items-center gap-2")}
           >
             <svg viewBox="0 0 12 12" aria-hidden className="size-3">
               <path d="M10 1.5 2.5 6 10 10.5Z" fill="none" stroke="currentColor" />
@@ -37,7 +30,7 @@ export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
                   type="button"
                   aria-current={day.selected ? "date" : undefined}
                   onClick={() => onSelect(day.date)}
-                  className={item}
+                  className={menuItem}
                 >
                   {day.label}
                 </button>
@@ -53,7 +46,7 @@ export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
                 type="button"
                 aria-expanded={year.open}
                 onClick={() => sidebar.toggleYear(year.year)}
-                className={item}
+                className={menuItem}
               >
                 {year.year}
               </button>
@@ -64,7 +57,7 @@ export function Sidebar({ dates, selected, onSelect }: SidebarProps) {
                       <button
                         type="button"
                         onClick={() => sidebar.showMonth(month.month)}
-                        className={item}
+                        className={menuItem}
                       >
                         {month.label}
                       </button>
