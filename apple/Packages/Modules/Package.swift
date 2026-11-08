@@ -16,7 +16,9 @@ let package = Package(
     .binaryTarget(name: "HushFFI", path: "Frameworks/HushFFI.xcframework"),
     .target(name: "CoreBindings", dependencies: ["HushFFI"], swiftSettings: concurrency),
     .target(name: "CoreEntrance", dependencies: ["CoreBindings"], swiftSettings: concurrency),
-    .target(name: "Features", dependencies: ["CoreEntrance"], swiftSettings: mainActor),
+    .target(
+      name: "Features", dependencies: ["CoreEntrance"], resources: [.process("Colors.xcassets")],
+      swiftSettings: mainActor),
     .testTarget(
       name: "CoreEntranceTests", dependencies: ["CoreEntrance"], swiftSettings: concurrency),
     .testTarget(
