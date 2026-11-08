@@ -55,9 +55,15 @@ function fakeVault(log: string[] = []) {
   );
 }
 
-/** The dice, in the bar of tools beside today's entry. */
+/** Raises the writing tools from the pill above the footer and finds `name` among them. */
+async function findTool(name: string) {
+  fireEvent.click(await screen.findByRole("button", { name: "書く道具" }));
+  return screen.findByRole("button", { name });
+}
+
+/** The dice, among the writing tools. */
 function findDice() {
-  return screen.findByRole("button", { name: "フォントを変える" });
+  return findTool("フォントを変える");
 }
 
 /**
@@ -173,11 +179,12 @@ test("写真を入れる puts the pictures chosen in today's entry", async () =>
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  const button = await screen.findByRole("button", { name: "写真を入れる" });
-  await waitFor(() => expect(button).toHaveProperty("disabled", false));
-  fireEvent.click(button);
+  await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
+  fireEvent.click(await findTool("写真を入れる"));
   const chooser = opened.mock.contexts[0];
   if (!(chooser instanceof HTMLInputElement)) throw new Error("no picker was opened");
+  // The tools are put away while the person chooses.
+  await waitFor(() => expect(screen.queryByRole("button", { name: "写真を入れる" })).toBeNull());
   const photo = new File([], "photo.jpg", { type: "image/jpeg" });
   fireEvent.change(chooser, { target: { files: [photo] } });
   await waitFor(() => expect(log).toEqual([`save <img data-image="${IMAGE_ID}"><p></p>`]), {
@@ -239,9 +246,7 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
 
   await openNewYear2020(within(document.body));
   await screen.findByText("この日の日記はありません。");
-  await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
-  );
+  await waitFor(() => expect(screen.queryByRole("button", { name: "書く道具" })).toBeNull());
 });
 
 test("shaking the phone shows today's entry in another font, and does nothing on past days", async () => {
