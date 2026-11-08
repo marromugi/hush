@@ -59,7 +59,7 @@ export function DiaryScreen() {
       <header
         className={clsx(
           // layout
-          "sticky top-0 z-5 grid h-[calc(--spacing(15)+var(--spacing-safe-top))] grid-cols-[1fr_auto_1fr] items-start gap-4 md:col-span-2 md:h-[calc(--spacing(21)+var(--spacing-safe-top))]",
+          "sticky top-0 z-5 grid h-[calc(--spacing(15)+var(--spacing-safe-top))] grid-cols-[auto_1fr] items-start gap-4 md:col-span-2 md:h-[calc(--spacing(21)+var(--spacing-safe-top))]",
           // spacing
           "pt-[calc(--spacing(4)+var(--spacing-safe-top))] md:pt-[calc(--spacing(10)+var(--spacing-safe-top))]",
           // color
@@ -91,13 +91,7 @@ export function DiaryScreen() {
             <span className="sr-only">Hush</span>
           </h1>
         </div>
-        <time
-          dateTime={screen.selected}
-          className="flex h-6 items-center text-sm tabular-nums opacity-60"
-        >
-          {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
-        </time>
-        {/* A long error wraps downward only, keeping its first line beside the date. */}
+        {/* A long error wraps downward only, keeping its first line beside the menu. */}
         <div className="flex justify-end pt-0.5 text-right">
           {today.saveMessage ? (
             <output
@@ -184,7 +178,13 @@ export function DiaryScreen() {
           "bg-page",
         )}
       >
-        <div />
+        {/* As tall as the playlist's artwork, so the two sit on one line. */}
+        <div className="flex h-12 items-center gap-3">
+          <time dateTime={screen.selected} className="text-xl font-bold tabular-nums">
+            {screen.selectedParts.year}.{screen.selectedParts.month}.{screen.selectedParts.day}
+          </time>
+          <span aria-hidden className="size-4 rounded-full bg-stone-200 dark:bg-stone-700" />
+        </div>
         <div className="flex justify-end">
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
