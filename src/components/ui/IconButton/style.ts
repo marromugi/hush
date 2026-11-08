@@ -17,8 +17,8 @@ export const iconButton = tv({
     look: {
       /** A raised circle of its own, for a button that sits on the page. */
       round: ["border border-edge", "bg-surface-raised hover:bg-edge"],
-      /** Only the icon, for a button inside a bar that is already raised. */
-      plain: "hover:bg-edge",
+      /** A larger bubble that floats over the page, as the writing tools do. */
+      bubble: ["size-11", "bg-surface shadow-float hover:bg-edge"],
     },
   },
   defaultVariants: { look: "round" },

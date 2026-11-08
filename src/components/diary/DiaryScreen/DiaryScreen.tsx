@@ -5,7 +5,7 @@ import { DiaryEditor } from "@/components/diary/DiaryEditor";
 import type { DiaryEditorHandle } from "@/components/diary/DiaryEditor";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Drawer } from "@/components/ui/Drawer";
-import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
+import { DiceIcon, Icon, ImageIcon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { useMedia } from "@/hooks/common/useMedia";
 import { useSettings } from "@/hooks/settings/useSettings";
@@ -14,10 +14,11 @@ import { subsetFor } from "@/lib/diary/fonts";
 
 import { ConfigList } from "./ConfigList";
 import { PastEntry } from "./PastEntry";
-import { PictureButton } from "./PictureButton";
+import { PictureInput } from "./PictureInput";
 import { PlaylistButton } from "./PlaylistButton";
 import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";
+import { ToolMenu } from "./ToolMenu";
 import { useDiaryScreen } from "./useDiaryScreen";
 import { useFontDice } from "./useFontDice";
 import { useKeepClear } from "./useKeepClear";
@@ -44,6 +45,7 @@ export function DiaryScreen() {
   // Pictures go in once today's entry is shown and can be typed in.
   const editor = useRef<DiaryEditorHandle>(null);
   const editorReady = !today.loading && !today.loadFailed && !today.locking;
+  const pictureChooser = useRef<HTMLInputElement>(null);
 
   return (
     // The page scrolls as a whole and only the entry moves: the header,
@@ -151,8 +153,8 @@ export function DiaryScreen() {
           "md:col-span-2 md:col-start-1 md:row-start-2",
           // spacing
           "pt-18 md:px-46",
-          // spacing: below md, room at the end as tall as the bar of tools, so the last line can scroll out from under it
-          screen.showsToday && "pb-22 md:pb-0",
+          // spacing: room at the end as tall as the row of the writing tools, so the last line can scroll out from under it
+          screen.showsToday && "pb-12",
           // typography
           "text-[length:var(--entry-size)]",
         )}
@@ -195,31 +197,35 @@ export function DiaryScreen() {
         <div className="flex justify-end">
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
-        {/* The tools for writing today's entry, up the right side just above the footer; the entry passes under them as under the footer. Their size is repeated in useKeepClear. */}
+        {/*
+          The tools for writing today's entry, on a row of the page's color
+          just above the footer: the entry passes under it as under the
+          footer. From md the row spans the entry's width only, clear of the
+          sidebar. Its height is repeated in useKeepClear.
+        */}
         {screen.showsToday ? (
-          <div
-            role="toolbar"
-            aria-label="書く道具"
-            className={clsx(
-              // layout
-              "absolute right-0 bottom-full mb-2 flex flex-col items-center gap-1",
-              // shape and spacing: a pill just wider than its round buttons
-              "rounded-full px-0.5 py-1.5",
-              // color
-              "bg-surface",
-            )}
-          >
-            <PictureButton
-              disabled={!editorReady}
+          <div className="absolute inset-x-0 bottom-full flex h-12 items-center justify-center bg-page md:inset-x-46">
+            <ToolMenu label="書く道具">
+              <IconButton
+                look="bubble"
+                icon={ImageIcon}
+                label="写真を入れる"
+                type="button"
+                disabled={!editorReady}
+                onClick={() => pictureChooser.current?.click()}
+              />
+              <IconButton
+                look="bubble"
+                icon={DiceIcon}
+                label="フォントを変える"
+                type="button"
+                disabled={!diceReady}
+                onClick={() => void dice.roll()}
+              />
+            </ToolMenu>
+            <PictureInput
+              ref={pictureChooser}
               onPick={(files) => editor.current?.addImages(files)}
-            />
-            <IconButton
-              look="plain"
-              icon={DiceIcon}
-              label="フォントを変える"
-              type="button"
-              disabled={!diceReady}
-              onClick={() => void dice.roll()}
             />
           </div>
         ) : null}
