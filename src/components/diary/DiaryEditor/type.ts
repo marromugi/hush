@@ -24,8 +24,8 @@ export type DiaryEditorProps = {
 export type DiaryEditorHandle = {
   /**
    * Saves each of `files` as an image and puts it where the cursor is, as a
-   * pasted picture is; after what is written when the entry has not been
-   * touched. One that cannot be read or saved is told in a toast.
+   * pasted picture is; after what is written when the entry has not had
+   * focus yet. One that cannot be read or saved is told in a toast.
    */
   addImages: (files: File[]) => void;
 };

@@ -77,9 +77,9 @@ test("a picture in the entry is read from the app the editor is in", async () =>
   expect(reads).toEqual([id]);
 });
 
-test("pictures given from outside, before the entry is touched, go after what is written", async () => {
+/** Renders an editor of `initialBody` whose pictures are saved as `ids`, in turn, and hands back its handle and change log. */
+function renderWithPictures(initialBody: string, ids: string[]) {
   vi.mocked(preparePicture).mockResolvedValue(new Uint8Array([1]));
-  const ids = ["0123456789abcdef0123456789abcdef", "fedcba9876543210fedcba9876543210"];
   const host = fakeEntryHost({
     saveImage: async () => ids[vi.mocked(preparePicture).mock.calls.length - 1],
     readImage: async () => new Uint8Array([0xff, 0xd8, 0xff]).buffer,
@@ -88,20 +88,31 @@ test("pictures given from outside, before the entry is touched, go after what is
   const editor = createRef<DiaryEditorHandle>();
   render(
     <EntryHostContext value={host}>
-      <DiaryEditor
-        ref={editor}
-        initialBody="<p>朝</p><p>夜</p>"
-        onChange={onChange}
-        disabled={false}
-      />
+      <DiaryEditor ref={editor} initialBody={initialBody} onChange={onChange} disabled={false} />
     </EntryHostContext>,
   );
-  // The editor is made ready a moment after it is shown.
-  await act(() => new Promise((ready) => setTimeout(ready)));
+  return { editor, onChange };
+}
+
+const A = "0123456789abcdef0123456789abcdef";
+const B = "fedcba9876543210fedcba9876543210";
+
+test("pictures given from outside, before the entry has had focus, go after what is written", async () => {
+  const { editor, onChange } = renderWithPictures("<p>朝</p><p>夜</p>", [A, B]);
   act(() => editor.current?.addImages([shot, shot]));
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith(
-      `<p>朝</p><p>夜</p><img data-image="${ids[0]}"><img data-image="${ids[1]}"><p></p>`,
+      `<p>朝</p><p>夜</p><img data-image="${A}"><img data-image="${B}"><p></p>`,
+    ),
+  );
+});
+
+test("a picture given from outside goes after a picture that ends the entry, not in its place", async () => {
+  const { editor, onChange } = renderWithPictures(`<img data-image="${A}">`, [B]);
+  act(() => editor.current?.addImages([shot]));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      `<img data-image="${A}"><img data-image="${B}"><p></p>`,
     ),
   );
 });
