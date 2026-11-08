@@ -44,13 +44,13 @@ test("choosing another day shows that day, read only", async () => {
   expect(result.current.showsToday).toBe(false);
 });
 
-test("choosing a day from the days shown over the diary shows it and puts them away", () => {
+test("choosing a day from the menu shown over the diary shows it and puts the menu away", () => {
   mockIPC(() => ["2022-12-01"], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.datesDrawer.open());
-  act(() => result.current.selectFromDates("2022-12-01"));
+  act(() => result.current.menuDrawer.open());
+  act(() => result.current.selectFromMenu("2022-12-01"));
   expect(result.current.selected).toBe("2022-12-01");
-  expect(result.current.datesDrawer.isOpen).toBe(false);
+  expect(result.current.menuDrawer.isOpen).toBe(false);
 });
 
 /** A window whose width can be made to match a media query, as it is resized. */
@@ -66,34 +66,34 @@ class FakeScreen extends EventTarget implements MediaQueryList {
   }
 }
 
-test("the days shown over the diary are put away once the window is wide enough for the sidebar", () => {
+test("the menu shown over the diary is put away once the window is wide enough for the sidebar", () => {
   mockIPC(() => [], { shouldMockEvents: true });
   const screen = new FakeScreen();
   vi.spyOn(window, "matchMedia").mockReturnValue(screen);
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.datesDrawer.open());
+  act(() => result.current.menuDrawer.open());
   act(() => screen.widen());
-  expect(result.current.datesDrawer.isOpen).toBe(false);
+  expect(result.current.menuDrawer.isOpen).toBe(false);
 });
 
-test("choosing Secret Key in the config menu closes the menu and shows the Secret Key", () => {
+test("choosing Secret Key in the menu puts the menu away and shows the Secret Key", () => {
   mockIPC(() => [], { shouldMockEvents: true });
   const { result } = renderDiary("2022-12-18");
-  act(() => result.current.configMenu.open());
+  act(() => result.current.menuDrawer.open());
   act(() => result.current.openSecretKey());
-  expect(result.current.configMenu.isOpen).toBe(false);
+  expect(result.current.menuDrawer.isOpen).toBe(false);
   expect(result.current.secretKeyModal.isOpen).toBe(true);
 });
 
-test("choosing ロック in the config menu closes the menu and locks", async () => {
+test("choosing ロック in the menu puts the menu away and locks", async () => {
   mockIPC(() => [], { shouldMockEvents: true });
   let locks = 0;
   const { result } = renderDiary("2022-12-18", async () => {
     locks += 1;
   });
-  act(() => result.current.configMenu.open());
-  act(() => result.current.lockFromConfig());
-  expect(result.current.configMenu.isOpen).toBe(false);
+  act(() => result.current.menuDrawer.open());
+  act(() => result.current.lockFromMenu());
+  expect(result.current.menuDrawer.isOpen).toBe(false);
   await waitFor(() => expect(locks).toBe(1));
 });
 

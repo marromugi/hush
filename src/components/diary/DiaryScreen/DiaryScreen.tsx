@@ -4,15 +4,15 @@ import { useRef } from "react";
 import { DiaryEditor } from "@/components/diary/DiaryEditor";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Drawer } from "@/components/ui/Drawer";
-import { DiceIcon, GearIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
+import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { optionList, optionRow } from "@/components/ui/Options";
-import { Popover } from "@/components/ui/Popover";
 import { RadialMenu } from "@/components/ui/RadialMenu";
+import { useMedia } from "@/hooks/common/useMedia";
 import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
 import { subsetFor } from "@/lib/diary/fonts";
 
+import { ConfigList } from "./ConfigList";
 import { PastEntry } from "./PastEntry";
 import { PlaylistButton } from "./PlaylistButton";
 import { SecretKeyModal } from "./SecretKeyModal";
@@ -34,10 +34,12 @@ export function DiaryScreen() {
   const diceReady = !dice.rolling && !today.locking && !today.loading;
   // Not while something covers the entry, where the change could not be seen.
   useShakeToRoll(() => void dice.roll(), screen.showsToday && !screen.covered && diceReady);
-  // The menu item that opens the Secret Key is gone once it shows, so the focus comes back here.
-  const config = useRef<HTMLButtonElement>(null);
-  // A pressed button does not keep the focus in WebKit, so the days give it back here by name.
-  const datesButton = useRef<HTMLButtonElement>(null);
+  // A pressed button does not keep the focus in WebKit, so the menu gives it back here by name.
+  const menuButton = useRef<HTMLButtonElement>(null);
+  // Below md the item that opened the settings or the Secret Key went away
+  // with the menu, so the focus comes back to the menu's button. From md the
+  // item stays in the sidebar, and the focus goes back where it was.
+  const returnFromMenu = useMedia("md") ? undefined : menuButton;
 
   return (
     // The page scrolls as a whole and only the entry moves: the header,
@@ -46,7 +48,7 @@ export function DiaryScreen() {
     // and h-20 below it, each grown by the safe-area inset on its edge; the
     // heights are repeated in useKeepClear. The sidebar fits between them.
     // Below md there is no room for the sidebar, and the header's button
-    // shows the days over the entry instead.
+    // shows it over the entry instead.
     <div
       className={clsx(
         // layout
@@ -66,17 +68,24 @@ export function DiaryScreen() {
         )}
       >
         <div className="flex h-6 items-center gap-3">
-          <span className="-my-2 md:hidden">
-            <IconButton
-              ref={datesButton}
-              icon={MenuIcon}
-              label="日付を選ぶ"
-              type="button"
-              onClick={() => screen.datesDrawer.open()}
-            />
-          </span>
+          <button
+            ref={menuButton}
+            type="button"
+            onClick={() => screen.menuDrawer.open()}
+            className={clsx(
+              // layout: the padding widens the tap area past the label; the negative margin keeps it in place
+              "-m-2 flex cursor-pointer items-center gap-1.5 p-2 md:hidden",
+              // typography
+              "font-semibold tracking-wide",
+              // focus
+              "rounded-sm focus-visible:outline-2 focus-visible:outline-accent",
+            )}
+          >
+            <Icon icon={MenuIcon} size="md" />
+            MENU
+          </button>
           <h1>
-            {/* Below md the header holds the button for the days, and the mark gives way. */}
+            {/* Below md the header holds the button for the menu, and the mark gives way. */}
             <span className="hidden md:block">
               <Icon icon={LogoIcon} size="xl" />
             </span>
@@ -122,7 +131,15 @@ export function DiaryScreen() {
           "-mx-1 px-1 pt-18 pb-1",
         )}
       >
-        <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.select} />
+        <div className="flex flex-col gap-8">
+          <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.select} />
+          <ConfigList
+            onSettings={screen.openSettings}
+            onSecretKey={screen.openSecretKey}
+            onLock={screen.lockFromMenu}
+            locking={today.locking}
+          />
+        </div>
       </div>
       {/*
         The entry is centred on the page, not beside the sidebar: from md it
@@ -168,46 +185,7 @@ export function DiaryScreen() {
           "bg-page",
         )}
       >
-        <div>
-          <Popover
-            direction="top"
-            align="start"
-            open={screen.configMenu.isOpen}
-            onOpenChange={screen.configMenu.setOpen}
-            trigger={
-              <button
-                ref={config}
-                aria-label="config"
-                className={clsx(
-                  // layout: the padding widens the tap area past the glyph; the negative margin keeps it in place
-                  "-m-2 cursor-pointer p-2",
-                  // motion: the gear turns under the pointer and back when it leaves
-                  "[&>svg]:transition-transform [&>svg]:duration-600 [&>svg]:ease-in-out hover:[&>svg]:rotate-240",
-                  "motion-reduce:[&>svg]:transition-none",
-                )}
-              >
-                <Icon icon={GearIcon} size="lg" />
-              </button>
-            }
-          >
-            <div className={optionList({ className: "w-48" })}>
-              <button type="button" className={optionRow()} onClick={screen.openSettings}>
-                設定
-              </button>
-              <button type="button" className={optionRow()} onClick={screen.openSecretKey}>
-                Secret Key
-              </button>
-              <button
-                type="button"
-                className={optionRow()}
-                disabled={today.locking}
-                onClick={screen.lockFromConfig}
-              >
-                ロック
-              </button>
-            </div>
-          </Popover>
-        </div>
+        <div />
         {screen.showsToday ? (
           <RadialMenu label="メニュー">
             <IconButton
@@ -224,26 +202,34 @@ export function DiaryScreen() {
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
         <Drawer
-          label="日付の一覧"
-          open={screen.datesDrawer.isOpen}
-          onOpenChange={screen.datesDrawer.setOpen}
-          returnFocus={datesButton}
+          label="メニュー"
+          open={screen.menuDrawer.isOpen}
+          onOpenChange={screen.menuDrawer.setOpen}
+          returnFocus={menuButton}
         >
-          <Sidebar
-            dates={screen.dates}
-            selected={screen.selected}
-            onSelect={screen.selectFromDates}
-          />
+          <div className="flex flex-col gap-8">
+            <Sidebar
+              dates={screen.dates}
+              selected={screen.selected}
+              onSelect={screen.selectFromMenu}
+            />
+            <ConfigList
+              onSettings={screen.openSettings}
+              onSecretKey={screen.openSecretKey}
+              onLock={screen.lockFromMenu}
+              locking={today.locking}
+            />
+          </div>
         </Drawer>
         <SettingsModal
           open={screen.settingsModal.isOpen}
           onOpenChange={screen.settingsModal.setOpen}
-          returnFocus={config}
+          returnFocus={returnFromMenu}
         />
         <SecretKeyModal
           open={screen.secretKeyModal.isOpen}
           onOpenChange={screen.secretKeyModal.setOpen}
-          returnFocus={config}
+          returnFocus={returnFromMenu}
         />
       </footer>
     </div>
