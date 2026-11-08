@@ -30,6 +30,7 @@ struct DiaryView: View {
       }
       .safeAreaInset(edge: .bottom, spacing: 0) {
         DiaryFooter(date: today.date)
+          .hiddenUnderKeyboard()
       }
       // The footer stays at the foot, behind the keyboard: WebKit keeps the
       // cursor clear of the keyboard, but not of a bar riding on top of it.
