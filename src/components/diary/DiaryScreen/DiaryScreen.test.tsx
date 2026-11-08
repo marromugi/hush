@@ -108,6 +108,27 @@ test("on a narrow screen, Secret Key in the menu shows the key, and closing it r
   await waitFor(() => expect(document.activeElement).toBe(menu));
 });
 
+test("on a wide screen, closing the settings opened from the sidebar returns to 設定", async () => {
+  fakeVault();
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+    { wrapper: InTauri },
+  );
+  const settings = await screen.findByRole("button", { name: "設定" });
+
+  settings.focus();
+  fireEvent.click(settings);
+  const dialog = await screen.findByRole("dialog", { name: "設定" });
+
+  await act(async () => {
+    fireEvent.keyDown(dialog, { key: "Escape" });
+  });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(settings));
+});
+
 test("ロック in the menu locks", async () => {
   fakeVault();
   let locks = 0;
