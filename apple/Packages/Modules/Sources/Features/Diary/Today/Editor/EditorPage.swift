@@ -56,9 +56,9 @@ final class EditorPage {
   }
 
   #if os(iOS)
-    /// Tells the page that the on-screen keyboard has moved and the page has
-    /// its new size, so that it brings the cursor back into view. A page
-    /// still loading has no cursor yet and is told nothing.
+    /// Tells the page that the on-screen keyboard has moved, so that it
+    /// brings the cursor back into view. A page still loading has no cursor
+    /// yet and is told nothing.
     private func keyboardMoved() async {
       do {
         _ = try await webView.callAsyncJavaScript(

@@ -17,6 +17,9 @@ struct EditorView: View {
     ZStack {
       if let page {
         WebViewHost(webView: page.webView)
+          // WebKit keeps the page clear of the keyboard itself. Shrunk
+          // above it as well, the page could scroll on past its end.
+          .ignoresSafeArea(.keyboard)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
