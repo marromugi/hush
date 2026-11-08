@@ -1,3 +1,4 @@
+import { Selection } from "@tiptap/pm/state";
 import { useEditor, useEditorState } from "@tiptap/react";
 import { clsx } from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,10 +29,10 @@ const CURSOR_ROOM = 16;
 /**
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
- * scrolls so it stays in view. A pasted picture is prepared for saving
- * (`preparePicture`), saved as an encrypted image by the app the entry is
- * in, and put where the cursor
- * is once saved; one that fails is told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
+ * scrolls so it stays in view. A picture pasted, or given to `addImages`, is
+ * prepared for saving (`preparePicture`), saved as an encrypted image by the
+ * app the entry is in, and put where the cursor is once saved; one that
+ * fails is told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
  * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
  * selected image needs. The menu rises in as it appears, and slides only
  * when the image is aligned or the window's width changes.
@@ -50,6 +51,12 @@ export function useDiaryEditor(
     content: initialBody,
     // Tiptap calls the handler from the newest render, so it never goes stale.
     onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
+    // The cursor starts after what is written, so what comes before the entry is touched goes there.
+    onCreate: ({ editor: created }) => {
+      const { state } = created;
+      const end = Selection.findFrom(state.doc.resolve(state.doc.content.size), -1, true);
+      if (end) created.view.dispatch(state.tr.setSelection(end));
+    },
     editorProps: {
       scrollThreshold: edges,
       scrollMargin: {
@@ -179,6 +186,7 @@ export function useDiaryEditor(
 
   return {
     editor,
+    addImages,
     imageAlign,
     imageMenu,
     imageMenuRef,

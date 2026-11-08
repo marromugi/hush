@@ -1,2 +1,2 @@
 export { DiaryEditor } from "./DiaryEditor";
-export type { DiaryEditorProps, KeepClear } from "./type";
+export type { DiaryEditorHandle, DiaryEditorProps, KeepClear } from "./type";

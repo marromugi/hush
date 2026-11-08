@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 export type DiaryEditorProps = {
   /** Read once, when the editor is created. */
   initialBody: string;
@@ -14,6 +16,18 @@ export type DiaryEditorProps = {
   fontFamily?: string;
   /** True while that font loads; the text is blurred until then. */
   fontLoading?: boolean;
+  /** Lets the screen around the editor put pictures in it, as from a button of its own. */
+  ref?: Ref<DiaryEditorHandle>;
+};
+
+/** What the screen around the editor can do with it. */
+export type DiaryEditorHandle = {
+  /**
+   * Saves each of `files` as an image and puts it where the cursor is, as a
+   * pasted picture is; after what is written when the entry has not been
+   * touched. One that cannot be read or saved is told in a toast.
+   */
+  addImages: (files: File[]) => void;
 };
 
 export type KeepClear = { top: number; bottom: number };

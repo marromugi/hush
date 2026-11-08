@@ -1,4 +1,5 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { EntryHostContext } from "@/hooks/diary/useEntryHost";
@@ -8,6 +9,7 @@ import { toastError } from "@/lib/ui/toast";
 import { HushError } from "@/lib/vault/hushError";
 
 import { DiaryEditor } from "./DiaryEditor";
+import type { DiaryEditorHandle } from "./type";
 
 vi.mock("@/lib/ui/toast", () => ({ toastError: vi.fn<(text: string) => void>() }));
 vi.mock("@/lib/diary/preparePicture", () => ({
@@ -73,4 +75,33 @@ test("a picture in the entry is read from the app the editor is in", async () =>
   );
   await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toBeTruthy());
   expect(reads).toEqual([id]);
+});
+
+test("pictures given from outside, before the entry is touched, go after what is written", async () => {
+  vi.mocked(preparePicture).mockResolvedValue(new Uint8Array([1]));
+  const ids = ["0123456789abcdef0123456789abcdef", "fedcba9876543210fedcba9876543210"];
+  const host = fakeEntryHost({
+    saveImage: async () => ids[vi.mocked(preparePicture).mock.calls.length - 1],
+    readImage: async () => new Uint8Array([0xff, 0xd8, 0xff]).buffer,
+  });
+  const onChange = vi.fn<(body: string) => void>();
+  const editor = createRef<DiaryEditorHandle>();
+  render(
+    <EntryHostContext value={host}>
+      <DiaryEditor
+        ref={editor}
+        initialBody="<p>朝</p><p>夜</p>"
+        onChange={onChange}
+        disabled={false}
+      />
+    </EntryHostContext>,
+  );
+  // The editor is made ready a moment after it is shown.
+  await act(() => new Promise((ready) => setTimeout(ready)));
+  act(() => editor.current?.addImages([shot, shot]));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith(
+      `<p>朝</p><p>夜</p><img data-image="${ids[0]}"><img data-image="${ids[1]}"><p></p>`,
+    ),
+  );
 });

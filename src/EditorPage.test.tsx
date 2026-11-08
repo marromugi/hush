@@ -47,7 +47,7 @@ test("the page shows the entry the app gives, and tells the app each change", as
   paste(container, "海");
 
   await waitFor(() =>
-    expect(postMessage).toHaveBeenCalledWith({ kind: "changed", body: "<p>海雪</p>" }),
+    expect(postMessage).toHaveBeenCalledWith({ kind: "changed", body: "<p>雪海</p>" }),
   );
 });
 
