@@ -117,22 +117,21 @@ export function DiaryScreen() {
       <div
         className={clsx(
           // layout
-          "sticky top-[calc(--spacing(21)+var(--spacing-safe-top))] hidden self-start md:col-start-1 md:row-start-2 md:block",
-          // size: between the header and the footer, scrolling only when a month is long
-          "max-h-[calc(100dvh-var(--spacing)*47-var(--spacing-safe-top)-var(--spacing-safe-bottom))] overflow-y-auto",
-          // spacing: room for the focus outline, which the scroll area would clip
-          "-mx-1 px-1 pt-18 pb-1",
+          "sticky top-[calc(--spacing(21)+var(--spacing-safe-top))] hidden self-start md:col-start-1 md:row-start-2 md:flex md:flex-col",
+          // size: between the header and the footer; the days scroll inside it when a month is long
+          "max-h-[calc(100dvh-var(--spacing)*47-var(--spacing-safe-top)-var(--spacing-safe-bottom))]",
+          // spacing
+          "pt-18",
         )}
       >
-        <div className="flex flex-col gap-8">
-          <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.select} />
+        <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.select}>
           <ConfigList
             onSettings={screen.openSettings}
             onSecretKey={screen.openSecretKey}
             onLock={screen.lockFromMenu}
             locking={today.locking}
           />
-        </div>
+        </Sidebar>
       </div>
       {/*
         The entry is centred on the page, not beside the sidebar: from md it
@@ -220,19 +219,14 @@ export function DiaryScreen() {
           onOpenChange={screen.menuDrawer.setOpen}
           returnFocus={menuButton}
         >
-          <div className="flex flex-col gap-8">
-            <Sidebar
-              dates={screen.dates}
-              selected={screen.selected}
-              onSelect={screen.selectFromMenu}
-            />
+          <Sidebar dates={screen.dates} selected={screen.selected} onSelect={screen.selectFromMenu}>
             <ConfigList
               onSettings={screen.openSettings}
               onSecretKey={screen.openSecretKey}
               onLock={screen.lockFromMenu}
               locking={today.locking}
             />
-          </div>
+          </Sidebar>
         </Drawer>
         <SettingsModal
           open={screen.settingsModal.isOpen}
