@@ -48,11 +48,12 @@ export function DiaryScreen() {
   const pictureChooser = useRef<HTMLInputElement>(null);
 
   return (
-    // The page scrolls as a whole and only the entry moves: the header,
-    // sidebar, and footer stick, on the page's color, so the entry passes
-    // under them. The header is h-21 and the footer h-26 from md, and h-15
-    // and h-20 below it, each grown by the safe-area inset on its edge; the
-    // heights are repeated in useKeepClear. The sidebar fits between them.
+    // The page scrolls as a whole and only the entry moves: the header and
+    // sidebar stick on the page's color, and the footer as an island over
+    // it, so the entry passes under them. The header is h-21 and the footer
+    // h-26 from md, and h-15 and h-20 below it, each grown by the safe-area
+    // inset on its edge; the heights are repeated in useKeepClear. The
+    // sidebar fits between them.
     // Below md there is no room for the sidebar, and the header's button
     // shows it over the entry instead.
     <div
@@ -179,12 +180,12 @@ export function DiaryScreen() {
       </main>
       <footer
         className={clsx(
-          // layout
-          "sticky bottom-0 z-5 grid h-[calc(--spacing(20)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto] items-end md:col-span-2 md:h-[calc(--spacing(26)+var(--spacing-safe-bottom))]",
-          // spacing
-          "pb-[calc(--spacing(4)+var(--spacing-safe-bottom))] md:pb-[calc(--spacing(10)+var(--spacing-safe-bottom))]",
-          // color
-          "bg-page",
+          // layout: edge to edge, out past the page's side padding
+          "sticky bottom-0 z-5 -mx-5 grid h-[calc(--spacing(20)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto] items-end md:col-span-2 md:-mx-10 md:h-[calc(--spacing(26)+var(--spacing-safe-bottom))]",
+          // spacing: the line of the date sits in the middle, above the safe area
+          "px-5 pb-[calc(--spacing(4)+var(--spacing-safe-bottom))] md:px-10 md:pb-[calc(--spacing(7)+var(--spacing-safe-bottom))]",
+          // shape and color: an island over the entry, which shows past its corners
+          "rounded-t-3xl bg-island shadow-island",
         )}
       >
         {/* As tall as the playlist's artwork, so the two sit on one line. */}
@@ -198,13 +199,13 @@ export function DiaryScreen() {
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
         {/*
-          The tools for writing today's entry, on a row of the page's color
-          just above the footer: the entry passes under it as under the
-          footer. From md the row spans the entry's width only, clear of the
-          sidebar. Its height is repeated in useKeepClear.
+          The tools for writing today's entry, floating on a row just above
+          the footer: the entry passes behind them. Only the tools take
+          presses, so the sidebar beside the row can still be pressed. The
+          row's height is repeated in useKeepClear.
         */}
         {screen.showsToday ? (
-          <div className="absolute inset-x-0 bottom-full flex h-12 items-center justify-center bg-page md:inset-x-46">
+          <div className="pointer-events-none absolute inset-x-0 bottom-full flex h-12 items-center justify-center *:pointer-events-auto">
             <ToolMenu label="書く道具">
               <IconButton
                 look="bubble"

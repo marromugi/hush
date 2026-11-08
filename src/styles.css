@@ -13,6 +13,8 @@
   --color-error: #d33;
   --color-scrim: #0006;
   --color-page: var(--color-stone-50);
+  /* What floats over the entry: the footer and the writing tools. A step lighter in the dark, where a shadow hardly shows. */
+  --color-island: var(--color-surface);
 
   /* What the notch, status bar, and home indicator take from the top and bottom of the screen; 0 on the desktop. */
   --spacing-safe-top: env(safe-area-inset-top);
@@ -20,6 +22,8 @@
 
   /* Tailwind writes a shadow's value into its class, so the color that changes with the scheme sits in a variable of its own. */
   --shadow-float: 0 1px 6px 0 var(--shadow-float-color);
+  /* An island along the bottom edge casts its shadow upward. */
+  --shadow-island: 0 -2px 16px 0 var(--shadow-float-color);
 }
 
 /* A control's corner is a third of its height. The height is never set; it is the line height plus the vertical padding, which each control declares through control-py-*. */
@@ -53,6 +57,7 @@
       --color-accent: oklch(56% 0.21 265);
       --color-surface: #1f1f21;
       --color-surface-raised: #2c2c2f;
+      --color-island: var(--color-surface-raised);
       --color-error: #f66;
       --color-scrim: #000a;
       --color-page: var(--color-stone-950);

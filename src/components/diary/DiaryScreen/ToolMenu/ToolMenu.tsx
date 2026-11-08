@@ -50,7 +50,7 @@ export function ToolMenu({ label, children }: ToolMenuProps) {
             // shape
             "rounded-full",
             // color
-            "bg-surface hover:bg-edge aria-expanded:bg-edge",
+            "bg-island shadow-float hover:bg-edge aria-expanded:bg-edge",
             // motion
             "transition duration-160 ease-out active:scale-97",
             // focus
