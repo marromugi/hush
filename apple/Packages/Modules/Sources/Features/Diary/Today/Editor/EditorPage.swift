@@ -26,9 +26,7 @@ final class EditorPage {
   private let host: any EntryHost
   private let content: Content
   #if os(iOS)
-    /// Hears the on-screen keyboard for as long as the page lives, not only
-    /// while its view is shown: a navigation column can disappear and stay
-    /// on screen.
+    /// Hears the on-screen keyboard for as long as the page lives.
     private var keyboardObserver: SignalObserver?
   #endif
 
