@@ -1,6 +1,7 @@
 import { EditorContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { clsx } from "clsx";
+import { useImperativeHandle } from "react";
 
 import { fontLoadingStyle } from "@/lib/diary/entryProse";
 
@@ -15,13 +16,15 @@ export function DiaryEditor({
   keepClear,
   fontFamily,
   fontLoading = false,
+  ref,
 }: DiaryEditorProps) {
-  const { editor, imageAlign, alignImage, imageMenu, imageMenuRef } = useDiaryEditor(
+  const { editor, imageAlign, alignImage, imageMenu, imageMenuRef, addImages } = useDiaryEditor(
     initialBody,
     onChange,
     disabled,
     keepClear,
   );
+  useImperativeHandle(ref, () => ({ addImages: (files) => void addImages(files) }));
 
   return (
     <>

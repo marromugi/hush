@@ -1,4 +1,6 @@
+import { TextSelection } from "@tiptap/pm/state";
 import { useEditor, useEditorState } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import { clsx } from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -26,12 +28,28 @@ import { riseIn, settle, slideNextMove, stopSliding } from "./menuMotion";
 const CURSOR_ROOM = 16;
 
 /**
+ * Puts the cursor after everything in the entry. When the entry ends with
+ * something other than a line of text, such as a picture, a line is added
+ * after it first, so what goes in next does not take that thing's place.
+ */
+function moveCursorToEnd(editor: Editor): void {
+  editor.commands.command(({ tr }) => {
+    if (!tr.doc.lastChild?.isTextblock) {
+      tr.insert(tr.doc.content.size, editor.schema.nodes.paragraph.create());
+    }
+    tr.setSelection(TextSelection.atEnd(tr.doc));
+    return true;
+  });
+}
+
+/**
  * An editor that starts with `initialBody` and reports every change as HTML.
  * When typing or moving the cursor would take it into `keepClear`, the page
- * scrolls so it stays in view. A pasted picture is prepared for saving
- * (`preparePicture`), saved as an encrypted image by the app the entry is
- * in, and put where the cursor
- * is once saved; one that fails is told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
+ * scrolls so it stays in view. A picture pasted, or given to `addImages`, is
+ * prepared for saving (`preparePicture`), saved as an encrypted image by the
+ * app the entry is in, and put where the cursor is once saved, or after
+ * what is written when the entry has not had focus yet; one that fails is
+ * told in a toast. `imageAlign` is where the selected image sits, and `alignImage`
  * moves it; `imageMenu` and `imageMenuRef` are what the bubble menu over a
  * selected image needs. The menu rises in as it appears, and slides only
  * when the image is aligned or the window's width changes.
@@ -45,11 +63,16 @@ export function useDiaryEditor(
   const host = useEntryHost();
   const [extensions] = useState(() => entryExtensions(host));
   const edges = { left: 0, right: 0, top: keepClear.top, bottom: keepClear.bottom };
+  // Until the entry first has focus, the cursor sits at its start without anyone having put it there.
+  const touched = useRef(false);
   const editor = useEditor({
     extensions,
     content: initialBody,
     // Tiptap calls the handler from the newest render, so it never goes stale.
     onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
+    onFocus: () => {
+      touched.current = true;
+    },
     editorProps: {
       scrollThreshold: edges,
       scrollMargin: {
@@ -94,6 +117,7 @@ export function useDiaryEditor(
       }
       // The editor is gone once the day changes or the vault locks; the image file stays unused.
       if (editor.isDestroyed) return;
+      if (!touched.current) moveCursorToEnd(editor);
       insertEntryImage(editor, id);
     }
   }
@@ -179,6 +203,7 @@ export function useDiaryEditor(
 
   return {
     editor,
+    addImages,
     imageAlign,
     imageMenu,
     imageMenuRef,

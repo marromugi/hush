@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 import { useRef } from "react";
 
 import { DiaryEditor } from "@/components/diary/DiaryEditor";
+import type { DiaryEditorHandle } from "@/components/diary/DiaryEditor";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Drawer } from "@/components/ui/Drawer";
 import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
@@ -13,6 +14,7 @@ import { subsetFor } from "@/lib/diary/fonts";
 
 import { ConfigList } from "./ConfigList";
 import { PastEntry } from "./PastEntry";
+import { PictureButton } from "./PictureButton";
 import { PlaylistButton } from "./PlaylistButton";
 import { SecretKeyModal } from "./SecretKeyModal";
 import { Sidebar } from "./Sidebar";
@@ -39,6 +41,9 @@ export function DiaryScreen() {
   // with the menu, so the focus comes back to the menu's button. From md the
   // item stays in the sidebar, and the focus goes back where it was.
   const returnFromMenu = useMedia("md") ? undefined : menuButton;
+  // Pictures go in once today's entry is shown and can be typed in.
+  const editor = useRef<DiaryEditorHandle>(null);
+  const editorReady = !today.loading && !today.loadFailed && !today.locking;
 
   return (
     // The page scrolls as a whole and only the entry moves: the header,
@@ -147,7 +152,7 @@ export function DiaryScreen() {
           // spacing
           "pt-18 md:px-46",
           // spacing: below md, room at the end as tall as the bar of tools, so the last line can scroll out from under it
-          screen.showsToday && "pb-13 md:pb-0",
+          screen.showsToday && "pb-22 md:pb-0",
           // typography
           "text-[length:var(--entry-size)]",
         )}
@@ -156,6 +161,7 @@ export function DiaryScreen() {
           {screen.showsToday ? (
             today.loading || today.loadFailed ? null : (
               <DiaryEditor
+                ref={editor}
                 initialBody={today.initialBody}
                 onChange={today.onChange}
                 disabled={today.locking}
@@ -203,6 +209,10 @@ export function DiaryScreen() {
               "bg-surface",
             )}
           >
+            <PictureButton
+              disabled={!editorReady}
+              onPick={(files) => editor.current?.addImages(files)}
+            />
             <IconButton
               look="plain"
               icon={DiceIcon}
