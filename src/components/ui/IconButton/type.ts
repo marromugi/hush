@@ -6,4 +6,5 @@ export type IconButtonProps = {
   icon: IconSource;
   /** Its name for screen readers, since it shows only the icon. */
   label: string;
+  look?: "round" | "plain";
 } & Omit<ComponentProps<"button">, "aria-label" | "children">;

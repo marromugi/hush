@@ -6,7 +6,6 @@ import { SettingsModal } from "@/components/settings/SettingsModal";
 import { Drawer } from "@/components/ui/Drawer";
 import { DiceIcon, Icon, LogoIcon, MenuIcon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { RadialMenu } from "@/components/ui/RadialMenu";
 import { useMedia } from "@/hooks/common/useMedia";
 import { useSettings } from "@/hooks/settings/useSettings";
 import { entryTextStyle } from "@/lib/diary/entryTextStyle";
@@ -178,7 +177,7 @@ export function DiaryScreen() {
       <footer
         className={clsx(
           // layout
-          "sticky bottom-0 z-5 grid h-[calc(--spacing(20)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto_1fr] items-end md:col-span-2 md:h-[calc(--spacing(26)+var(--spacing-safe-bottom))]",
+          "sticky bottom-0 z-5 grid h-[calc(--spacing(20)+var(--spacing-safe-bottom))] grid-cols-[1fr_auto] items-end md:col-span-2 md:h-[calc(--spacing(26)+var(--spacing-safe-bottom))]",
           // spacing
           "pb-[calc(--spacing(4)+var(--spacing-safe-bottom))] md:pb-[calc(--spacing(10)+var(--spacing-safe-bottom))]",
           // color
@@ -186,21 +185,33 @@ export function DiaryScreen() {
         )}
       >
         <div />
+        <div className="flex justify-end">
+          {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
+        </div>
+        {/* The tools for writing today's entry, up the right side just above the footer; the entry passes under them as under the footer. */}
         {screen.showsToday ? (
-          <RadialMenu label="メニュー">
+          <div
+            role="toolbar"
+            aria-label="書く道具"
+            className={clsx(
+              // layout
+              "absolute right-0 bottom-full mb-2 flex flex-col items-center gap-1",
+              // shape and spacing: a pill just wider than its round buttons
+              "rounded-full px-0.5 py-1.5",
+              // color
+              "bg-surface",
+            )}
+          >
             <IconButton
+              look="plain"
               icon={DiceIcon}
               label="フォントを変える"
               type="button"
               disabled={!diceReady}
               onClick={() => void dice.roll()}
             />
-          </RadialMenu>
+          </div>
         ) : null}
-        {/* Its own column, so it stays at the right when the menu is not shown. */}
-        <div className="col-start-3 flex justify-end">
-          {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
-        </div>
         <Drawer
           label="メニュー"
           open={screen.menuDrawer.isOpen}

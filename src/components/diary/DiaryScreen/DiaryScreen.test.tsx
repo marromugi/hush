@@ -51,10 +51,8 @@ function fakeVault(log: string[] = []) {
   );
 }
 
-/** The dice, from the menu at the foot of today's entry, opening the menu if it is closed. */
-async function findDice() {
-  const menu = await screen.findByRole("button", { name: "メニュー" });
-  if (menu.getAttribute("aria-expanded") !== "true") fireEvent.click(menu);
+/** The dice, in the bar of tools beside today's entry. */
+function findDice() {
   return screen.findByRole("button", { name: "フォントを変える" });
 }
 
@@ -192,7 +190,9 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
 
   await openNewYear2020(within(document.body));
   await screen.findByText("この日の日記はありません。");
-  await waitFor(() => expect(screen.queryByRole("button", { name: "メニュー" })).toBeNull());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
+  );
 });
 
 test("shaking the phone shows today's entry in another font, and does nothing on past days", async () => {
@@ -252,7 +252,7 @@ test("shaking the phone does nothing until today's entry has been read", async (
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await findDice();
   await act(async () => {
     await emit("shaken");
   });
@@ -430,7 +430,7 @@ test("past entries are in the default font too", async () => {
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await screen.findByRole("button", { name: "MENU" });
   await openNewYear2020(within(document.body));
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   expect(document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily).toBe(
@@ -535,7 +535,7 @@ test("the header shows the day that is open, as year.month.day", async () => {
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await screen.findByRole("button", { name: "MENU" });
   await openNewYear2020(within(document.body));
   const shown = document.querySelector("header time");
   expect(shown?.getAttribute("datetime")).toBe("2020-01-01");

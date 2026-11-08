@@ -5,9 +5,7 @@ export const iconButton = tv({
     // layout
     "inline-flex size-8 cursor-pointer items-center justify-center",
     // shape
-    "rounded-full border border-edge",
-    // color
-    "bg-surface-raised hover:bg-edge",
+    "rounded-full",
     // motion
     "transition duration-160 ease-out active:scale-97",
     // focus
@@ -15,4 +13,13 @@ export const iconButton = tv({
     // state
     "disabled:pointer-events-none disabled:opacity-50",
   ],
+  variants: {
+    look: {
+      /** A raised circle of its own, for a button that sits on the page. */
+      round: ["border border-edge", "bg-surface-raised hover:bg-edge"],
+      /** Only the icon, for a button inside a bar that is already raised. */
+      plain: "hover:bg-edge",
+    },
+  },
+  defaultVariants: { look: "round" },
 });

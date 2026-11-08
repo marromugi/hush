@@ -47,14 +47,6 @@ export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function PlusIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...outline} {...props}>
-      <path d="M8 3v10M3 8h10" />
-    </svg>
-  );
-}
-
 export function MenuIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...outline} {...props}>
