@@ -147,6 +147,8 @@ export function DiaryScreen() {
           "md:col-span-2 md:col-start-1 md:row-start-2",
           // spacing
           "pt-18 md:px-46",
+          // spacing: below md, room at the end as tall as the bar of tools, so the last line can scroll out from under it
+          screen.showsToday && "pb-13 md:pb-0",
           // typography
           "text-[length:var(--entry-size)]",
         )}
@@ -188,7 +190,7 @@ export function DiaryScreen() {
         <div className="flex justify-end">
           {settings.playlist ? <PlaylistButton playlist={settings.playlist} /> : null}
         </div>
-        {/* The tools for writing today's entry, up the right side just above the footer; the entry passes under them as under the footer. */}
+        {/* The tools for writing today's entry, up the right side just above the footer; the entry passes under them as under the footer. Their size is repeated in useKeepClear. */}
         {screen.showsToday ? (
           <div
             role="toolbar"
