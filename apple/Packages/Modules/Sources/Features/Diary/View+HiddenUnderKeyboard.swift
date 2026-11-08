@@ -1,9 +1,10 @@
 import SwiftUI
 
 extension View {
-  /// Hidden while the on-screen keyboard, or the bar a hardware keyboard
-  /// leaves, covers the bottom of the screen, either of which would cover
-  /// part of it. It keeps its room, so nothing around it moves.
+  /// Hidden while the keyboard covers the bottom of the screen, where it
+  /// would show through or beside the keyboard. It keeps its room, so
+  /// nothing around it moves. The bar a hardware keyboard leaves on iOS 27
+  /// comes with no notice when the editor takes focus, and floats over it.
   func hiddenUnderKeyboard() -> some View {
     modifier(HiddenUnderKeyboard())
   }
@@ -18,8 +19,8 @@ private struct HiddenUnderKeyboard: ViewModifier {
         .opacity(keyboardUp ? 0 : 1)
         .accessibilityHidden(keyboardUp)
         .task {
-          // Every move of the keyboard comes as a change of its frame, the
-          // hardware keyboard's bar included; "will show" does not always.
+          // A change of frame also comes when a hardware keyboard is
+          // plugged in or out while the keyboard is up; "will show" does not.
           for await moved in NotificationCenter.default.notifications(
             named: UIResponder.keyboardWillChangeFrameNotification)
           {
