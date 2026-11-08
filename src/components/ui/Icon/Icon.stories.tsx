@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { AlignCenterIcon, CloseIcon, DiceIcon, GearIcon, LogoIcon } from "./glyphs";
+import { AlignCenterIcon, CloseIcon, DiceIcon, LogoIcon } from "./glyphs";
 import { Icon } from "./Icon";
 
 const meta = {
@@ -21,9 +21,6 @@ export const Dice: Story = { args: { icon: DiceIcon } };
 
 /** One of the three for an image's alignment; left and right are drawn the same way. */
 export const AlignCenter: Story = { args: { icon: AlignCenterIcon } };
-
-/** Opens the config menu at the foot of the diary. */
-export const Gear: Story = { args: { icon: GearIcon, size: "lg" } };
 
 /** Hush's mark, at the height the header shows it. */
 export const Logo: Story = { args: { icon: LogoIcon, size: "xl" } };

@@ -18,23 +18,22 @@ export type UseDiaryScreen = {
   /** True while today is shown; it is the only day that can be written. */
   showsToday: boolean;
   select: (date: string) => void;
-  /** The days shown over the diary, on a screen too narrow for the sidebar. */
-  datesDrawer: Disclosure;
-  /** Shows `date` and puts the days shown over the diary away. */
-  selectFromDates: (date: string) => void;
-  configMenu: Disclosure;
+  /** The days, the settings, the Secret Key, and the lock, shown over the diary on a screen too narrow for the sidebar. */
+  menuDrawer: Disclosure;
+  /** Shows `date` and puts the menu shown over the diary away. */
+  selectFromMenu: (date: string) => void;
   /** The Secret Key shown over the diary. */
   secretKeyModal: Disclosure;
-  /** Closes the config menu and shows the Secret Key. */
+  /** Puts the menu away and shows the Secret Key. */
   openSecretKey: () => void;
   /** The settings shown over the diary. */
   settingsModal: Disclosure;
-  /** Closes the config menu and shows the settings. */
+  /** Puts the menu away and shows the settings. */
   openSettings: () => void;
-  /** True while the settings, the Secret Key, or the days are shown over the diary. */
+  /** True while the settings, the Secret Key, or the menu are shown over the diary. */
   covered: boolean;
-  /** Closes the config menu and locks, saving what is being written first. */
-  lockFromConfig: () => void;
+  /** Puts the menu away and locks, saving what is being written first. */
+  lockFromMenu: () => void;
   /**
    * Days with an entry, and today even before anything is written. Oldest
    * first. When the days cannot be listed, only today, and a toast says why.
@@ -42,27 +41,26 @@ export type UseDiaryScreen = {
   dates: string[];
 };
 
-/** Which day is shown, the days to choose from, and the menus and panels over the diary. */
+/** Which day is shown, the days to choose from, and the menu and panels over the diary. */
 export function useDiaryScreen(today: string): UseDiaryScreen {
   const { lock } = useSession();
   const [selected, setSelected] = useState(today);
   const listed = usePromise(listEntryDates, null, (failure) => toastError(failureText(failure)));
-  const datesDrawer = useDisclosure();
-  const configMenu = useDisclosure();
+  const menuDrawer = useDisclosure();
   const secretKeyModal = useDisclosure();
   const settingsModal = useDisclosure();
   // The setter keeps its identity across renders, so the listener is added once.
-  const setDatesOpen = datesDrawer.setOpen;
+  const setMenuOpen = menuDrawer.setOpen;
 
-  // The days shown over the diary have no place once the sidebar is back.
+  // The menu shown over the diary has no place once the sidebar is back.
   useEffect(() => {
     const wide = window.matchMedia(atLeast("md"));
     const putAway = () => {
-      if (wide.matches) setDatesOpen(false);
+      if (wide.matches) setMenuOpen(false);
     };
     wide.addEventListener("change", putAway);
     return () => wide.removeEventListener("change", putAway);
-  }, [setDatesOpen]);
+  }, [setMenuOpen]);
 
   const written = listed.status === "done" ? listed.value : [];
   return {
@@ -70,25 +68,24 @@ export function useDiaryScreen(today: string): UseDiaryScreen {
     selectedParts: dateParts(selected),
     showsToday: selected === today,
     select: setSelected,
-    datesDrawer,
-    selectFromDates: (date) => {
+    menuDrawer,
+    selectFromMenu: (date) => {
       setSelected(date);
-      datesDrawer.close();
+      menuDrawer.close();
     },
-    configMenu,
     secretKeyModal,
     openSecretKey: () => {
-      configMenu.close();
+      menuDrawer.close();
       secretKeyModal.open();
     },
     settingsModal,
     openSettings: () => {
-      configMenu.close();
+      menuDrawer.close();
       settingsModal.open();
     },
-    covered: datesDrawer.isOpen || secretKeyModal.isOpen || settingsModal.isOpen,
-    lockFromConfig: () => {
-      configMenu.close();
+    covered: menuDrawer.isOpen || secretKeyModal.isOpen || settingsModal.isOpen,
+    lockFromMenu: () => {
+      menuDrawer.close();
       void lock();
     },
     dates: written.includes(today)

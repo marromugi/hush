@@ -51,10 +51,8 @@ function fakeVault(log: string[] = []) {
   );
 }
 
-/** The dice, from the menu at the foot of today's entry, opening the menu if it is closed. */
-async function findDice() {
-  const menu = await screen.findByRole("button", { name: "メニュー" });
-  if (menu.getAttribute("aria-expanded") !== "true") fireEvent.click(menu);
+/** The dice, in the bar of tools beside today's entry. */
+function findDice() {
   return screen.findByRole("button", { name: "フォントを変える" });
 }
 
@@ -75,7 +73,42 @@ async function openNewYear2020(scope: ReturnType<typeof within>) {
   });
 }
 
-test("config opens a menu whose Secret Key item shows the key, and closing returns to config", async () => {
+/** A window narrower than md, where the menu shows over the diary instead of beside it. */
+class NarrowScreen extends EventTarget implements MediaQueryList {
+  matches = false;
+  media = "";
+  onchange = null;
+  addListener() {}
+  removeListener() {}
+}
+
+test("on a narrow screen, Secret Key in the menu shows the key, and closing it returns to MENU", async () => {
+  fakeVault();
+  vi.spyOn(window, "matchMedia").mockReturnValue(new NarrowScreen());
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+    { wrapper: InTauri },
+  );
+  const menu = await screen.findByRole("button", { name: "MENU" });
+
+  fireEvent.click(menu);
+  const drawer = await screen.findByRole("dialog", { name: "メニュー" });
+  fireEvent.click(within(drawer).getByRole("button", { name: "Secret Key" }));
+
+  const dialog = await screen.findByRole("dialog", { name: "Secret Key" });
+  expect(await screen.findByText(SECRET_KEY)).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "メニュー" })).toBeNull();
+
+  await act(async () => {
+    fireEvent.keyDown(dialog, { key: "Escape" });
+  });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(menu));
+});
+
+test("on a wide screen, closing the settings opened from the sidebar returns to 設定", async () => {
   fakeVault();
   render(
     <UnlockedSession onLock={async () => {}}>
@@ -83,23 +116,20 @@ test("config opens a menu whose Secret Key item shows the key, and closing retur
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  const config = await screen.findByRole("button", { name: "config" });
+  const settings = await screen.findByRole("button", { name: "設定" });
 
-  fireEvent.click(config);
-  fireEvent.click(await screen.findByRole("button", { name: "Secret Key" }));
-
-  const dialog = await screen.findByRole("dialog", { name: "Secret Key" });
-  expect(await screen.findByText(SECRET_KEY)).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Secret Key" })).toBeNull();
+  settings.focus();
+  fireEvent.click(settings);
+  const dialog = await screen.findByRole("dialog", { name: "設定" });
 
   await act(async () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
   });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  await waitFor(() => expect(document.activeElement).toBe(config));
+  await waitFor(() => expect(document.activeElement).toBe(settings));
 });
 
-test("ロック in the config menu locks", async () => {
+test("ロック in the menu locks", async () => {
   fakeVault();
   let locks = 0;
   render(
@@ -112,7 +142,6 @@ test("ロック in the config menu locks", async () => {
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  fireEvent.click(await screen.findByRole("button", { name: "config" }));
   await act(async () => {
     fireEvent.click(await screen.findByRole("button", { name: "ロック" }));
   });
@@ -182,7 +211,9 @@ test("the dice shows today's entry in the font it picks, and is not there for pa
 
   await openNewYear2020(within(document.body));
   await screen.findByText("この日の日記はありません。");
-  await waitFor(() => expect(screen.queryByRole("button", { name: "メニュー" })).toBeNull());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "フォントを変える" })).toBeNull(),
+  );
 });
 
 test("shaking the phone shows today's entry in another font, and does nothing on past days", async () => {
@@ -242,7 +273,7 @@ test("shaking the phone does nothing until today's entry has been read", async (
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await findDice();
   await act(async () => {
     await emit("shaken");
   });
@@ -259,8 +290,7 @@ test("shaking the phone does nothing while the settings are shown over the diary
     { wrapper: InTauri },
   );
   await waitFor(() => expect(document.querySelector(".ProseMirror")).not.toBeNull());
-  fireEvent.click(screen.getByRole("button", { name: "config" }));
-  fireEvent.click(await screen.findByRole("button", { name: "設定" }));
+  fireEvent.click(screen.getByRole("button", { name: "設定" }));
   await screen.findByRole("dialog", { name: "設定" });
   await act(async () => {
     await emit("shaken");
@@ -345,7 +375,6 @@ test("choosing English in the settings makes the dice pick among Latin fonts", a
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  fireEvent.click(await screen.findByRole("button", { name: "config" }));
   fireEvent.click(await screen.findByRole("button", { name: "設定" }));
   await screen.findByRole("dialog", { name: "設定" });
   fireEvent.click(screen.getByRole("radio", { name: "English" }));
@@ -422,7 +451,7 @@ test("past entries are in the default font too", async () => {
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await screen.findByRole("button", { name: "MENU" });
   await openNewYear2020(within(document.body));
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   expect(document.querySelector<HTMLElement>(".ProseMirror")?.parentElement?.style.fontFamily).toBe(
@@ -467,7 +496,7 @@ test("today's entry is blurred while the dice loads a font, and clear once it ha
   expect(content()?.style.fontFamily).toBe('"Klee One", cursive');
 });
 
-test("the header's button shows the days over the diary, and choosing one opens it", async () => {
+test("MENU shows the days over the diary, and choosing one opens it", async () => {
   mockIPC(
     (command, args) => {
       const date = String(args && "date" in args ? args.date : "");
@@ -487,9 +516,9 @@ test("the header's button shows the days over the diary, and choosing one opens 
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  const button = await screen.findByRole("button", { name: "日付を選ぶ" });
+  const button = await screen.findByRole("button", { name: "MENU" });
   fireEvent.click(button);
-  await openNewYear2020(within(await screen.findByRole("dialog", { name: "日付の一覧" })));
+  await openNewYear2020(within(await screen.findByRole("dialog", { name: "メニュー" })));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await waitFor(() => expect(document.querySelector(".ProseMirror")?.textContent).toBe("雪"));
   await waitFor(() => expect(document.activeElement).toBe(button));
@@ -507,7 +536,7 @@ test("the header shows Hush's mark, named for screen readers", async () => {
   expect(heading.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
 });
 
-test("the header shows the day that is open, as year.month.day", async () => {
+test("the foot shows the day that is open, as year.month.day", async () => {
   mockIPC(
     (command, args) => {
       const date = String(args && "date" in args ? args.date : "");
@@ -527,9 +556,9 @@ test("the header shows the day that is open, as year.month.day", async () => {
     </UnlockedSession>,
     { wrapper: InTauri },
   );
-  await screen.findByRole("button", { name: "メニュー" });
+  await screen.findByRole("button", { name: "MENU" });
   await openNewYear2020(within(document.body));
-  const shown = document.querySelector("header time");
+  const shown = document.querySelector("footer time");
   expect(shown?.getAttribute("datetime")).toBe("2020-01-01");
   expect(shown?.textContent).toBe("2020.1.1");
 });

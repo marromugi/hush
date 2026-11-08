@@ -15,3 +15,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+/** Inside a bar that is already raised, as the tools beside today's entry. */
+export const Plain: Story = {
+  args: { look: "plain" },
+  decorators: [
+    (Story) => (
+      <div className="inline-flex rounded-full bg-surface p-1">
+        <Story />
+      </div>
+    ),
+  ],
+};
