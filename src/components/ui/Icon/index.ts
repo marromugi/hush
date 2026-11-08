@@ -6,6 +6,7 @@ export {
   ChevronDownIcon,
   CloseIcon,
   DiceIcon,
+  ImageIcon,
   ImageOffIcon,
   LogoIcon,
   MenuIcon,

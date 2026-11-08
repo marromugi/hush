@@ -12,7 +12,7 @@ const FADE = 32;
  * match their size, and the room at the entry's end, in `DiaryScreen`. Below
  * md the bar covers the entry's right edge; from md the entry stops short of it.
  */
-const TOOLS = 52;
+const TOOLS = 88;
 
 /** The room at the top and bottom of the window, in pixels, that the header, footer, and bar of tools cover and the cursor must stay out of. */
 export function useKeepClear(): { top: number; bottom: number } {

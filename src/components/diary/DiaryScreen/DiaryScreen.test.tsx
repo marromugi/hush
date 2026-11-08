@@ -9,6 +9,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { UnlockedSession } from "@/components/vault/UnlockedSession";
 import { EntryHostContext } from "@/hooks/diary/useEntryHost";
 import * as fonts from "@/lib/diary/fonts";
+import * as pictures from "@/lib/diary/preparePicture";
 import { tauriEntryHost } from "@/lib/diary/tauriEntryHost";
 import { writeSettings } from "@/lib/settings/settings";
 
@@ -33,6 +34,7 @@ afterEach(() => {
 });
 
 const SECRET_KEY = "H1-7Q2MD-X4KZ9-B3NFT-W8RCV-H6JP0A";
+const IMAGE_ID = "0123456789abcdef0123456789abcdef";
 
 function fakeVault(log: string[] = []) {
   mockIPC(
@@ -45,6 +47,8 @@ function fakeVault(log: string[] = []) {
       }
       if (command === "list_entry_dates") return [];
       if (command === "show_secret_key") return SECRET_KEY;
+      if (command === "save_image") return IMAGE_ID;
+      if (command === "read_image") return new Uint8Array([0xff, 0xd8, 0xff]).buffer;
       throw new Error(`unexpected command ${command}`);
     },
     { shouldMockEvents: true },
@@ -156,6 +160,30 @@ function type(text: string) {
   }
   dom.editor.commands.insertContent(text);
 }
+
+test("写真を入れる puts the pictures chosen in today's entry", async () => {
+  const log: string[] = [];
+  fakeVault(log);
+  vi.spyOn(pictures, "preparePicture").mockResolvedValue(new Uint8Array([1]));
+  // The test DOM has no picker to open; the input it would open is kept to choose from.
+  const opened = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {});
+  render(
+    <UnlockedSession onLock={async () => {}}>
+      <DiaryScreen />
+    </UnlockedSession>,
+    { wrapper: InTauri },
+  );
+  const button = await screen.findByRole("button", { name: "写真を入れる" });
+  await waitFor(() => expect(button).toHaveProperty("disabled", false));
+  fireEvent.click(button);
+  const chooser = opened.mock.contexts[0];
+  if (!(chooser instanceof HTMLInputElement)) throw new Error("no picker was opened");
+  const photo = new File([], "photo.jpg", { type: "image/jpeg" });
+  fireEvent.change(chooser, { target: { files: [photo] } });
+  await waitFor(() => expect(log).toEqual([`save <img data-image="${IMAGE_ID}"><p></p>`]), {
+    timeout: 3000,
+  });
+});
 
 test("a lock the system asks for saves what was just typed first", async () => {
   const log: string[] = [];
