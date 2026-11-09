@@ -12,7 +12,8 @@ public final class VaultModel {
   /// The Secret Key of the vault just made, until the person has kept it.
   private(set) var newSecretKey: String?
   /// `nil` unless the vault opens with Touch ID or Face ID on this device.
-  /// Read again each time the locked screen comes to the front.
+  /// Read again each time the locked screen comes to the front, so that a
+  /// change in the settings counts.
   private(set) var biometry: Biometry?
   /// Whether Touch ID or Face ID was asked for since the locked screen last
   /// came to the front. The prompt takes the app out of the front itself, so
@@ -20,7 +21,8 @@ public final class VaultModel {
   private var askedForBiometry = false
   private var running: Task<Void, Never>?
 
-  private let vault: any Vault
+  /// Also for the settings, which turn Touch ID or Face ID on and off.
+  let vault: any Vault
 
   public init(vault: any Vault) {
     self.vault = vault

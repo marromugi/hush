@@ -6,3 +6,10 @@ extension EntryDate {
     "\(year).\(month).\(day)"
   }
 }
+
+extension CalendarMonth.ID {
+  /// `2026.11`, as the menu shows the month whose days it lists.
+  var title: String {
+    "\(year).\(month)"
+  }
+}
