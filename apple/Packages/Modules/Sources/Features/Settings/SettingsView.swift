@@ -17,6 +17,8 @@ struct SettingsView: View {
           model.setOn($0)
         }
       }
+      // The Mac's own form style sets the sections against the sheet's edge.
+      .formStyle(.grouped)
       .navigationTitle("設定")
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
