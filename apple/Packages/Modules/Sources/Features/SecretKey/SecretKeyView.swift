@@ -14,7 +14,7 @@ struct SecretKeyView: View {
   var body: some View {
     NavigationStack {
       VStack(alignment: .leading, spacing: 16) {
-        Text("ほかの端末で日記帳を開くときに、パスフレーズと一緒に要ります。")
+        Text(SecretKeyCard.purpose)
         switch model.reading {
         case .inProgress:
           ProgressView()

@@ -7,7 +7,7 @@ struct SecretKeyNoticeView: View {
 
   var body: some View {
     VaultPage(title: "Secret Key を控えてください") {
-      Text("ほかの端末で日記帳を開くときに、パスフレーズと一緒に要ります。")
+      Text(SecretKeyCard.purpose)
       Text("なくすと、パスフレーズを覚えていても、ほかの端末では日記を開けません。")
       SecretKeyCard(secretKey: secretKey)
       Button("控えました", action: onKept)

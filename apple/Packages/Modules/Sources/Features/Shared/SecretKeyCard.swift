@@ -15,6 +15,11 @@ struct SecretKeyCard: View {
   }
 }
 
+extension SecretKeyCard {
+  /// What a Secret Key is for, said wherever one is shown.
+  static let purpose: LocalizedStringKey = "ほかの端末で日記帳を開くときに、パスフレーズと一緒に要ります。"
+}
+
 #Preview {
   SecretKeyCard(secretKey: "H1-ABCDE-FGHJK-MNPQR-STVWX-YZ0123")
     .padding()
