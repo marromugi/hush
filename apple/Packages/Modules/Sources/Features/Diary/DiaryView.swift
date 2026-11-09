@@ -89,7 +89,7 @@ struct DiaryView: View {
     DiaryMenu(
       years: model.years, failure: model.listingFailure, selected: model.selected,
       locking: model.today.locking, onChoose: choose, onSettings: openSettings,
-      onLock: { model.today.lock(then: onLock) })
+      onLock: lock)
   }
 
   private func openMenu() {
@@ -108,6 +108,13 @@ struct DiaryView: View {
   private func openSettings() {
     closeMenu()
     showsSettings = true
+  }
+
+  /// Puts the menu away first, so that a save that keeps the vault open
+  /// shows why.
+  private func lock() {
+    closeMenu()
+    model.today.lock(then: onLock)
   }
 }
 
