@@ -43,7 +43,7 @@ public struct VaultView: View {
         } else {
           DiaryView(
             vault: model.vault, diary: diary, host: entryHost, files: editorFiles,
-            onLock: model.lock)
+            onLock: model.lock, onLockByHand: { model.lockByHand() })
         }
       }
     }

@@ -21,12 +21,15 @@ struct DiaryView: View {
   private let diary: any Diary
   let host: any EntryHost
   let files: EditorFiles
+  /// Locks when the diary is left unattended.
   let onLock: () -> Void
+  /// Locks when the person chooses ロック in the menu.
+  let onLockByHand: () -> Void
 
   /// `vault` is for the settings.
   init(
     vault: any Vault, diary: any Diary, host: any EntryHost, files: EditorFiles,
-    onLock: @escaping () -> Void
+    onLock: @escaping () -> Void, onLockByHand: @escaping () -> Void
   ) {
     _model = State(initialValue: DiaryModel(diary: diary))
     self.vault = vault
@@ -34,6 +37,7 @@ struct DiaryView: View {
     self.host = host
     self.files = files
     self.onLock = onLock
+    self.onLockByHand = onLockByHand
   }
 
   var body: some View {
@@ -114,7 +118,7 @@ struct DiaryView: View {
   /// shows why.
   private func lock() {
     closeMenu()
-    model.today.lock(then: onLock)
+    model.today.lock(then: onLockByHand)
   }
 }
 
@@ -136,12 +140,16 @@ private struct Scrim: View {
   DiaryView(
     vault: FakeVault(status: .unlocked), diary: FakeDiary(), host: FakeEntryHost(),
     files: EditorFiles(folder: Bundle.main.bundleURL)
-  ) {}
+  ) {
+  } onLockByHand: {
+  }
 }
 
 #Preview("一覧を作れない") {
   DiaryView(
     vault: FakeVault(status: .unlocked), diary: FakeDiary(failure: .unexpected),
     host: FakeEntryHost(), files: EditorFiles(folder: Bundle.main.bundleURL)
-  ) {}
+  ) {
+  } onLockByHand: {
+  }
 }

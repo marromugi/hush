@@ -94,6 +94,18 @@ public final class VaultModel {
     askedForBiometry = false
   }
 
+  /// Locks at the person's own asking, with the locked screen in front of
+  /// them. Touch ID or Face ID then waits for its button, or for the screen
+  /// to come to the front again: asked at once, Face ID would open the
+  /// vault again as soon as it saw the face. Returns the task that reads
+  /// whether it is on, for the button.
+  @discardableResult
+  func lockByHand() -> Task<Void, Never> {
+    lock()
+    askedForBiometry = true
+    return Task { biometry = await biometryTurnedOn() }
+  }
+
   /// Shown under "Touch ID" in the system prompt.
   private static let biometryReason = "日記帳を開きます。"
 
