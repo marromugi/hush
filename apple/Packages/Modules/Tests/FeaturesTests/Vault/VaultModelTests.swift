@@ -42,6 +42,24 @@ struct VaultModelTests {
     #expect(model.status == .locked)
   }
 
+  @Test func lockingByHandAsksForFaceIdOnlyAfterTheAppComesBack() async throws {
+    let vault = FakeVault(
+      status: .unlocked, biometry: BiometryStatus(biometry: .faceID, isOn: true))
+    let model = VaultModel(vault: vault)
+    await model.load()
+
+    await model.lockByHand().value
+    #expect(model.status == .locked)
+    #expect(model.biometry == .faceID)
+    // The locked screen comes up in front of the person.
+    #expect(model.sceneChanged(to: .active) == nil)
+    #expect(await vault.biometryAsks == 0)
+
+    model.sceneChanged(to: .background)
+    await (try #require(model.sceneChanged(to: .active))).value
+    #expect(await vault.biometryAsks == 1)
+  }
+
   @Test func theLockedScreenOpensWithTouchIdWhenItIsOn() async throws {
     let vault = FakeVault(status: .locked, biometry: BiometryStatus(biometry: .touchID, isOn: true))
     let model = VaultModel(vault: vault)

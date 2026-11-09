@@ -152,6 +152,7 @@ struct TodayModelTests {
     var locked = false
     await model.lock { locked = true }.value
     #expect(!locked)
+    #expect(!model.locking)
     #expect(model.saveMessage == .failed(.unexpected))
   }
 }
