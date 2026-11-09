@@ -15,7 +15,7 @@ struct DiaryView: View {
   @State private var wide = false
   /// Whether MENU slid the menu over the day.
   @State private var menuShown = false
-  @State private var showsSettings = false
+  @State private var sheet: DiarySheet?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   private let vault: any Vault
   private let diary: any Diary
@@ -26,7 +26,7 @@ struct DiaryView: View {
   /// Locks when the person chooses ロック in the menu.
   let onLockByHand: () -> Void
 
-  /// `vault` is for the settings.
+  /// `vault` is for the settings and the Secret Key.
   init(
     vault: any Vault, diary: any Diary, host: any EntryHost, files: EditorFiles,
     onLock: @escaping () -> Void, onLockByHand: @escaping () -> Void
@@ -90,7 +90,12 @@ struct DiaryView: View {
         menuShown = false
       }
     }
-    .sheet(isPresented: $showsSettings) { SettingsView(vault: vault) }
+    .sheet(item: $sheet) { sheet in
+      switch sheet {
+      case .settings: SettingsView(vault: vault)
+      case .secretKey: SecretKeyView(vault: vault)
+      }
+    }
     .task { await model.load() }
     .lockWhenLeftUnattended { model.today.lock(then: onLock) }
   }
@@ -101,8 +106,8 @@ struct DiaryView: View {
   private var menu: DiaryMenu {
     DiaryMenu(
       years: model.years, failure: model.listingFailure, selected: model.selected,
-      locking: model.today.locking, onChoose: choose, onSettings: openSettings,
-      onLock: lock)
+      locking: model.today.locking, onChoose: choose, onSettings: { open(.settings) },
+      onSecretKey: { open(.secretKey) }, onLock: lock)
   }
 
   private func openMenu() {
@@ -118,9 +123,9 @@ struct DiaryView: View {
     closeMenu()
   }
 
-  private func openSettings() {
+  private func open(_ sheet: DiarySheet) {
     closeMenu()
-    showsSettings = true
+    self.sheet = sheet
   }
 
   /// Puts the menu away first, so that a save that keeps the vault open
@@ -129,6 +134,14 @@ struct DiaryView: View {
     closeMenu()
     model.today.lock(then: onLockByHand)
   }
+}
+
+/// What the menu opens over the diary.
+private enum DiarySheet: Identifiable {
+  case settings
+  case secretKey
+
+  var id: Self { self }
 }
 
 /// The day dimmed behind the menu slid over it; a tap on it closes the menu.

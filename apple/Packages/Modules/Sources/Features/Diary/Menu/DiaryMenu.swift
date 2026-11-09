@@ -1,9 +1,10 @@
 import CoreEntrance
 import SwiftUI
 
-/// The menu beside the diary: the days to choose from, and the settings and
-/// the lock at its foot (`Sidebar` and `ConfigList` in the Tauri app). Only
-/// the days scroll, so the settings and the lock stay in view.
+/// The menu beside the diary: the days to choose from, and the settings,
+/// the Secret Key, and the lock at its foot (`Sidebar` and `ConfigList` in
+/// the Tauri app). Only the days scroll, so the items at the foot stay in
+/// view.
 struct DiaryMenu: View {
   let years: [CalendarYear]
   /// Why the days could not be listed; only today is listed then.
@@ -13,6 +14,7 @@ struct DiaryMenu: View {
   let locking: Bool
   let onChoose: (EntryDate) -> Void
   let onSettings: () -> Void
+  let onSecretKey: () -> Void
   let onLock: () -> Void
 
   var body: some View {
@@ -29,6 +31,7 @@ struct DiaryMenu: View {
       .scrollBounceBehavior(.basedOnSize)
       VStack(alignment: .leading, spacing: 0) {
         Button("設定", action: onSettings)
+        Button("Secret Key", action: onSecretKey)
         Button("ロック", action: onLock)
           .disabled(locking)
       }
@@ -44,19 +47,19 @@ struct DiaryMenu: View {
   let lastYear = EntryDate(of: .now.addingTimeInterval(-366 * 24 * 60 * 60))
   DiaryMenu(
     years: calendar(of: [lastYear, today]), failure: nil, selected: today, locking: false,
-    onChoose: { _ in }, onSettings: {}, onLock: {})
+    onChoose: { _ in }, onSettings: {}, onSecretKey: {}, onLock: {})
 }
 
 #Preview("一覧を作れない") {
   let today = EntryDate(of: .now)
   DiaryMenu(
     years: calendar(of: [today]), failure: .unexpected, selected: today, locking: false,
-    onChoose: { _ in }, onSettings: {}, onLock: {})
+    onChoose: { _ in }, onSettings: {}, onSecretKey: {}, onLock: {})
 }
 
 #Preview("ロック中") {
   let today = EntryDate(of: .now)
   DiaryMenu(
     years: calendar(of: [today]), failure: nil, selected: today, locking: true,
-    onChoose: { _ in }, onSettings: {}, onLock: {})
+    onChoose: { _ in }, onSettings: {}, onSecretKey: {}, onLock: {})
 }

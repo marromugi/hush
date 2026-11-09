@@ -6,7 +6,8 @@ public enum AppError: Error, Equatable, Sendable {
   case wrongPassphraseOrSecretKey
   /// The typed text is not a Secret Key.
   case invalidSecretKey
-  /// This device has no Secret Key for the vault, so it has to be typed.
+  /// This device has no Secret Key for the vault. Opening the vault then
+  /// needs it typed.
   case noSecretKey
   /// The vault was made by a newer version of the app.
   case newerVault
