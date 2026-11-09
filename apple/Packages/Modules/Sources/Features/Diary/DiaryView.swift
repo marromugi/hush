@@ -65,6 +65,13 @@ struct DiaryView: View {
           .background {
             Color.page
               .shadow(color: .black.opacity(0.15), radius: 16)
+              // The shadow is lost on a dark page; the edge still shows
+              // where the menu ends.
+              .overlay(alignment: .trailing) {
+                Rectangle()
+                  .fill(.separator)
+                  .frame(width: 1)
+              }
               .ignoresSafeArea()
           }
           .accessibilityAddTraits(.isModal)
