@@ -72,7 +72,9 @@ struct DiaryView: View {
           .transition(reduceMotion ? AnyTransition.opacity : .move(edge: .leading))
       }
     }
-    .background(Color.page)
+    // Under the keyboard too: the day reaches under it, and the corners of
+    // a floating keyboard show what lies behind.
+    .background { Color.page.ignoresSafeArea() }
     .onGeometryChange(for: Bool.self) {
       $0.size.width >= Self.wideWidth
     } action: { wide in
