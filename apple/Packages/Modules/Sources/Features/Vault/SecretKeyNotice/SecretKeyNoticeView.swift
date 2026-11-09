@@ -9,12 +9,7 @@ struct SecretKeyNoticeView: View {
     VaultPage(title: "Secret Key を控えてください") {
       Text("ほかの端末で日記帳を開くときに、パスフレーズと一緒に要ります。")
       Text("なくすと、パスフレーズを覚えていても、ほかの端末では日記を開けません。")
-      Text(secretKey)
-        .font(.system(.title3, design: .monospaced))
-        .textSelection(.enabled)
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
+      SecretKeyCard(secretKey: secretKey)
       Button("控えました", action: onKept)
         .buttonStyle(.borderedProminent)
     }
