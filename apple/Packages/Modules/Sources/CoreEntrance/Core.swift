@@ -56,6 +56,12 @@ extension Core: Vault {
   public func turnOffBiometry() async throws(AppError) {
     try await call { try handle.turnOffBiometry() }
   }
+
+  /// Reads the keychain, so it leaves the main actor.
+  @concurrent
+  public func secretKey() async throws(AppError) -> String {
+    try await call { try handle.secretKey() }
+  }
 }
 
 extension Core: Diary {

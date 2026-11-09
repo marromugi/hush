@@ -17,4 +17,6 @@ public protocol Vault: Sendable {
   /// it is open.
   func turnOnBiometry() async throws(AppError)
   func turnOffBiometry() async throws(AppError)
+  /// The vault's Secret Key as text, to show again. Only while it is open.
+  func secretKey() async throws(AppError) -> String
 }

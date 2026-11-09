@@ -2,10 +2,10 @@
   /// A vault that answers with the values it is given, for previews and tests.
   public actor FakeVault: Vault {
     private let vaultStatus: VaultStatus
-    /// Thrown by `create`, `unlock`, and turning Touch ID or Face ID on or
-    /// off; `nil` lets them succeed.
+    /// Thrown by `create`, `unlock`, turning Touch ID or Face ID on or off,
+    /// and reading the Secret Key; `nil` lets them succeed.
     private let failure: AppError?
-    private let secretKey: String
+    private let secretKeyText: String
     private var biometry: BiometryStatus
     /// Thrown by `unlockWithBiometry`; `nil` lets it succeed.
     private let biometryFailure: AppError?
@@ -21,7 +21,7 @@
     ) {
       vaultStatus = status
       self.failure = failure
-      self.secretKey = secretKey
+      secretKeyText = secretKey
       self.biometry = biometry
       self.biometryFailure = biometryFailure
     }
@@ -32,7 +32,7 @@
 
     public func create(passphrase: String) async throws(AppError) -> String {
       if let failure { throw failure }
-      return secretKey
+      return secretKeyText
     }
 
     public func unlock(passphrase: String, secretKey: String?) async throws(AppError) {
@@ -58,6 +58,11 @@
     public func turnOffBiometry() async throws(AppError) {
       if let failure { throw failure }
       biometry.isOn = false
+    }
+
+    public func secretKey() async throws(AppError) -> String {
+      if let failure { throw failure }
+      return secretKeyText
     }
   }
 #endif

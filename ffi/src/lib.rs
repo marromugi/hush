@@ -135,6 +135,11 @@ impl CoreHandle {
         Ok(session::turn_off_biometry(&self.state)?)
     }
 
+    /// The open vault's Secret Key as text, to show again. Only while unlocked.
+    pub fn secret_key(&self) -> Result<String, CoreFailure> {
+        Ok(session::secret_key_text(&self.state)?)
+    }
+
     /// `None` when nothing was written on `date` (`YYYY-MM-DD`).
     pub fn read_entry(&self, date: String) -> Result<Option<EntryView>, CoreFailure> {
         Ok(session::read_entry(&self.state, date)?)
