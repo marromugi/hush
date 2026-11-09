@@ -29,8 +29,6 @@ final class TodayModel {
   private(set) var saving = false
   /// The last save failure, until a save succeeds.
   private(set) var saveFailure: AppError?
-  /// True from asking to lock until the vault locks or the save fails.
-  private(set) var locking = false
   /// The save waiting for typing to pause.
   private var waiting: Task<Void, Never>?
   /// The last save asked for. Saves run one after another.
@@ -115,12 +113,8 @@ final class TodayModel {
   @discardableResult
   func lock(then lockVault: @escaping () -> Void) -> Task<Void, Never> {
     if let lockTask { return lockTask }
-    locking = true
     let task = Task {
-      defer {
-        locking = false
-        lockTask = nil
-      }
+      defer { lockTask = nil }
       // A change can arrive after a save ends and before this task resumes;
       // the vault locks only once nothing is left unsaved.
       repeat {

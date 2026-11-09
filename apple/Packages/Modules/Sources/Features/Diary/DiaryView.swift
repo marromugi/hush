@@ -1,73 +1,47 @@
 import CoreEntrance
 import SwiftUI
 
-/// The diary once the vault is open: years and months, a month's days, and
-/// the day chosen. Today is written; the days before it are read only. On a
-/// narrow screen the three are one stack, opened at today.
+/// The diary once the vault is open: today's entry, written in the editor,
+/// with how saving stands above it and the day below it. The days before
+/// today, the settings, and the lock button are not shown yet; the vault
+/// still locks when the diary is left unattended.
 struct DiaryView: View {
-  @State private var model: DiaryModel
-  /// Today's entry first on a narrow screen, not the list.
-  @State private var column = NavigationSplitViewColumn.detail
-  @State private var showsSettings = false
-  private let vault: any Vault
-  private let diary: any Diary
+  @State private var today: TodayModel
   let host: any EntryHost
   let files: EditorFiles
   let onLock: () -> Void
 
-  /// `vault` is for the settings.
   init(
-    vault: any Vault, diary: any Diary, host: any EntryHost, files: EditorFiles,
-    onLock: @escaping () -> Void
+    diary: any Diary, host: any EntryHost, files: EditorFiles, onLock: @escaping () -> Void
   ) {
-    _model = State(initialValue: DiaryModel(diary: diary))
-    self.vault = vault
-    self.diary = diary
+    _today = State(initialValue: TodayModel(diary: diary))
     self.host = host
     self.files = files
     self.onLock = onLock
   }
 
   var body: some View {
-    NavigationSplitView(preferredCompactColumn: $column) {
-      YearsView(years: model.years, failure: model.listingFailure, month: $model.month)
-    } content: {
-      DaysView(month: model.shownMonth, selected: $model.selected)
-    } detail: {
-      Group {
-        if let date = model.selected {
-          if date == model.today.date {
-            TodayView(model: model.today, host: host, files: files)
-          } else {
-            PastEntryView(diary: diary, date: date, host: host, files: files)
-              .id(date)
-          }
-        }
-      }
-      .navigationTitle(model.selected?.title ?? "")
-      // A small title, so the entry starts near the top.
-      .toolbarTitleDisplayMode(.inline)
+    TodayView(model: today, host: host, files: files)
       .safeAreaInset(edge: .top, spacing: 0) {
-        SaveFailureBar(failure: model.today.saveFailure)
-      }
-      .toolbar {
-        ToolbarItem(placement: .primaryAction) {
-          Button("ロック") { model.today.lock(then: onLock) }
-            .disabled(model.today.locking)
-        }
-        ToolbarItem(placement: .secondaryAction) {
-          Button("設定", systemImage: "gearshape") { showsSettings = true }
+        VStack(spacing: 0) {
+          DiaryHeader(saveMessage: today.saveMessage)
+          SaveFailureBar(failure: today.saveFailure)
         }
       }
-    }
-    .sheet(isPresented: $showsSettings) { SettingsView(vault: vault) }
-    .task { await model.load() }
-    .lockWhenLeftUnattended { model.today.lock(then: onLock) }
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        DiaryFooter(date: today.date)
+          .hiddenUnderKeyboard()
+      }
+      // The footer stays at the foot, behind the keyboard: WebKit keeps the
+      // cursor clear of the keyboard, but not of a bar riding on top of it.
+      .ignoresSafeArea(.keyboard)
+      .background(Color.page)
+      .task { await today.load() }
+      .lockWhenLeftUnattended { today.lock(then: onLock) }
   }
 }
 
-/// Why today's entry was not saved, until a save succeeds. Shown on every
-/// day, since the lock waits for that save.
+/// Why today's entry was not saved, until a save succeeds.
 private struct SaveFailureBar: View {
   let failure: AppError?
 
@@ -82,23 +56,15 @@ private struct SaveFailureBar: View {
   }
 }
 
-extension DiaryModel {
-  fileprivate var listingFailure: AppError? {
-    if case .failed(let failure) = listing { failure } else { nil }
-  }
-}
-
 #Preview("今日") {
   DiaryView(
-    vault: FakeVault(status: .unlocked), diary: FakeDiary(), host: FakeEntryHost(),
-    files: EditorFiles(folder: Bundle.main.bundleURL)
+    diary: FakeDiary(), host: FakeEntryHost(), files: EditorFiles(folder: Bundle.main.bundleURL)
   ) {}
 }
 
-#Preview("一覧を作れない") {
+#Preview("読めない日") {
   DiaryView(
-    vault: FakeVault(status: .unlocked), diary: FakeDiary(failure: .unexpected),
-    host: FakeEntryHost(),
+    diary: FakeDiary(failure: .brokenEntry), host: FakeEntryHost(),
     files: EditorFiles(folder: Bundle.main.bundleURL)
   ) {}
 }
