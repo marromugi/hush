@@ -2,7 +2,8 @@
   /// A vault that answers with the values it is given, for previews and tests.
   public actor FakeVault: Vault {
     private let vaultStatus: VaultStatus
-    /// Thrown by `create` and `unlock`; `nil` lets them succeed.
+    /// Thrown by `create`, `unlock`, and turning Touch ID or Face ID on or
+    /// off; `nil` lets them succeed.
     private let failure: AppError?
     private let secretKey: String
     private var biometry: BiometryStatus

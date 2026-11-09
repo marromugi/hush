@@ -19,7 +19,7 @@ final class DiaryModel {
   /// The day shown. Today at first.
   private(set) var selected: EntryDate
 
-  /// Days with an entry, without today.
+  /// Days with an entry, as last listed; today among them once it has one.
   private var written: [EntryDate] = []
   private let diary: any Diary
 
