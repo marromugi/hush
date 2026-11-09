@@ -9,6 +9,7 @@ struct SecretKeyNoticeView: View {
     VaultPage(title: "Secret Key を控えてください") {
       Text(SecretKeyCard.purpose)
       Text("なくすと、パスフレーズを覚えていても、ほかの端末では日記を開けません。")
+      Text("あとからでも、日記帳を開いて、日付の一覧の下の「Secret Key」から見られます。")
       SecretKeyCard(secretKey: secretKey)
       Button("控えました", action: onKept)
         .buttonStyle(.borderedProminent)
